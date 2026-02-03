@@ -357,7 +357,9 @@ function AdminManagement () {
                       </td>
                       <td>{visitor.email}</td>
                       <td>{visitor.phoneNo}</td>
-                      <td className='capitalize'>{visitor.role}</td>
+                      <td className='capitalize'>
+                        {visitor.role.replace(/_/g, ' ')}
+                      </td>
                       <td>
                         <div
                           className={clsx(

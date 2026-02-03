@@ -489,26 +489,39 @@ const getAllUsers = async (req, res, next) => {
       ]
     }
 
-    console.log(req.query)
-
     // filters
     if (status) query.status = status
-    // if (role) query.role = role
+    if (role) {
+      if (role === 'admin') {
+        query.role = { $in: ['admin', 'head_admin'] } // FIXED: Now includes both admin and head_admin
+      } else {
+        query.role = role
+      }
+    }
 
-    // search
+    // search - FIXED: Properly handles both showDeleted and search conditions
     if (search) {
       const regex = { $regex: search, $options: 'i' }
-      query.$or = [
+      const searchConditions = [
         { firstname: regex },
         { middlename: regex },
         { lastname: regex },
         { email: regex },
         { phoneNo: regex }
       ]
+
+      // If query already has $or from showDeleted condition
+      if (query.$or) {
+        // Wrap both conditions in $and
+        query.$and = [{ $or: query.$or }, { $or: searchConditions }]
+        delete query.$or // Remove the original $or
+      } else {
+        query.$or = searchConditions
+      }
     }
 
-    // pagination
-    const limit = parseInt(perPage)
+    // pagination with defaults
+    const limit = perPage ? parseInt(perPage) : 20
     const skip = (parseInt(page) - 1) * limit
 
     // sorting

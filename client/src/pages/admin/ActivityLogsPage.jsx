@@ -268,14 +268,14 @@ function ActivityLogsPage () {
                       {(page - 1) * filters.perPage + index + 1}
                     </td>
                     <td className='capitalize'>
-                      {activityLog.performedBy.role.replace(/_/g, ' ')}
+                      {activityLog?.performedBy?.role?.replace(/_/g, ' ')}
                     </td>
                     <td className='capitalize  max-w-42'>
-                      {`${activityLog.performedBy.firstname} ${activityLog.performedBy.lastname}`}
+                      {`${activityLog?.performedBy?.firstname} ${activityLog?.performedBy?.lastname}`}
                     </td>
-                    <td>{activityLog.action}</td>
+                    <td>{activityLog?.action}</td>
                     <td>
-                      {DateTime.fromISO(activityLog.createdAt)
+                      {DateTime.fromISO(activityLog?.createdAt)
                         .setZone('Asia/Manila')
                         .toFormat('MMM d, yyyy hh:mm a')}
                     </td>
