@@ -493,7 +493,7 @@ const getAllUsers = async (req, res, next) => {
 
     // filters
     if (status) query.status = status
-    if (role) query.role = role
+    // if (role) query.role = role
 
     // search
     if (search) {
