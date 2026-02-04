@@ -415,53 +415,6 @@ const Dashboard = () => {
     cutout: '50%'
   }
 
-  // LINE CHART OPTIONS (NO DATALABELS)
-  const lineChartOptions = {
-    ...createBaseOptions(true),
-    plugins: {
-      ...createBaseOptions(true).plugins,
-      datalabels: {
-        display: false // NO TEXT for line chart
-      },
-      legend: {
-        display: true,
-        position: 'bottom',
-        labels: {
-          usePointStyle: true,
-          padding: 15,
-          boxWidth: 12,
-          font: { size: 12 }
-        }
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        position: 'left',
-        grid: { color: 'rgba(0, 0, 0, 0.05)' },
-        ticks: {
-          color: colors.green,
-          font: { size: 11 },
-          callback: value => value.toLocaleString()
-        }
-      },
-      y1: {
-        beginAtZero: true,
-        position: 'right',
-        grid: { drawOnChartArea: false },
-        ticks: {
-          color: colors.red,
-          font: { size: 11 },
-          callback: value => value.toLocaleString()
-        }
-      },
-      x: {
-        grid: { display: false },
-        ticks: { color: '#6b7280' }
-      }
-    }
-  }
-
   // STACKED BAR CHART OPTIONS - TEXT CENTERED IN EACH SEGMENT
   const stackedBarOptions = {
     ...createBaseOptions(true),
@@ -562,20 +515,23 @@ const Dashboard = () => {
     }
   }
 
-  // Chart data functions (keeping the same as before but simplified)
+  // Replace the getLineChartData function with this:
   const getLineChartData = () => {
     if (!analytics?.charts?.weeklyDeployments)
       return { labels: [], datasets: [] }
+
     return {
       labels: analytics.charts.weeklyDeployments.labels,
       datasets: [
         {
           label: 'Completed',
-          data: analytics.charts.weeklyDeployments.completedData,
+          data: analytics.charts.weeklyDeployments.completedData.map(val =>
+            Math.round(val)
+          ),
           borderColor: colors.green,
           backgroundColor: `${colors.green}20`,
           borderWidth: 3,
-          fill: true,
+          fill: false,
           tension: 0.4,
           pointBackgroundColor: colors.green,
           pointBorderColor: '#ffffff',
@@ -585,20 +541,68 @@ const Dashboard = () => {
         },
         {
           label: 'Canceled',
-          data: analytics.charts.weeklyDeployments.canceledData,
+          data: analytics.charts.weeklyDeployments.canceledData.map(val =>
+            Math.round(val)
+          ),
           borderColor: colors.red,
           backgroundColor: `${colors.red}20`,
           borderWidth: 3,
-          fill: true,
+          fill: false,
           tension: 0.4,
           pointBackgroundColor: colors.red,
           pointBorderColor: '#ffffff',
           pointBorderWidth: 2,
           pointRadius: 4,
-          pointHoverRadius: 6,
-          yAxisID: 'y1'
+          pointHoverRadius: 6
         }
       ]
+    }
+  }
+
+  // Replace the lineChartOptions object with this:
+  const lineChartOptions = {
+    ...createBaseOptions(true),
+    plugins: {
+      ...createBaseOptions(true).plugins,
+      datalabels: {
+        display: false // NO TEXT for line chart
+      },
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          padding: 15,
+          boxWidth: 12,
+          font: { size: 12 }
+        }
+      },
+      tooltip: {
+        ...createBaseOptions(true).plugins.tooltip,
+        callbacks: {
+          label: function (context) {
+            const label = context.dataset.label || ''
+            const value = context.raw || 0
+            return `${label}: ${Math.round(value).toLocaleString()}`
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+        ticks: {
+          color: '#6b7280',
+          font: { size: 11 },
+          callback: value => Math.round(value).toLocaleString(),
+          stepSize: 1 // Ensure whole numbers only
+        }
+      },
+      x: {
+        grid: { display: false },
+        ticks: { color: '#6b7280' }
+      }
     }
   }
 
@@ -736,7 +740,11 @@ const Dashboard = () => {
     if (!analytics?.charts?.truckStatus) return { labels: [], datasets: [] }
     const backgroundColors = analytics.charts.truckStatus.labels.map(label => {
       const lowerLabel = label.toLowerCase()
-      if (lowerLabel.includes('available')) return truckStatusColors.available
+      if (
+        lowerLabel.includes('available') &&
+        !lowerLabel.includes('unavailable')
+      )
+        return truckStatusColors.available
       if (lowerLabel.includes('deployed')) return truckStatusColors.deployed
       if (lowerLabel.includes('unavailable'))
         return truckStatusColors.unavailable
@@ -1405,7 +1413,7 @@ const Dashboard = () => {
                 />
                 <MetricCard
                   icon={HiOutlineCube}
-                  title='Avg Sacks'
+                  title='Avg Sacks per Trip'
                   value={
                     analytics.performanceMetrics.avgSacksPerDeployment?.toFixed(
                       1
@@ -1418,7 +1426,7 @@ const Dashboard = () => {
                 />
                 <MetricCard
                   icon={HiOutlineScale}
-                  title='Avg Weight'
+                  title='Avg Weight per Trip'
                   value={`${
                     analytics.performanceMetrics.avgWeightPerDeployment?.toFixed(
                       1
@@ -1526,7 +1534,7 @@ const Dashboard = () => {
                     <p className='text-gray-500 text-sm'>Operational status</p>
                   </div>
                   <div className='h-64'>
-                    <Pie
+                    <Doughnut
                       data={getTruckStatusData()}
                       options={pieDoughnutOptions}
                     />

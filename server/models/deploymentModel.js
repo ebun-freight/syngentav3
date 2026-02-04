@@ -99,6 +99,10 @@ const deploymentSchema = new mongoose.Schema(
     flaggingRemarks: {
       type: String
     },
+    cancellationReason: {
+      type: String,
+      default: ''
+    },
     isSoftDeleted: {
       type: Boolean,
       default: false

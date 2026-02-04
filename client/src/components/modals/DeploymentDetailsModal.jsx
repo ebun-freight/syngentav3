@@ -1400,44 +1400,32 @@ function DeploymentDetailsModal ({
                       onChange={handleChange}
                     />
 
-                    <InputField
-                      label='Flagging Remarks'
-                      type='text'
-                      name='flaggingRemarks'
-                      placeholder=''
-                      maxLength={50}
-                      value={editForm?.flaggingRemarks}
-                      disabled={!isEditMode}
-                      onChange={handleChange}
-                      isRequired={false}
-                    />
-
-                    {/* <label className='flex flex-col gap-1'>
-                      <span className='uppercase text-xs text-gray-500 font-semibold'>
-                        Destination
-                      </span>
-                      {isEditMode ? (
-                        <div className='relative'>
-                          <select
-                            name='destination'
-                            value={editForm?.destination}
-                            onChange={handleChange}
-                            className='outline outline-gray-200 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
-                          >
-                            {PICKUP_LOCATION.map((item, index) => (
-                              <option key={index} value={item}>
-                                {item}
-                              </option>
-                            ))}
-                          </select>
-                          <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
-                        </div>
-                      ) : (
-                        <div className='outline outline-gray-200 px-3 py-2 rounded'>
-                          {editForm?.destination}
-                        </div>
-                      )}
-                    </label> */}
+                    {isEditMode && editForm?.status === 'canceled' ? (
+                      <InputField
+                        label='Cancellation Reason'
+                        type='text'
+                        name='cancellationReason'
+                        placeholder=''
+                        maxLength={50}
+                        value={editForm?.cancellationReason}
+                        disabled={!isEditMode}
+                        onChange={handleChange}
+                        isRequired={false}
+                        isCapitalize={false}
+                      />
+                    ) : (
+                      <InputField
+                        label='Flagging Remarks'
+                        type='text'
+                        name='flaggingRemarks'
+                        placeholder=''
+                        maxLength={50}
+                        value={editForm?.flaggingRemarks}
+                        disabled={!isEditMode}
+                        onChange={handleChange}
+                        isRequired={false}
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -1580,9 +1568,12 @@ const InputField = ({
   // Regular input field
   return (
     <label className={`col-span-${colSpan} flex flex-col gap-1`}>
-      <span className='uppercase text-xs text-gray-500 font-semibold'>
-        {label}
-      </span>
+      <p className='uppercase text-xs text-gray-500 font-semibold'>
+        {label}{' '}
+        {name === 'cancellationReason' && (
+          <span className='text-red-500'>*</span>
+        )}
+      </p>
       <input
         type={type}
         name={name}

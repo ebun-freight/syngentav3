@@ -414,6 +414,7 @@ function UserDetailsModal ({
                         value={editForm?.password}
                         disabled={!isEditMode || isLoading}
                         onChange={handleChange}
+                        isRequired={false}
                       />
 
                       <InputField
@@ -424,6 +425,7 @@ function UserDetailsModal ({
                         value={editForm?.confirmPassword}
                         disabled={!isEditMode || isLoading}
                         onChange={handleChange}
+                        isRequired={false}
                       />
                     </>
                   )}

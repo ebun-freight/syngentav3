@@ -482,6 +482,8 @@ const getAllUsers = async (req, res, next) => {
       return next(createError(403, 'Access denied'))
     }
 
+    query._id = { $ne: req.user._id }
+
     if (showDeleted !== 'true') {
       query.$or = [
         { isSoftDeleted: false },
