@@ -4,19 +4,43 @@ import { Link } from 'react-router'
 import { TbLogout, TbUserSquareRounded } from 'react-icons/tb'
 import { useUserContext } from '../contexts/UserContext'
 import LogoutModal from './modals/LogoutModal'
-import { no_image, placeholder_user, user_placeholder } from '../consts/images'
+import { no_image } from '../consts/images'
 import clsx from 'clsx'
+import { HiOutlineMenuAlt2 } from 'react-icons/hi'
+import { useUIContext } from '../contexts/UIContext'
 
 function TopBar () {
   const { userData } = useUserContext()
+  const { isSideBarOpen, setIsSideBarOpen } = useUIContext()
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
+
+  const handleOpenSideBar = () => {
+    setIsSideBarOpen(prev => !prev)
+  }
 
   return (
     <>
       <header className='bg-white py-2 px-8 flex items-center shadow-card3'>
+        {/* big screen burger button */}
+        <button
+          onClick={handleOpenSideBar}
+          className='hover:bg-gray-100 p-0 rounded-md text-3xl cursor-pointer'
+        >
+          <HiOutlineMenuAlt2 />
+        </button>
+
+        {/* small screen burger button */}
+        {/* <button
+          onClick={handleOpenSideBar}
+          className='hover:bg-gray-100 p-0 rounded-md text-3xl cursor-pointer block xl:hidden text-red-500'
+        >
+          <HiOutlineMenuAlt2 />
+        </button> */}
+
         <LiveClock />
 
+        {/* user profile */}
         <div className='ml-auto dropdown'>
           <div
             tabIndex={0}

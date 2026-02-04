@@ -238,7 +238,7 @@ const Dashboard = () => {
     plugins: {
       legend: {
         display: showLegend,
-        position: 'left',
+        position: 'bottom',
         labels: {
           font: { size: 11 },
           boxWidth: 12,
@@ -1167,10 +1167,16 @@ const Dashboard = () => {
             <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
               <Icon className={`text-xl ${color}`} />
             </div>
-            <span className='text-sm font-medium text-gray-600'>{title}</span>
+            <span className='text-xs md:text-sm font-medium text-gray-600'>
+              {title}
+            </span>
           </div>
-          <div className='text-2xl font-bold text-gray-900'>{value}</div>
-          {subtitle && <div className='text-sm text-gray-500'>{subtitle}</div>}
+          <div className='text-xl md:text-2xl font-bold text-gray-900'>
+            {value}
+          </div>
+          {subtitle && (
+            <div className='text-xs md:text-sm text-gray-500'>{subtitle}</div>
+          )}
         </div>
         {trend && (
           <div
@@ -1179,7 +1185,9 @@ const Dashboard = () => {
             }`}
           >
             {trend > 0 ? <TbTrendingUp /> : <TbTrendingDown />}
-            <span className='text-sm font-medium'>{Math.abs(trend)}%</span>
+            <span className='text-xs md:text-sm font-medium'>
+              {Math.abs(trend)}%
+            </span>
           </div>
         )}
       </div>
@@ -1234,10 +1242,10 @@ const Dashboard = () => {
         {/* Header */}
         <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
           <div>
-            <h1 className='font-semibold text-2xl text-gray-900'>
+            <h1 className='font-semibold text-xl md:text-2xl text-gray-900'>
               Analytics Dashboard
             </h1>
-            <p className='text-gray-600 mt-2 font-medium'>
+            <p className='text-gray-600 mt-2 font-medium text-sm md:text-base'>
               Real-time operational insights and performance metrics
             </p>
           </div>
@@ -1247,7 +1255,7 @@ const Dashboard = () => {
         <div className='flex border-b border-gray-200'>
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 font-medium text-sm transition-colors ${
+            className={`px-4 py-2 font-medium text-xs md:text-sm transition-colors ${
               activeTab === 'overview'
                 ? 'text-primaryColor border-b-2 border-primaryColor'
                 : 'text-gray-500 hover:text-gray-700'
@@ -1258,7 +1266,7 @@ const Dashboard = () => {
           {(isAdmin || isVisitor) && (
             <button
               onClick={() => setActiveTab('deploymentDetails')}
-              className={`px-4 py-2 font-medium text-sm transition-colors ${
+              className={`px-4 py-2 font-medium text-xs md:text-sm transition-colors ${
                 activeTab === 'deploymentDetails'
                   ? 'text-primaryColor border-b-2 border-primaryColor'
                   : 'text-gray-500 hover:text-gray-700'
@@ -1271,7 +1279,7 @@ const Dashboard = () => {
             <>
               <button
                 onClick={() => setActiveTab('users')}
-                className={`px-4 py-2 font-medium text-sm transition-colors ${
+                className={`px-4 py-2 font-medium text-xs md:text-sm transition-colors ${
                   activeTab === 'users'
                     ? 'text-primaryColor border-b-2 border-primaryColor'
                     : 'text-gray-500 hover:text-gray-700'
@@ -1281,7 +1289,7 @@ const Dashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab('subcons')}
-                className={`px-4 py-2 font-medium text-sm transition-colors ${
+                className={`px-4 py-2 font-medium text-xs md:text-sm transition-colors ${
                   activeTab === 'subcons'
                     ? 'text-primaryColor border-b-2 border-primaryColor'
                     : 'text-gray-500 hover:text-gray-700'
@@ -1294,7 +1302,7 @@ const Dashboard = () => {
           {isSubcon && (
             <button
               onClick={() => setActiveTab('resources')}
-              className={`px-4 py-2 font-medium text-sm transition-colors ${
+              className={`px-4 py-2 font-medium text-xs md:text-sm transition-colors ${
                 activeTab === 'resources'
                   ? 'text-primaryColor border-b-2 border-primaryColor'
                   : 'text-gray-500 hover:text-gray-700'
@@ -1309,7 +1317,7 @@ const Dashboard = () => {
         {activeTab === 'overview' && (
           <>
             {/* Metrics */}
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4'>
               <MetricCard
                 icon={TbRocket}
                 title='Total Deployments'
@@ -1388,7 +1396,7 @@ const Dashboard = () => {
 
             {/* Performance Metrics for Admins */}
             {isAdmin && (
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4'>
+              <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6  gap-4'>
                 <MetricCard
                   icon={HiOutlineTruck}
                   title='Truck Utilization'
@@ -1457,21 +1465,21 @@ const Dashboard = () => {
             )}
 
             {/* Main Charts Grid */}
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+            <div className='grid grid-cols-1 2xl:grid-cols-2 gap-6'>
               {/* Weekly Deployment Trends - LINE CHART (NO TEXT) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4'>
                   <div>
-                    <h2 className='text-xl font-semibold text-gray-900'>
+                    <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                       Weekly Deployment Trends
                     </h2>
-                    <p className='text-gray-500 text-sm'>
+                    <p className='text-gray-500 text-xs md:text-sm'>
                       Completed vs canceled deployments
                     </p>
                   </div>
                   <div className='flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg'>
                     <TbTrendingUp className='text-green-600' />
-                    <span className='text-sm font-medium text-gray-700'>
+                    <span className='text-xs md:text-sm font-medium text-gray-700'>
                       {analytics.performanceMetrics.successRate || 0}% success
                       rate
                     </span>
@@ -1485,10 +1493,10 @@ const Dashboard = () => {
               {/* Deployment Status Distribution - BAR CHART (WITH TEXT CENTERED) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
+                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Deployment Status
                   </h2>
-                  <p className='text-gray-500 text-sm'>
+                  <p className='text-gray-500 text-xs md:text-sm'>
                     Current status distribution
                   </p>
                 </div>
@@ -1503,14 +1511,14 @@ const Dashboard = () => {
 
             {/* Fleet & Drivers Analysis - Only for Admins */}
             {isAdmin && (
-              <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+              <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
                 {/* Truck Types - BAR CHART (WITH TEXT CENTERED) */}
                 <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                   <div className='mb-6'>
-                    <h2 className='text-xl font-semibold text-gray-900'>
+                    <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                       Fleet Composition
                     </h2>
-                    <p className='text-gray-500 text-sm'>
+                    <p className='text-gray-500 text-xs md:text-sm'>
                       Truck types distribution
                     </p>
                   </div>
@@ -1528,10 +1536,12 @@ const Dashboard = () => {
                 {/* Truck Status - PIE CHART (WITH TEXT) */}
                 <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                   <div className='mb-6'>
-                    <h2 className='text-xl font-semibold text-gray-900'>
+                    <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                       Truck Status
                     </h2>
-                    <p className='text-gray-500 text-sm'>Operational status</p>
+                    <p className='text-gray-500 text-xs md:text-sm'>
+                      Operational status
+                    </p>
                   </div>
                   <div className='h-64'>
                     <Doughnut
@@ -1544,10 +1554,10 @@ const Dashboard = () => {
                 {/* Driver Status - DOUGHNUT CHART (WITH TEXT) */}
                 <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                   <div className='mb-6'>
-                    <h2 className='text-xl font-semibold text-gray-900'>
+                    <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                       Driver Status
                     </h2>
-                    <p className='text-gray-500 text-sm'>
+                    <p className='text-gray-500 text-xs md:text-sm'>
                       Availability distribution
                     </p>
                   </div>
@@ -1558,25 +1568,22 @@ const Dashboard = () => {
                     />
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* All Drivers Performance - Only for Admins - HORIZONTAL BAR CHART (WITH TEXT CENTERED) */}
-            {isAdmin && (
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
-                <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
-                    Top Drivers Performance
-                  </h2>
-                  <p className='text-gray-500 text-sm'>
-                    Ranked by completed trips
-                  </p>
-                </div>
-                <div className='h-96'>
-                  <Bar
-                    data={getAllDriversBarData()}
-                    options={horizontalBarOptions}
-                  />
+                <div className='col-span-full bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+                  <div className='mb-6'>
+                    <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
+                      Top Drivers Performance
+                    </h2>
+                    <p className='text-gray-500 text-xs md:text-sm'>
+                      Ranked by completed trips
+                    </p>
+                  </div>
+                  <div className='h-96'>
+                    <Bar
+                      data={getAllDriversBarData()}
+                      options={horizontalBarOptions}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -1626,10 +1633,10 @@ const Dashboard = () => {
               {/* Territory Distribution */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
+                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Territory Distribution
                   </h2>
-                  <p className='text-gray-500 text-sm'>
+                  <p className='text-gray-500 text-xs md:text-sm'>
                     Deployments by territory
                   </p>
                 </div>
@@ -1644,10 +1651,10 @@ const Dashboard = () => {
               {/* Hybrid Distribution */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
+                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Hybrid Distribution
                   </h2>
-                  <p className='text-gray-500 text-sm'>
+                  <p className='text-gray-500 text-xs md:text-sm'>
                     Deployments by hybrid type
                   </p>
                 </div>
@@ -1662,10 +1669,10 @@ const Dashboard = () => {
               {/* Flagging Distribution */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
+                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Flagging Distribution
                   </h2>
-                  <p className='text-gray-500 text-sm'>
+                  <p className='text-gray-500 text-xs md:text-sm'>
                     Deployments by flagging level
                   </p>
                 </div>
@@ -1681,10 +1688,10 @@ const Dashboard = () => {
             {/* Territory Performance Stacked Bar Chart - STACKED BAR (WITH TEXT CENTERED) */}
             <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div>
-                <h2 className='text-xl font-semibold text-gray-900'>
+                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Territory Performance
                 </h2>
-                <p className='text-gray-500 text-sm'>
+                <p className='text-gray-500 text-xs md:text-sm'>
                   Deployment status breakdown by territory (stacked view)
                 </p>
               </div>
@@ -1698,12 +1705,12 @@ const Dashboard = () => {
                   <div className='absolute inset-0 flex items-center justify-center bg-white bg-opacity-90'>
                     <div className='text-center'>
                       <div className='text-gray-400 mb-2'>
-                        <HiOutlineChartBar className='text-4xl mx-auto' />
+                        <HiOutlineChartBar className='text-3xl md:text-4xl mx-auto' />
                       </div>
                       <p className='text-gray-500 font-medium'>
                         No territory data available
                       </p>
-                      <p className='text-gray-400 text-sm mt-1'>
+                      <p className='text-gray-400 text-xs md:text-sm mt-1'>
                         Deployments will appear here
                       </p>
                     </div>
@@ -1715,10 +1722,10 @@ const Dashboard = () => {
             {/* Territory Details Table */}
             <div className='bg-white rounded-xl shadow-card3 border border-gray-200 overflow-hidden'>
               <div className='p-6 border-b border-gray-200'>
-                <h2 className='text-xl font-semibold text-gray-900'>
+                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Territory Performance Details
                 </h2>
-                <p className='text-gray-500 text-sm'>
+                <p className='text-gray-500 text-xs md:text-sm'>
                   Performance metrics by territory
                 </p>
               </div>
@@ -1756,16 +1763,16 @@ const Dashboard = () => {
                             index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                           }
                         >
-                          <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
                             {territory._id || 'Unknown'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {territory.count?.toLocaleString() || '0'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {territory.completed || '0'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm'>
                             <span
                               className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 territory.completionRate >= 80
@@ -1778,10 +1785,10 @@ const Dashboard = () => {
                               {territory.completionRate || '0'}%
                             </span>
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {territory.totalSacks?.toLocaleString() || '0'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {territory.totalWeight?.toLocaleString() || '0'} kg
                           </td>
                         </tr>
@@ -1878,7 +1885,7 @@ const Dashboard = () => {
               {/* User Role Distribution - DOUGHNUT CHART (WITH TEXT) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
+                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     User Role Distribution
                   </h2>
                   <p className='text-gray-500 text-sm'>
@@ -1896,10 +1903,10 @@ const Dashboard = () => {
               {/* User Status Distribution - PIE CHART (WITH TEXT) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
+                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     User Status Distribution
                   </h2>
-                  <p className='text-gray-500 text-sm'>
+                  <p className='text-gray-500 text-xs md:text-sm'>
                     Breakdown by account status
                   </p>
                 </div>
@@ -1915,10 +1922,10 @@ const Dashboard = () => {
             {/* Subcon Distribution - BAR CHART (WITH TEXT CENTERED) */}
             <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div className='mb-6'>
-                <h2 className='text-xl font-semibold text-gray-900'>
+                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Subcontractor Distribution
                 </h2>
-                <p className='text-gray-500 text-sm'>
+                <p className='text-gray-500 text-xs md:text-sm'>
                   Breakdown by subcontractor
                 </p>
               </div>
@@ -1941,10 +1948,10 @@ const Dashboard = () => {
             {/* Subcon Deployment Status Stacked Bar Chart - STACKED BAR (WITH TEXT CENTERED) */}
             <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div className='mb-6'>
-                <h2 className='text-xl font-semibold text-gray-900'>
+                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Subcontractor Deployment Status
                 </h2>
-                <p className='text-gray-500 text-sm'>
+                <p className='text-gray-500 text-xs md:text-sm'>
                   Deployment status breakdown by subcontractor (stacked view)
                 </p>
               </div>
@@ -1959,10 +1966,10 @@ const Dashboard = () => {
             {/* Subcon Details Table */}
             <div className='bg-white rounded-xl shadow-card3 border border-gray-200 overflow-hidden'>
               <div className='p-6 border-b border-gray-200'>
-                <h2 className='text-xl font-semibold text-gray-900'>
+                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Subcontractor Details
                 </h2>
-                <p className='text-gray-500 text-sm'>
+                <p className='text-gray-500 text-xs md:text-sm'>
                   Performance metrics by subcontractor
                 </p>
               </div>
@@ -2000,16 +2007,16 @@ const Dashboard = () => {
                             index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                           }
                         >
-                          <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
                             {subcon.name || 'Unknown'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {subcon.totalDeployments.toLocaleString()}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {subcon.completedDeployments.toLocaleString()}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm'>
                             <span
                               className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 parseFloat(subcon.completionRate) >= 80
@@ -2022,10 +2029,10 @@ const Dashboard = () => {
                               {subcon.completionRate}%
                             </span>
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {subcon.totalSacks.toLocaleString()}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {subcon.totalWeight.toLocaleString()} kg
                           </td>
                         </tr>
@@ -2097,10 +2104,10 @@ const Dashboard = () => {
               {/* Driver Performance Bar Chart - HORIZONTAL BAR (WITH TEXT CENTERED) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
+                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Driver Performance
                   </h2>
-                  <p className='text-gray-500 text-sm'>
+                  <p className='text-gray-500 text-xs md:text-sm'>
                     Top drivers by completed trips
                   </p>
                 </div>
@@ -2115,10 +2122,10 @@ const Dashboard = () => {
               {/* Driver Status Distribution - DOUGHNUT CHART (WITH TEXT) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
+                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Driver Status
                   </h2>
-                  <p className='text-gray-500 text-sm'>
+                  <p className='text-gray-500 text-xs md:text-sm'>
                     Availability distribution
                   </p>
                 </div>
@@ -2136,10 +2143,10 @@ const Dashboard = () => {
               {/* Truck Performance Bar Chart - HORIZONTAL BAR (WITH TEXT CENTERED) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
+                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Truck Performance
                   </h2>
-                  <p className='text-gray-500 text-sm'>
+                  <p className='text-gray-500 text-xs md:text-sm'>
                     Top trucks by completed trips
                   </p>
                 </div>
@@ -2154,10 +2161,10 @@ const Dashboard = () => {
               {/* Truck Status Distribution - PIE CHART (WITH TEXT) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
-                  <h2 className='text-xl font-semibold text-gray-900'>
+                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Truck Status
                   </h2>
-                  <p className='text-gray-500 text-sm'>
+                  <p className='text-gray-500 text-xs md:text-sm'>
                     Operational status distribution
                   </p>
                 </div>
@@ -2173,10 +2180,10 @@ const Dashboard = () => {
             {/* Truck Types Distribution - BAR CHART (WITH TEXT CENTERED) */}
             <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div className='mb-6'>
-                <h2 className='text-xl font-semibold text-gray-900'>
+                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Fleet Composition
                 </h2>
-                <p className='text-gray-500 text-sm'>
+                <p className='text-gray-500 text-xs md:text-sm'>
                   Truck types in your fleet
                 </p>
               </div>
@@ -2191,10 +2198,10 @@ const Dashboard = () => {
             {/* Drivers List */}
             <div className='bg-white rounded-xl shadow-card3 border border-gray-200 overflow-hidden'>
               <div className='p-6 border-b border-gray-200'>
-                <h2 className='text-xl font-semibold text-gray-900'>
+                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   All Drivers
                 </h2>
-                <p className='text-gray-500 text-sm'>
+                <p className='text-gray-500 text-xs md:text-sm'>
                   Complete list of your drivers
                 </p>
               </div>
@@ -2228,16 +2235,16 @@ const Dashboard = () => {
                             index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                           }
                         >
-                          <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
                             {driver.name || 'Unknown'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {driver.phoneNo || 'N/A'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {driver.licenseNo || 'N/A'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm'>
                             <span
                               className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 driver.status === 'available'
@@ -2253,7 +2260,7 @@ const Dashboard = () => {
                                 : 'Unknown'}
                             </span>
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
                             {driver.tripCount?.toLocaleString() || '0'}
                           </td>
                         </tr>
@@ -2270,7 +2277,7 @@ const Dashboard = () => {
                 <h2 className='text-xl font-semibold text-gray-900'>
                   All Trucks
                 </h2>
-                <p className='text-gray-500 text-sm'>
+                <p className='text-gray-500 text-xs md:text-sm'>
                   Complete list of your trucks
                 </p>
               </div>
@@ -2304,22 +2311,22 @@ const Dashboard = () => {
                             index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                           }
                         >
-                          <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
                             {truck.plateNo || 'Unknown'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {truck.truckType
                               ? truck.truckType
                                   .replace('-', ' ')
                                   .replace(/\b\w/g, char => char.toUpperCase())
                               : 'N/A'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
                             {truck.maxLoad
                               ? `${truck.maxLoad.toLocaleString()} kg`
                               : 'N/A'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm'>
                             <span
                               className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 truck.status === 'available'
@@ -2335,7 +2342,7 @@ const Dashboard = () => {
                                 : 'Unknown'}
                             </span>
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
+                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
                             {truck.tripCount?.toLocaleString() || '0'}
                           </td>
                         </tr>

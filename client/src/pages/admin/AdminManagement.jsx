@@ -221,7 +221,7 @@ function AdminManagement () {
                 value={tempFilters.search}
                 onChange={handleChangeFilter}
                 autoComplete='off'
-                className='w-60 focus:outline-none ml-3 mr-1'
+                className='max-w-60 focus:outline-none ml-3 mr-1'
               />
               <button
                 type='button'

@@ -15,6 +15,7 @@ import SignupPage from './pages/public/SignupPage'
 import TimelineLogs from './pages/admin/TimelineLogs'
 import MyProfile from './pages/admin/MyProfile'
 import SubconManagement from './pages/admin/SubconManagement'
+import { UIProvider } from './contexts/UIContext'
 
 function App () {
   return (
@@ -40,9 +41,11 @@ function App () {
         {/* admin page */}
         <Route
           element={
-            <UserProvider>
-              <UserLayout />
-            </UserProvider>
+            <UIProvider>
+              <UserProvider>
+                <UserLayout />
+              </UserProvider>
+            </UIProvider>
           }
         >
           <Route path='/secure/my-profile' element={<MyProfile />} />

@@ -13,7 +13,7 @@ function LiveClock () {
   }, [])
 
   return (
-    <div className='ml-auto flex flex-col items-center justify-center'>
+    <div className='ml-auto flex-col items-center justify-center hidden lg:flex'>
       <p className='font-semibold text-sm'>
         {currentTime.format('dddd, MMMM D, YYYY')}
       </p>
