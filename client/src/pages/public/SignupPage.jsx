@@ -105,7 +105,7 @@ function SignupPage () {
     <div className='min-h-screen bg-gray-50 text-gray-800 flex flex-col justify-center items-center'>
       <div
         data-aos='fade-down'
-        className='bg-white shadow-lg overflow-hidden rounded-xl flex max-w-5xl'
+        className='bg-white shadow-lg overflow-hidden md:rounded-xl flex max-lg:flex-col flex-row max-w-5xl md:m-6'
       >
         {/* left */}
         <div
@@ -117,20 +117,22 @@ function SignupPage () {
             <div className='flex-1 flex flex-col'>
               {/* Logo and Title */}
               <div className='mb-8'>
-                <h2 className='text-2xl font-bold mb-2'>Create Your Account</h2>
+                <h2 className='text-xl md:text-2xl font-bold mb-2'>
+                  Create Your Account
+                </h2>
               </div>
 
               {/* Instructions */}
               <div className='space-y-6'>
                 <div className='flex items-start gap-4'>
                   <div className='bg-white/20 p-2 rounded-full mt-1'>
-                    <FaUser className='text-lg' />
+                    <FaUser className='text-base md:text-lg' />
                   </div>
                   <div>
-                    <h3 className='font-semibold text-lg mb-1'>
+                    <h3 className='font-semibold text-base md:text-lg mb-1'>
                       Fill Registration Form
                     </h3>
-                    <p className='text-white/80 text-sm'>
+                    <p className='text-white/80 text-xs md:text-sm'>
                       Provide your personal information in the registration form
                       including name, email, and contact details.
                     </p>
@@ -139,13 +141,13 @@ function SignupPage () {
 
                 <div className='flex items-start gap-4'>
                   <div className='bg-white/20 p-2 rounded-full mt-1'>
-                    <FaClock className='text-lg' />
+                    <FaClock className='text-base md:text-lg' />
                   </div>
                   <div>
-                    <h3 className='font-semibold text-lg mb-1'>
+                    <h3 className='font-semibold text-base md:text-lg mb-1'>
                       Wait for Approval
                     </h3>
-                    <p className='text-white/80 text-sm'>
+                    <p className='text-white/80 text-xs md:text-sm'>
                       Your account will be in{' '}
                       <span className='font-semibold'>pending status</span>{' '}
                       while our admin team reviews your registration.
@@ -155,10 +157,10 @@ function SignupPage () {
 
                 <div className='flex items-start gap-4'>
                   <div className='bg-white/20 p-2 rounded-full mt-1'>
-                    <FaUserCheck className='text-lg' />
+                    <FaUserCheck className='text-base md:text-lg' />
                   </div>
                   <div>
-                    <h3 className='font-semibold text-lg mb-1'>
+                    <h3 className='font-semibold text-base md:text-lg mb-1'>
                       Admin Verification
                     </h3>
                     <p className='text-white/80 text-sm'>
@@ -170,10 +172,12 @@ function SignupPage () {
 
                 <div className='flex items-start gap-4'>
                   <div className='bg-white/20 p-2 rounded-full mt-1'>
-                    <FaCheckCircle className='text-lg' />
+                    <FaCheckCircle className='text-base md:text-lg' />
                   </div>
                   <div>
-                    <h3 className='font-semibold text-lg mb-1'>Get Started</h3>
+                    <h3 className='font-semibold text-base md:text-lg mb-1'>
+                      Get Started
+                    </h3>
                     <p className='text-white/80 text-sm'>
                       Once approved, you'll receive an email notification and
                       can immediately start using our platform.
@@ -185,7 +189,7 @@ function SignupPage () {
 
             {/* Footer note */}
             <div className='mt-8 pt-6 border-t border-white/20'>
-              <p className='text-sm text-center text-white/90'>
+              <p className='text-xs md:text-sm text-center text-white/90'>
                 <span className='font-semibold'>Secure & Confidential:</span>{' '}
                 Your information is protected with enterprise-grade security.
               </p>
@@ -197,7 +201,7 @@ function SignupPage () {
         <div className=' flex-1 py-6  px-8 flex flex-col gap-12'>
           {/* header */}
           <div className='flex flex-col gap-2 justify-center items-center'>
-            <div className='flex items-center justify-center gap-3 mt-2'>
+            <div className='flex items-center justify-center gap-3 mt-2 max-md:scale-70'>
               <img src={ebun_logo_dark} alt='' className='w-18' />
               <div>
                 <h1 className='font-semibold text-5xl tracking-widest text-primaryColor uppercase'>
@@ -209,15 +213,15 @@ function SignupPage () {
               </div>
             </div>
 
-            <p className='text-gray-600 text-sm text-center'>
+            <p className='text-gray-600 text-xs md:text-sm text-center'>
               Complete the form below to create your account
             </p>
           </div>
           <form
             onSubmit={handleRequestAccess}
-            className='grid grid-cols-2 gap-x-6 gap-y-4'
+            className='grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4'
           >
-            <div className='col-span-2 flex gap-x-6'>
+            <div className='col-span-full flex max-sm:flex-col flex-row gap-6 items-center'>
               <div className='row-span-2 flex flex-col gap-1'>
                 <span className='uppercase text-xs text-gray-500 font-semibold'>
                   Image
@@ -246,7 +250,7 @@ function SignupPage () {
                 </div>
               </div>
 
-              <div className='flex-1 space-y-6'>
+              <div className='flex-1 space-y-6 w-full'>
                 <InputField
                   label='Firstname'
                   type='text'
@@ -309,7 +313,7 @@ function SignupPage () {
             <div className='mt-8 col-span-full'>
               <button
                 type='submit'
-                className='bg-linear-to-b from-slate-700 to-primaryColor text-white px-8 py-3 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95 w-full justify-center'
+                className='bg-linear-to-b from-slate-700 to-primaryColor text-white px-8 py-3 uppercase text-xs md:text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95 w-full justify-center'
               >
                 {isLoading ? (
                   <>
@@ -322,7 +326,7 @@ function SignupPage () {
               </button>
 
               <div className='mt-4 text-center'>
-                <p className='text-gray-500 text-sm'>
+                <p className='text-gray-500 text-xs md:text-sm'>
                   Already have an account?{' '}
                   <Link
                     to='/'
@@ -376,7 +380,7 @@ const InputField = ({
         disabled={disabled}
         required={isRequired}
         className={clsx(
-          'outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-2 focus:outline-primaryColor transition-all',
+          'outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-2 focus:outline-primaryColor transition-all text-sm md:text-base',
           {
             capitalize: isCapitalize,
             uppercase: isUppercase

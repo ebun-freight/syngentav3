@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { FaLock, FaEnvelope, FaUserShield, FaUser } from 'react-icons/fa'
+import { FaLock, FaUser } from 'react-icons/fa'
 import useLogin from '../../hooks/useLogin'
 import { Link } from 'react-router'
 import AOS from 'aos'
@@ -38,7 +38,7 @@ function LoginPage () {
     <div className='min-h-screen p-6 bg-gray-50 text-gray-800 flex flex-col justify-center items-center'>
       {/* header */}
       <div data-aos='fade-down' className='flex flex-col items-center'>
-        <div className='flex items-center justify-center gap-3 '>
+        <div className='flex items-center justify-center gap-3 max-md:scale-70'>
           <img src={ebun_logo_dark} alt='' className='w-18' />
           <div>
             <h1 className='font-semibold text-5xl tracking-widest text-primaryColor uppercase'>
@@ -50,7 +50,7 @@ function LoginPage () {
           </div>
         </div>
 
-        <p className='mt-2 text-gray-500 text-sm text-center font-light italic'>
+        <p className='mt-2 text-gray-500 text-xs md:text-sm text-center font-light italic px-6'>
           "Where Safety Leads, Technology Drives, and Community Thrives"
         </p>
       </div>
@@ -62,38 +62,42 @@ function LoginPage () {
         className='mt-6 rounded-xl shadow-lg bg-white p-8 max-w-md w-full'
       >
         <label className='flex flex-col gap-1'>
-          <span className='text-gray-600 text-sm font-medium'>Email</span>
+          <span className='text-gray-600 text-xs md:text-sm font-medium'>
+            Email
+          </span>
           <div className='group flex items-center gap-3 border border-gray-200 rounded-lg px-4 py-3 focus-within:border-white focus-within:ring-primaryColor/50 focus-within:ring-2 transition-all shadow-sm'>
-            <FaUser className='text-gray-400 group-focus-within:text-primaryColor transition-all' />
+            <FaUser className='text-gray-400 group-focus-within:text-primaryColor transition-all text-sm md:text-base' />
             <input
               type='email'
               name='email'
               value={formData.email}
               onChange={handleChange}
               required
-              className='focus:outline-none w-full'
+              className='focus:outline-none w-full text-sm md:text-base'
             />
           </div>
         </label>
 
         <label className='flex flex-col gap-1 mt-4'>
-          <span className='text-gray-600 text-sm font-medium'>Password</span>
+          <span className='text-gray-600 text-xs md:text-sm font-medium'>
+            Password
+          </span>
           <div className='group flex items-center gap-3 border border-gray-200 rounded-lg px-4 py-3 focus-within:border-white focus-within:ring-primaryColor/50 focus-within:ring-2 transition-all shadow-sm'>
-            <FaLock className='text-gray-400 group-focus-within:text-primaryColor transition-all' />
+            <FaLock className='text-gray-400 group-focus-within:text-primaryColor transition-all text-sm md:text-base' />
             <input
               type='password'
               name='password'
               value={formData.password}
               onChange={handleChange}
               required
-              className='focus:outline-none w-full'
+              className='focus:outline-none w-full text-sm md:text-base'
             />
           </div>
         </label>
 
         <button
           type='submit'
-          className='bg-linear-to-b from-slate-700 to-primaryColor text-white w-full mt-9 rounded-lg py-3 font-medium shadow-sm flex items-center gap-2 justify-center hover:brightness-95 transition-all cursor-pointer'
+          className='bg-linear-to-b from-slate-700 to-primaryColor text-white w-full mt-9 rounded-lg py-3 font-medium shadow-sm flex items-center gap-2 justify-center hover:brightness-95 transition-all cursor-pointer text-sm md:text-base'
         >
           {isLoading ? (
             <>
@@ -105,7 +109,7 @@ function LoginPage () {
           )}
         </button>
 
-        <p className='text-gray-500 mt-4 text-sm text-center'>
+        <p className='text-gray-500 mt-4 text-xs md:text-sm text-center'>
           Doesn't have an account yet?{' '}
           <Link
             to={'/signup'}
