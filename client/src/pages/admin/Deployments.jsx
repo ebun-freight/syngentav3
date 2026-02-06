@@ -437,7 +437,6 @@ function Deployments () {
     // Helper function to format truck type
     const formatTruckType = type => {
       if (!type) return ''
-
       const typeMappings = {
         elf: 'ELF',
         'single-tire': 'Single-Tire',
@@ -447,7 +446,6 @@ function Deployments () {
         '10-wheeler': '10 Wheeler',
         '6-wheeler': '6 Wheeler'
       }
-
       const lowerType = type.toLowerCase().trim()
       return (
         typeMappings[lowerType] ||
@@ -458,177 +456,274 @@ function Deployments () {
     // Get current date and time for billing period
     const billingDate = DateTime.now()
       .setZone('Asia/Manila')
-      .toFormat('yyyy-MM-dd HH:mm:ss')
+      .toFormat('MMMM dd, yyyy')
 
     // Get company name from first deployment or use default
     const firstDeployment = allDeployments[0]
     const companyName =
       firstDeployment?.company || 'SMC HI-BRED PHILIPPINES INC.'
 
-    // Rate per kg (fixed at 2.00 as per your Excel)
+    // Rate per kg
     const ratePerKg = 2.0
 
     // Create a new workbook
     const workbook = new ExcelJS.Workbook()
 
-    // Define styles
-    const borderStyle = {
-      top: { style: 'thin', color: { argb: 'FF000000' } },
-      left: { style: 'thin', color: { argb: 'FF000000' } },
-      bottom: { style: 'thin', color: { argb: 'FF000000' } },
-      right: { style: 'thin', color: { argb: 'FF000000' } }
+    // Define professional color scheme
+    const colors = {
+      primary: 'FF001E36', // Dark Blue
+      secondary: 'FF003057', // Lighter Dark Blue
+      accent: 'FFE3F2FD', // Light Blue-100
+      header: 'FFF5F9FC', // Very Light Blue
+      border: 'FFD1D5DB', // Gray-300
+      text: 'FF111827', // Gray-900
+      textLight: 'FF6B7280' // Gray-500
     }
 
-    const headerStyle = {
-      fill: {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFFFFF00' } // Yellow
+    // Define professional styles
+    const styles = {
+      title: {
+        font: { bold: true, size: 16, color: { argb: colors.text } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        fill: {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: colors.header }
+        }
       },
-      font: {
-        bold: true
+      subtitle: {
+        font: { bold: true, size: 12, color: { argb: colors.text } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        fill: {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: colors.accent }
+        },
+        border: {
+          top: { style: 'thin', color: { argb: colors.border } },
+          left: { style: 'thin', color: { argb: colors.border } },
+          bottom: { style: 'thin', color: { argb: colors.border } },
+          right: { style: 'thin', color: { argb: colors.border } }
+        }
       },
-      alignment: {
-        horizontal: 'center',
-        vertical: 'center'
+      header: {
+        font: { bold: true, size: 11, color: { argb: 'FFFFFFFF' } },
+        alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
+        fill: {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: colors.primary }
+        },
+        border: {
+          top: { style: 'thin', color: { argb: colors.border } },
+          left: { style: 'thin', color: { argb: colors.border } },
+          bottom: { style: 'thin', color: { argb: colors.border } },
+          right: { style: 'thin', color: { argb: colors.border } }
+        }
       },
-      border: borderStyle
+      data: {
+        font: { size: 10, color: { argb: colors.text } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: {
+          top: { style: 'thin', color: { argb: colors.border } },
+          left: { style: 'thin', color: { argb: colors.border } },
+          bottom: { style: 'thin', color: { argb: colors.border } },
+          right: { style: 'thin', color: { argb: colors.border } }
+        }
+      },
+      dataLeft: {
+        font: { size: 10, color: { argb: colors.text } },
+        alignment: { horizontal: 'left', vertical: 'middle' },
+        border: {
+          top: { style: 'thin', color: { argb: colors.border } },
+          left: { style: 'thin', color: { argb: colors.border } },
+          bottom: { style: 'thin', color: { argb: colors.border } },
+          right: { style: 'thin', color: { argb: colors.border } }
+        }
+      },
+      total: {
+        font: { bold: true, size: 11, color: { argb: 'FFFFFFFF' } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        fill: {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: colors.secondary }
+        }
+      },
+      label: {
+        font: { bold: true, size: 10, color: { argb: colors.text } },
+        alignment: { horizontal: 'right', vertical: 'middle' }
+      },
+      value: {
+        font: { size: 10, color: { argb: colors.text } },
+        alignment: { horizontal: 'left', vertical: 'middle' },
+        border: {
+          bottom: { style: 'thin', color: { argb: colors.border } }
+        }
+      }
     }
 
-    const borderedStyle = {
-      border: borderStyle
-    }
+    // Filter completed deployments
+    const completedDeployments = allDeployments.filter(
+      deployment => deployment.status === 'completed'
+    )
 
     // ======================= SHEET 1: Regular Trips =======================
-    const worksheet1 = workbook.addWorksheet('1')
-
-    // Set column widths
-    worksheet1.columns = [
-      { width: 5 }, // A
-      { width: 15 }, // B
-      { width: 12 }, // C
-      { width: 25 }, // D
-      { width: 25 }, // E
-      { width: 12 }, // F
-      { width: 15 }, // G
-      { width: 10 }, // H
-      { width: 10 }, // I
-      { width: 15 } // J
-    ]
-
-    // Add 4 empty rows (rows 1-4)
-    for (let i = 0; i < 4; i++) {
-      worksheet1.addRow(['', '', '', '', '', '', '', '', '', ''])
-    }
-
-    // Add header row (row 5)
-    const headerRow1 = worksheet1.addRow([
-      '',
-      'BILLING PERIOD',
-      'SERIES NO.',
-      'FROM',
-      'TO',
-      'PLATE',
-      'TRUCK TYPE',
-      'NET WT',
-      'RATE/KG',
-      'TOTAL AMOUNT'
-    ])
-
-    // Apply header style only to columns B-J (skip column A)
-    for (let col = 2; col <= 10; col++) {
-      const cell = headerRow1.getCell(col)
-      cell.style = headerStyle
-    }
-
-    // Initialize summary variables
-    let completedDeployments = []
-
-    // Filter completed deployments and prepare data
-    allDeployments.forEach((deployment, index) => {
-      if (deployment.status === 'completed') {
-        completedDeployments.push(deployment)
+    const worksheet1 = workbook.addWorksheet('Regular Trips', {
+      views: [{ showGridLines: false }],
+      pageSetup: {
+        paperSize: 9, // A4
+        orientation: 'landscape',
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0
       }
     })
 
-    // Starting row for data (row 6 - directly after header)
-    let dataStartRow = 6
+    // Set column widths
+    worksheet1.columns = [
+      { width: 4 }, // A - Margin
+      { width: 15 }, // B - DP Code
+      { width: 18 }, // C - Billing Period
+      { width: 12 }, // D - Series No.
+      { width: 20 }, // E - From
+      { width: 20 }, // F - To
+      { width: 12 }, // G - Plate
+      { width: 12 }, // H - Truck Type
+      { width: 14 }, // I - Net Weight (kg)
+      { width: 10 }, // J - Rate/Kg
+      { width: 15 }, // K - Amount
+      { width: 4 } // L - Margin
+    ]
 
-    // Add deployment rows (starting from row 6)
+    // Add title (row 2)
+    worksheet1.mergeCells('B2:K2')
+    const titleCell1 = worksheet1.getCell('B2')
+    titleCell1.value = 'REGULAR TRIPS'
+    titleCell1.style = styles.title
+    titleCell1.alignment = { horizontal: 'center', vertical: 'middle' }
+    worksheet1.getRow(2).height = 30
+
+    // Add empty row (row 3)
+    worksheet1.addRow([])
+
+    // Add header row (row 4)
+    const headerRow1 = worksheet1.getRow(4)
+    headerRow1.values = [
+      '',
+      'DP Code',
+      'Billing Period',
+      'Series No.',
+      'From',
+      'To',
+      'Plate',
+      'Truck Type',
+      'Net Weight (kg)',
+      'Rate/Kg',
+      'Amount (₱)',
+      ''
+    ]
+    headerRow1.height = 25
+
+    // Apply header style
+    for (let col = 2; col <= 11; col++) {
+      headerRow1.getCell(col).style = styles.header
+    }
+
+    // Add data rows
+    let dataStartRow = 5
     completedDeployments.forEach((deployment, index) => {
       const hasReplacement = deployment?.replacement?.replacementTruckId?._id
       const replacement = deployment?.replacement
 
-      // Get current plate no
       const currentPlateNo = hasReplacement
         ? replacement.replacementTruckId?.plateNo || ''
         : deployment.truckId?.plateNo || ''
 
-      // Get current truck type
       const currentTruckType = hasReplacement
         ? replacement.replacementTruckType
         : deployment.truckType
 
-      // Get weight (loadWeightKg)
       const netWeight = deployment.loadWeightKg || 0
 
+      // Format billing period (dest departure)
+      const billingPeriod = deployment.destDeparture
+        ? DateTime.fromISO(deployment.destDeparture)
+            .setZone('Asia/Manila')
+            .toFormat('MMM dd, yyyy')
+        : ''
+
       const rowNum = worksheet1.rowCount + 1
+
       const row = worksheet1.addRow([
         '',
-        '', // Billing Period (empty in new template)
-        '', // Series No.
-        deployment.pickupSite || '', // From
-        deployment.destination || '', // To
-        currentPlateNo.toUpperCase(), // Plate
-        formatTruckType(currentTruckType), // Truck Type
-        netWeight, // NET WT
-        ratePerKg, // RATE/KG
-        { formula: `H${rowNum}*I${rowNum}` } // TOTAL AMOUNT formula
+        deployment.deploymentCode || '',
+        billingPeriod,
+        '', // Series No. - blank
+        deployment.pickupSite || '',
+        deployment.destination || '',
+        currentPlateNo.toUpperCase(),
+        formatTruckType(currentTruckType),
+        netWeight,
+        ratePerKg,
+        { formula: `I${rowNum}*J${rowNum}` },
+        ''
       ])
 
-      // Apply border style only to columns B-J (skip column A)
-      for (let col = 2; col <= 10; col++) {
-        const cell = row.getCell(col)
-        cell.style = borderedStyle
-        if (col >= 8 && col <= 10) {
-          // Columns H, I, J (NET WT, RATE/KG, TOTAL AMOUNT)
-          cell.alignment = { horizontal: 'center', vertical: 'center' }
+      row.height = 20
+
+      // Apply styles
+      row.getCell(2).style = styles.data // DP Code
+      row.getCell(3).style = styles.data // Billing Period
+      row.getCell(4).style = styles.data // Series No.
+      row.getCell(5).style = styles.dataLeft // From
+      row.getCell(6).style = styles.dataLeft // To
+      row.getCell(7).style = styles.data // Plate
+      row.getCell(8).style = styles.data // Truck Type
+      row.getCell(9).style = { ...styles.data, numFmt: '#,##0.00' } // Net Weight
+      row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' } // Rate
+      row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' } // Amount
+
+      // Alternate row coloring
+      if (index % 2 === 0) {
+        for (let col = 2; col <= 11; col++) {
+          const cell = row.getCell(col)
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFAFAFA' }
+          }
         }
       }
     })
 
-    // If no completed deployments, add at least one empty row with borders
+    // Add empty row if no data
     if (completedDeployments.length === 0) {
-      const emptyRowNum = worksheet1.rowCount + 1
       const emptyRow = worksheet1.addRow([
         '',
         '',
         '',
         '',
         '',
+        'No completed deployments',
         '',
         '',
-        '',
+        0,
         ratePerKg,
-        { formula: `H${emptyRowNum}*I${emptyRowNum}` }
+        0,
+        ''
       ])
-      // Apply border only to columns B-J
-      for (let col = 2; col <= 10; col++) {
-        const cell = emptyRow.getCell(col)
-        cell.style = borderedStyle
-        if (col >= 8 && col <= 10) {
-          cell.alignment = { horizontal: 'center', vertical: 'center' }
-        }
+      emptyRow.height = 20
+      for (let col = 2; col <= 11; col++) {
+        emptyRow.getCell(col).style = styles.data
       }
     }
 
-    // Row number for NET WT total
-    const netWtTotalRowNum = worksheet1.rowCount + 1
-    const lastDataRow =
-      completedDeployments.length > 0 ? worksheet1.rowCount : 6
+    // Add subtotal row
+    const lastDataRow = worksheet1.rowCount
+    worksheet1.addRow([]) // Empty row
 
-    // Add summary row for NET WT total
-    const netWtTotalRow = worksheet1.addRow([
+    const subtotalRow1 = worksheet1.addRow([
       '',
       '',
       '',
@@ -636,121 +731,90 @@ function Deployments () {
       '',
       '',
       '',
-      { formula: `SUM(H${dataStartRow}:H${lastDataRow})` }, // SUM of NET WT column
       '',
+      { formula: `SUM(I${dataStartRow}:I${lastDataRow})` },
+      'SUBTOTAL:',
+      { formula: `SUM(K${dataStartRow}:K${lastDataRow})` },
       ''
     ])
 
-    // Apply border only to columns H for the total row
-    const netWtCell = netWtTotalRow.getCell(8) // Column H
-    netWtCell.style = borderedStyle
-    netWtCell.alignment = { horizontal: 'center', vertical: 'center' }
+    subtotalRow1.height = 25
+    subtotalRow1.getCell(9).style = { ...styles.total, numFmt: '#,##0.00' }
+    subtotalRow1.getCell(10).style = styles.total
+    subtotalRow1.getCell(11).style = { ...styles.total, numFmt: '₱#,##0.00' }
 
-    // Add 2 empty rows (no borders)
-    worksheet1.addRow(['', '', '', '', '', '', '', '', '', ''])
-    worksheet1.addRow(['', '', '', '', '', '', '', '', '', ''])
-
-    // Calculate the last row for TOTAL AMOUNT sum (excluding the last 3 rows)
-    const lastAmountRow = worksheet1.rowCount - 3
-
-    // Add TOTAL: row (only columns I and J should have borders)
-    const totalRow1 = worksheet1.addRow([
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      'TOTAL:',
-      { formula: `SUM(J${dataStartRow}:J${lastAmountRow})` } // SUM of TOTAL AMOUNT column
-    ])
-
-    // Apply border only to columns I and J
-    const totalLabelCell = totalRow1.getCell(9) // Column I
-    const totalValueCell = totalRow1.getCell(10) // Column J
-
-    totalLabelCell.style = borderedStyle
-    totalLabelCell.alignment = { horizontal: 'center', vertical: 'center' }
-
-    totalValueCell.style = borderedStyle
-    totalValueCell.alignment = { horizontal: 'center', vertical: 'center' }
+    // Store the subtotal row number for Sheet 3 reference
+    const regularTripsSubtotalRow = worksheet1.rowCount
 
     // ======================= SHEET 2: Demurrage Fee =======================
-    const worksheet2 = workbook.addWorksheet('2')
+    const worksheet2 = workbook.addWorksheet('Demurrage Fee', {
+      views: [{ showGridLines: false }],
+      pageSetup: {
+        paperSize: 9, // A4
+        orientation: 'landscape',
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0
+      }
+    })
 
     // Set column widths
     worksheet2.columns = [
-      { width: 5 }, // A
-      { width: 12 }, // B
-      { width: 20 }, // C
-      { width: 20 }, // D
-      { width: 15 }, // E
-      { width: 12 }, // F
-      { width: 25 }, // G
-      { width: 25 }, // H
-      { width: 12 }, // I
-      { width: 15 }, // J
-      { width: 10 }, // K
-      { width: 15 } // L
+      { width: 4 }, // A - Margin
+      { width: 15 }, // B - DP Code
+      { width: 18 }, // C - Dest Arrival
+      { width: 18 }, // D - Dest Departure
+      { width: 14 }, // E - Unloading Time
+      { width: 20 }, // F - From
+      { width: 20 }, // G - To
+      { width: 12 }, // H - Plate No
+      { width: 12 }, // I - Truck Type
+      { width: 12 }, // J - Rate
+      { width: 15 }, // K - Amount
+      { width: 4 } // L - Margin
     ]
 
-    // Add 2 empty rows (rows 1-2)
-    for (let i = 0; i < 2; i++) {
-      worksheet2.addRow(['', '', '', '', '', '', '', '', '', '', '', ''])
-    }
+    // Add title (row 2)
+    worksheet2.mergeCells('B2:K2')
+    const titleCell2 = worksheet2.getCell('B2')
+    titleCell2.value = 'DEMURRAGE FEE'
+    titleCell2.style = styles.title
+    titleCell2.alignment = { horizontal: 'center', vertical: 'middle' }
+    worksheet2.getRow(2).height = 30
 
-    // Add DEMURRAGE FEE title (row 3)
-    worksheet2.mergeCells(`B3:L3`)
-    const demurrageCell = worksheet2.getCell('B3')
-    demurrageCell.value = 'DEMURRAGE FEE'
-    demurrageCell.style = {
-      ...headerStyle,
-      alignment: { horizontal: 'center', vertical: 'center' }
-    }
+    // Add empty row (row 3)
+    worksheet2.addRow([])
 
-    // Add BILLING PERIOD title (row 4)
-    worksheet2.mergeCells(`B4:L4`)
-    const periodCell = worksheet2.getCell('B4')
-    periodCell.value = 'BILLING PERIOD'
-    periodCell.style = {
-      ...headerStyle,
-      alignment: { horizontal: 'center', vertical: 'center' }
-    }
-
-    // Add header row (row 5)
-    const headerRow2 = worksheet2.addRow([
+    // Add header row (row 4)
+    const headerRow2 = worksheet2.getRow(4)
+    headerRow2.values = [
       '',
-      'DP CODE',
-      'DEST ARRIVAL',
-      'DEST DEPARTURE',
-      'UNLOADING TIME',
-      'SERIES NO.',
-      'FROM',
-      'TO',
-      'PLATE NO',
-      'TRUCK TYPE',
-      'RATE',
-      'TOTAL AMOUNT'
-    ])
+      'DP Code',
+      'Dest Arrival',
+      'Dest Departure',
+      'Unloading Time',
+      'From',
+      'To',
+      'Plate No',
+      'Truck Type',
+      'Rate',
+      'Amount (₱)',
+      ''
+    ]
+    headerRow2.height = 25
 
-    // Apply header style only to columns B-L (skip column A)
-    for (let col = 2; col <= 12; col++) {
-      const cell = headerRow2.getCell(col)
-      cell.style = headerStyle
+    // Apply header style
+    for (let col = 2; col <= 11; col++) {
+      headerRow2.getCell(col).style = styles.header
     }
 
-    // Starting row for demurrage data (row 6 - directly after header)
-    const demurrageDataStartRow = 6
-
-    // Add demurrage rows starting from row 6
+    // Add demurrage data
+    const demurrageDataStartRow = 5
     completedDeployments.forEach((deployment, index) => {
       const hasReplacement = deployment?.replacement?.replacementTruckId?._id
       const currentPlateNo = hasReplacement
         ? deployment.replacement?.replacementTruckId?.plateNo || ''
         : deployment.truckId?.plateNo || ''
-
       const currentTruckType = hasReplacement
         ? deployment.replacement?.replacementTruckType
         : deployment.truckType
@@ -769,65 +833,83 @@ function Deployments () {
             })()
           : ''
 
-      const rowNum = worksheet2.rowCount + 1
       const row = worksheet2.addRow([
         '',
         deployment.deploymentCode || '',
         deployment.destArrival
           ? DateTime.fromISO(deployment.destArrival)
               .setZone('Asia/Manila')
-              .toFormat('yyyy-MM-dd HH:mm:ss')
+              .toFormat('MMM dd, yyyy hh:mm a')
           : '',
         deployment.destDeparture
           ? DateTime.fromISO(deployment.destDeparture)
               .setZone('Asia/Manila')
-              .toFormat('yyyy-MM-dd HH:mm:ss')
+              .toFormat('MMM dd, yyyy hh:mm a')
           : '',
         unloadingTime,
-        '', // Series No.
         deployment.pickupSite || '',
         deployment.destination || '',
         currentPlateNo.toUpperCase(),
         formatTruckType(currentTruckType),
-        ratePerKg,
-        '' // Empty TOTAL AMOUNT
+        '', // Rate - can be filled manually
+        '', // Amount - can be filled manually
+        ''
       ])
 
-      // Apply border style only to columns B-L (skip column A)
-      for (let col = 2; col <= 12; col++) {
-        const cell = row.getCell(col)
-        cell.style = borderedStyle
-        cell.alignment = { horizontal: 'center', vertical: 'center' }
+      row.height = 20
+
+      // Apply styles
+      row.getCell(2).style = styles.data // DP Code
+      row.getCell(3).style = styles.data // Dest Arrival
+      row.getCell(4).style = styles.data // Dest Departure
+      row.getCell(5).style = styles.data // Unloading Time
+      row.getCell(6).style = styles.dataLeft // From
+      row.getCell(7).style = styles.dataLeft // To
+      row.getCell(8).style = styles.data // Plate No
+      row.getCell(9).style = styles.data // Truck Type
+      row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' } // Rate
+      row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' } // Amount
+
+      // Alternate row coloring
+      if (index % 2 === 0) {
+        for (let col = 2; col <= 11; col++) {
+          const cell = row.getCell(col)
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFAFAFA' }
+          }
+        }
       }
     })
 
-    // If no completed deployments, add an empty row with borders
+    // Add empty row if no data
     if (completedDeployments.length === 0) {
       const emptyRow = worksheet2.addRow([
         '',
         '',
         '',
         '',
+        'No demurrage fees',
         '',
         '',
         '',
         '',
-        '',
-        '',
-        '',
+        0,
+        0,
         ''
       ])
-      for (let col = 2; col <= 12; col++) {
-        const cell = emptyRow.getCell(col)
-        cell.style = borderedStyle
-        cell.alignment = { horizontal: 'center', vertical: 'center' }
+      emptyRow.height = 20
+      for (let col = 2; col <= 11; col++) {
+        emptyRow.getCell(col).style = styles.data
       }
     }
 
-    // Add GRAND TOTAL row (only columns K and L should have borders)
-    const lastDemurrageRow =
-      completedDeployments.length > 0 ? worksheet2.rowCount : 6
-    const grandTotalRow2 = worksheet2.addRow([
+    // Add subtotal row
+    const lastDemurrageRow = worksheet2.rowCount
+    worksheet2.addRow([]) // Empty row
+
+    const subtotalRow2 = worksheet2.addRow([
       '',
       '',
       '',
@@ -837,299 +919,252 @@ function Deployments () {
       '',
       '',
       '',
-      '',
-      'GRAND TOTAL',
-      { formula: `SUM(L${demurrageDataStartRow}:L${lastDemurrageRow})` }
+      'SUBTOTAL:',
+      { formula: `SUM(K${demurrageDataStartRow}:K${lastDemurrageRow})` },
+      ''
     ])
 
-    // Apply style only to columns K and L
-    const grandTotalLabelCell = grandTotalRow2.getCell(11) // Column K
-    const grandTotalValueCell = grandTotalRow2.getCell(12) // Column L
+    subtotalRow2.height = 25
+    subtotalRow2.getCell(10).style = styles.total
+    subtotalRow2.getCell(11).style = { ...styles.total, numFmt: '₱#,##0.00' }
 
-    grandTotalLabelCell.style = borderedStyle
-    grandTotalLabelCell.alignment = { horizontal: 'center', vertical: 'center' }
-    grandTotalLabelCell.font = { bold: true }
+    // Store the subtotal row number for Sheet 3 reference
+    const demurrageFeeSubtotalRow = worksheet2.rowCount
 
-    grandTotalValueCell.style = borderedStyle
-    grandTotalValueCell.alignment = { horizontal: 'center', vertical: 'center' }
-    grandTotalValueCell.font = { bold: true }
-
-    // ======================= SHEET 3: BILLING Summary =======================
-    const worksheet3 = workbook.addWorksheet('BILLING')
+    // ======================= SHEET 3: Summary =======================
+    const worksheet3 = workbook.addWorksheet('Summary', {
+      views: [{ showGridLines: false }],
+      pageSetup: {
+        paperSize: 9, // A4
+        orientation: 'landscape',
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0
+      }
+    })
 
     // Set column widths
     worksheet3.columns = [
-      { width: 20 }, // A
-      { width: 20 }, // B
-      { width: 20 }, // C
-      { width: 15 }, // D
+      { width: 4 }, // A - Margin
+      { width: 25 }, // B
+      { width: 25 }, // C
+      { width: 20 }, // D
       { width: 20 }, // E
-      { width: 15 }, // F
-      { width: 15 }, // G
-      { width: 20 } // H
+      { width: 20 }, // F
+      { width: 4 } // G - Margin
     ]
 
-    // Add 3 empty rows (rows 1-3)
-    for (let i = 0; i < 3; i++) {
-      worksheet3.addRow(['', '', '', '', '', '', '', ''])
+    // Add title (row 2)
+    worksheet3.mergeCells('B2:E2')
+    const titleCell3 = worksheet3.getCell('B2')
+    titleCell3.value = 'STATEMENT OF ACCOUNT'
+    titleCell3.style = {
+      ...styles.title,
+      font: { ...styles.title.font, size: 18 }
+    }
+    titleCell3.alignment = { horizontal: 'center', vertical: 'middle' }
+    worksheet3.getRow(2).height = 35
+
+    // Add empty row
+    worksheet3.addRow([])
+
+    // Billed To section (row 4)
+    const billedToRow = worksheet3.getRow(4)
+    billedToRow.values = ['', 'BILLED TO:', companyName, '', '', '', '']
+    billedToRow.height = 25
+    billedToRow.getCell(2).style = styles.label
+    billedToRow.getCell(3).style = {
+      ...styles.value,
+      font: { ...styles.value.font, bold: true }
     }
 
-    // Add STATEMENT OF ACCOUNT title (row 4)
-    worksheet3.mergeCells(`A4:H4`)
-    const statementCell = worksheet3.getCell('A4')
-    statementCell.value = 'STATEMENT OF ACCOUNT'
-    statementCell.style = {
-      ...headerStyle,
-      font: { ...headerStyle.font, size: 14 },
-      alignment: { horizontal: 'center', vertical: 'center' }
-    }
+    // Date (row 5)
+    const dateRow = worksheet3.getRow(5)
+    dateRow.values = ['', 'DATE:', billingDate, '', '', '', '']
+    dateRow.height = 20
+    dateRow.getCell(2).style = styles.label
+    dateRow.getCell(3).style = styles.value
 
-    // Add empty row (row 5)
-    worksheet3.addRow(['', '', '', '', '', '', '', ''])
+    // SOA Number (row 6)
+    const soaRow = worksheet3.getRow(6)
+    soaRow.values = ['', 'SOA NUMBER:', 'KTS-2026-001', '', '', '', '']
+    soaRow.height = 20
+    soaRow.getCell(2).style = styles.label
+    soaRow.getCell(3).style = styles.value
 
-    // Add BILLED TO: row (row 6)
-    const billedRow = worksheet3.addRow([
-      'BILLED TO:',
-      '',
-      companyName,
-      '',
-      '',
-      '',
-      'DATE:',
-      billingDate
-    ])
+    // P.O. Number (row 7)
+    const poRow = worksheet3.getRow(7)
+    poRow.values = ['', 'P.O. NUMBER:', '', '', '', '', '']
+    poRow.height = 20
+    poRow.getCell(2).style = styles.label
+    poRow.getCell(3).style = styles.value
 
-    // Apply borders only to specific cells
-    const billedToCell = billedRow.getCell(1) // A6
-    billedToCell.font = { bold: true }
+    // Add empty rows
+    worksheet3.addRow([])
+    worksheet3.addRow([])
 
-    const companyCell = billedRow.getCell(3) // C6
-    companyCell.style = borderedStyle
-    companyCell.alignment = { horizontal: 'center', vertical: 'center' }
+    // Breakdown section header (row 10)
+    worksheet3.mergeCells('B10:E10')
+    const breakdownHeader = worksheet3.getCell('B10')
+    breakdownHeader.value = 'BILLING BREAKDOWN'
+    breakdownHeader.style = styles.subtitle
+    breakdownHeader.alignment = { horizontal: 'center', vertical: 'middle' }
+    worksheet3.getRow(10).height = 25
 
-    const dateLabelCell = billedRow.getCell(7) // G6
-    dateLabelCell.font = { bold: true }
-
-    const dateCell = billedRow.getCell(8) // H6
-    dateCell.style = borderedStyle
-    dateCell.alignment = { horizontal: 'center', vertical: 'center' }
-
-    // Add SOA NUMBER row (row 7)
-    const soaRow = worksheet3.addRow([
+    // Regular Trips (row 11) - FIXED: Reference column K instead of J
+    const regularRow = worksheet3.getRow(11)
+    regularRow.values = [
       '',
       '',
+      'Regular Trips',
+      { formula: `='Regular Trips'!K${regularTripsSubtotalRow}` },
       '',
-      '',
-      '',
-      '',
-      'SOA NUMBER:',
-      'YZA25_001'
-    ])
-
-    const soaLabelCell = soaRow.getCell(7) // G7
-    soaLabelCell.font = { bold: true }
-
-    const soaValueCell = soaRow.getCell(8) // H7
-    soaValueCell.style = borderedStyle
-    soaValueCell.alignment = { horizontal: 'center', vertical: 'center' }
-
-    // Add P.O. NUMBER row (row 8)
-    const poRow = worksheet3.addRow([
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      'P.O. NUMBER:',
-      ''
-    ])
-
-    const poLabelCell = poRow.getCell(7) // G8
-    poLabelCell.font = { bold: true }
-
-    const poValueCell = poRow.getCell(8) // H8
-    poValueCell.style = borderedStyle
-    poValueCell.alignment = { horizontal: 'center', vertical: 'center' }
-
-    // Add 3 empty rows (rows 9-11)
-    for (let i = 0; i < 3; i++) {
-      worksheet3.addRow(['', '', '', '', '', '', '', ''])
-    }
-
-    // Row numbers for calculations
-    const page1RowNum = 12 // Row 12
-    const page2RowNum = 13 // Row 13
-
-    // Add PAGE 01 row (row 12)
-    const page1Row = worksheet3.getRow(page1RowNum)
-    page1Row.values = [
-      '',
-      '',
-      '',
-      'PAGE 01:',
-      'REGULAR TRIPS',
-      { formula: `='1'!J${worksheet1.rowCount}` }, // Reference to Sheet1 TOTAL cell
       '',
       ''
     ]
+    regularRow.height = 22
+    regularRow.getCell(3).style = styles.dataLeft
+    regularRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
 
-    // Apply borders only to columns D, E, F
-    for (let col = 4; col <= 6; col++) {
-      const cell = page1Row.getCell(col)
-      cell.style = borderedStyle
-      cell.alignment = { horizontal: 'center', vertical: 'center' }
-    }
-
-    // Add PAGE 02 row (row 13)
-    const page2Row = worksheet3.getRow(page2RowNum)
-    page2Row.values = [
+    // Demurrage Fee (row 12) - FIXED: Reference column K instead of L
+    const demurrageRow = worksheet3.getRow(12)
+    demurrageRow.values = [
       '',
       '',
+      'Demurrage Fee',
+      { formula: `='Demurrage Fee'!K${demurrageFeeSubtotalRow}` },
       '',
-      'PAGE 02:',
-      'DEMURRAGE',
-      { formula: `='2'!L${worksheet2.rowCount}` }, // Reference to Sheet2 GRAND TOTAL cell
       '',
       ''
     ]
+    demurrageRow.height = 22
+    demurrageRow.getCell(3).style = styles.dataLeft
+    demurrageRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
 
-    // Apply borders only to columns D, E, F
-    for (let col = 4; col <= 6; col++) {
-      const cell = page2Row.getCell(col)
-      cell.style = borderedStyle
-      cell.alignment = { horizontal: 'center', vertical: 'center' }
-    }
+    // Add empty rows
+    worksheet3.addRow([])
 
-    // Add 8 empty rows (rows 14-21)
-    for (let i = 0; i < 8; i++) {
-      worksheet3.addRow(['', '', '', '', '', '', '', ''])
-    }
-
-    // Row numbers for calculations
-    const totalPhpRowNum = 22 // Row 22
-    const vatRowNum = 23 // Row 23
-    const grandTotalRowNum = 24 // Row 24
-
-    // Add TOTAL (Php) row (row 22)
-    const totalPhpRow = worksheet3.getRow(totalPhpRowNum)
-    totalPhpRow.values = [
+    // Subtotal (row 14)
+    const subtotalRow3 = worksheet3.getRow(14)
+    subtotalRow3.values = [
       '',
       '',
+      'SUBTOTAL',
+      { formula: 'SUM(D11:D12)' },
       '',
       '',
-      '',
-      'TOTAL (Php)',
-      { formula: `SUM(F${page1RowNum}:F${page2RowNum})` },
       ''
     ]
+    subtotalRow3.height = 25
+    subtotalRow3.getCell(3).style = {
+      ...styles.total,
+      alignment: { horizontal: 'left', vertical: 'middle' }
+    }
+    subtotalRow3.getCell(4).style = {
+      ...styles.total,
+      numFmt: '₱#,##0.00',
+      alignment: { horizontal: 'center', vertical: 'middle' }
+    }
 
-    // Apply borders only to columns F and G
-    const totalPhpLabelCell = totalPhpRow.getCell(6) // F22
-    const totalPhpValueCell = totalPhpRow.getCell(7) // G22
+    // VAT (row 15)
+    const vatRow = worksheet3.getRow(15)
+    vatRow.values = ['', '', 'ADD 12% VAT', { formula: 'D14*0.12' }, '', '', '']
+    vatRow.height = 22
+    vatRow.getCell(3).style = styles.dataLeft
+    vatRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
 
-    totalPhpLabelCell.style = borderedStyle
-    totalPhpLabelCell.alignment = { horizontal: 'center', vertical: 'center' }
-    totalPhpLabelCell.font = { bold: true }
-
-    totalPhpValueCell.style = borderedStyle
-    totalPhpValueCell.alignment = { horizontal: 'center', vertical: 'center' }
-
-    // Add ADD 12% VAT row (row 23)
-    const vatRow = worksheet3.getRow(vatRowNum)
-    vatRow.values = [
-      '',
-      '',
-      '',
-      '',
-      '',
-      'ADD 12% VAT',
-      { formula: `(F${totalPhpRowNum}*12%)` },
-      ''
-    ]
-
-    // Apply borders only to columns F and G
-    const vatLabelCell = vatRow.getCell(6) // F23
-    const vatValueCell = vatRow.getCell(7) // G23
-
-    vatLabelCell.style = borderedStyle
-    vatLabelCell.alignment = { horizontal: 'center', vertical: 'center' }
-    vatLabelCell.font = { bold: true }
-
-    vatValueCell.style = borderedStyle
-    vatValueCell.alignment = { horizontal: 'center', vertical: 'center' }
-
-    // Add GRAND TOTAL row (row 24)
-    const grandTotalRow3 = worksheet3.getRow(grandTotalRowNum)
-    grandTotalRow3.values = [
-      '',
-      '',
-      '',
+    // Grand Total (row 16)
+    const grandTotalRow = worksheet3.getRow(16)
+    grandTotalRow.values = [
       '',
       '',
       'GRAND TOTAL',
-      { formula: `SUM(F${totalPhpRowNum}:F${vatRowNum})` },
+      { formula: 'D14+D15' },
+      '',
+      '',
       ''
     ]
-
-    // Apply borders only to columns F and G
-    const grandTotalLabel3Cell = grandTotalRow3.getCell(6) // F24
-    const grandTotalValue3Cell = grandTotalRow3.getCell(7) // G24
-
-    grandTotalLabel3Cell.style = borderedStyle
-    grandTotalLabel3Cell.alignment = {
-      horizontal: 'center',
-      vertical: 'center'
+    grandTotalRow.height = 28
+    grandTotalRow.getCell(3).style = {
+      ...styles.total,
+      alignment: { horizontal: 'left', vertical: 'middle' },
+      font: { ...styles.total.font, size: 12 }
     }
-    grandTotalLabel3Cell.font = { bold: true }
-
-    grandTotalValue3Cell.style = borderedStyle
-    grandTotalValue3Cell.alignment = {
-      horizontal: 'center',
-      vertical: 'center'
+    grandTotalRow.getCell(4).style = {
+      ...styles.total,
+      numFmt: '₱#,##0.00',
+      font: { ...styles.total.font, size: 12 },
+      alignment: { horizontal: 'center', vertical: 'middle' }
     }
 
-    // Add 5 empty rows (rows 25-29)
-    for (let i = 0; i < 5; i++) {
-      worksheet3.addRow(['', '', '', '', '', '', '', ''])
-    }
+    // Add empty rows
+    // for (let i = 0; i < 1; i++) {
+    //   worksheet3.addRow([])
+    // }
 
-    // Add PREPARED BY row (row 30)
-    const preparedRow = worksheet3.getRow(30)
+    // Prepared by (row 19)
+    const preparedRow = worksheet3.getRow(19)
     preparedRow.values = [
+      '',
       'PREPARED BY:',
-      '',
-      '',
       '',
       '',
       'CHECKED/APPROVED BY:',
       '',
       ''
     ]
+    preparedRow.height = 20
+    preparedRow.getCell(2).style = {
+      font: { bold: true, size: 10 },
+      alignment: { horizontal: 'left' }
+    }
+    preparedRow.getCell(5).style = {
+      font: { bold: true, size: 10 },
+      alignment: { horizontal: 'left' }
+    }
 
-    // Style labels only (no borders)
-    const preparedLabelCell = preparedRow.getCell(1) // A30
-    const checkedLabelCell = preparedRow.getCell(6) // F30
+    // Add empty rows for signature
+    worksheet3.addRow([])
+    worksheet3.addRow([])
 
-    preparedLabelCell.font = { bold: true }
-    checkedLabelCell.font = { bold: true }
-
-    // Add name row (row 31)
-    const nameRow = worksheet3.getRow(31)
-    nameRow.values = ['', 'JOHN ROBERT M. OCUMEN', '', '', '', '', '', '']
-
-    // Add title row (row 32)
-    const propRow = worksheet3.getRow(32)
-    propRow.values = [
+    // Name (row 22)
+    const nameRow = worksheet3.getRow(22)
+    nameRow.values = [
       '',
-      'PROPRIETOR',
+      'JOHN ROBERT M. OCUMEN',
       '',
       '',
-      '',
-      '_____________________________________',
+      '_____________________',
       '',
       ''
     ]
+    nameRow.height = 20
+    nameRow.getCell(2).style = {
+      font: { bold: true, size: 10 },
+      alignment: { horizontal: 'left' },
+      border: {
+        top: { style: 'thin', color: { argb: 'FF000000' } }
+      }
+    }
+    nameRow.getCell(5).style = {
+      alignment: { horizontal: 'center' },
+      border: {
+        top: { style: 'thin', color: { argb: 'FF000000' } }
+      }
+    }
+
+    // Title (row 25)
+    const titleRow = worksheet3.getRow(23)
+    titleRow.values = ['', 'PROPRIETOR', '', '', 'AUTHORIZED SIGNATURE', '', '']
+    titleRow.height = 18
+    titleRow.getCell(2).style = {
+      font: { size: 9, color: { argb: colors.textLight } },
+      alignment: { horizontal: 'left' }
+    }
+    titleRow.getCell(5).style = {
+      font: { size: 9, color: { argb: colors.textLight } },
+      alignment: { horizontal: 'center' }
+    }
 
     // Generate Excel file
     const timestamp = DateTime.now().toFormat('yyyy-MM-dd_HHmmss')
@@ -1139,12 +1174,10 @@ function Deployments () {
     const blob = new Blob([buffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     })
-
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
-
     link.href = url
-    link.download = `BILLING_KTS_${timestamp}.xlsx`
+    link.download = `Billing_Statement_${timestamp}.xlsx`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
