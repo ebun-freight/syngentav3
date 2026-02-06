@@ -18,7 +18,9 @@ function SideNav () {
   const filteredSidebar = getNavItemsByRole(userData.data.role)
 
   const handleNavigate = () => {
-    setIsSideBarOpen(false)
+    if (window.innerWidth < 1024) {
+      setIsSideBarOpen(false)
+    }
   }
 
   useEffect(() => {

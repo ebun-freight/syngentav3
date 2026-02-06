@@ -966,28 +966,6 @@ function DeploymentDetailsModal ({
                           decimalScale={2}
                         />
                       </div>
-
-                      {/* territory */}
-                      <InputField
-                        label='Territory'
-                        type='text'
-                        name='territory'
-                        value={editForm?.territory}
-                        disabled={!isEditMode}
-                        onChange={handleChange}
-                        formatNumber={true}
-                      />
-
-                      {/* territory */}
-                      <InputField
-                        label='Hybrid'
-                        type='text'
-                        name='hybrid'
-                        value={editForm?.hybrid}
-                        disabled={!isEditMode}
-                        onChange={handleChange}
-                        formatNumber={true}
-                      />
                     </div>
                   </div>
                 ) : (
@@ -1256,7 +1234,17 @@ function DeploymentDetailsModal ({
                           decimalScale={2}
                         />
                       </div>
+                    </div>
+                  </div>
+                )}
 
+                {/* other details */}
+                <div className='mt-3 space-y-2'>
+                  <h3 className='col-span-full text-xs uppercase font-semibold text-gray-500'>
+                    Other Details
+                  </h3>
+                  <div className='grid grid-cols-2 grid-rows-3 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
+                    <div className='grid grid-cols-2 gap-x-6'>
                       {/* territory */}
                       <InputField
                         label='Territory'
@@ -1279,25 +1267,6 @@ function DeploymentDetailsModal ({
                         formatNumber={true}
                       />
                     </div>
-                  </div>
-                )}
-
-                {/* other details */}
-                <div className='mt-3 space-y-2'>
-                  <h3 className='col-span-full text-xs uppercase font-semibold text-gray-500'>
-                    Other Details
-                  </h3>
-                  <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
-                    <label className='flex flex-col gap-1'>
-                      <span className='uppercase text-xs text-gray-500 font-semibold'>
-                        Assigned At
-                      </span>
-                      <p className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
-                        {DateTime.fromISO(editForm?.createdAt)
-                          .setZone('Asia/Manila')
-                          .toFormat('MMM d, yyyy - hh:mm a')}
-                      </p>
-                    </label>
 
                     <div className='grid grid-cols-2 gap-x-6'>
                       {/* status */}
@@ -1389,6 +1358,29 @@ function DeploymentDetailsModal ({
                       </label>
                     </div>
 
+                    <label className='flex flex-col gap-1'>
+                      <span className='uppercase text-xs text-gray-500 font-semibold'>
+                        Assigned At
+                      </span>
+                      <p className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
+                        {DateTime.fromISO(editForm?.createdAt)
+                          .setZone('Asia/Manila')
+                          .toFormat('MMM d, yyyy - hh:mm a')}
+                      </p>
+                    </label>
+
+                    <InputField
+                      label='Flagging Remarks'
+                      type='text'
+                      name='flaggingRemarks'
+                      placeholder=''
+                      maxLength={50}
+                      value={editForm?.flaggingRemarks}
+                      disabled={!isEditMode}
+                      onChange={handleChange}
+                      isRequired={false}
+                    />
+
                     <InputField
                       label='Pick-up Location'
                       type='text'
@@ -1400,32 +1392,18 @@ function DeploymentDetailsModal ({
                       onChange={handleChange}
                     />
 
-                    {isEditMode && editForm?.status === 'canceled' ? (
-                      <InputField
-                        label='Cancellation Reason'
-                        type='text'
-                        name='cancellationReason'
-                        placeholder=''
-                        maxLength={50}
-                        value={editForm?.cancellationReason}
-                        disabled={!isEditMode}
-                        onChange={handleChange}
-                        isRequired={false}
-                        isCapitalize={false}
-                      />
-                    ) : (
-                      <InputField
-                        label='Flagging Remarks'
-                        type='text'
-                        name='flaggingRemarks'
-                        placeholder=''
-                        maxLength={50}
-                        value={editForm?.flaggingRemarks}
-                        disabled={!isEditMode}
-                        onChange={handleChange}
-                        isRequired={false}
-                      />
-                    )}
+                    <InputField
+                      label='Cancellation Reason'
+                      type='text'
+                      name='cancellationReason'
+                      placeholder=''
+                      maxLength={50}
+                      value={editForm?.cancellationReason}
+                      disabled={!isEditMode || editForm?.status !== 'canceled'}
+                      onChange={handleChange}
+                      isRequired={false}
+                      isCapitalize={false}
+                    />
                   </div>
                 </div>
 
@@ -1506,6 +1484,7 @@ function DeploymentDetailsModal ({
 
 const InputField = ({
   colSpan = 1,
+  rowSpan = 1,
   label,
   type,
   name,
@@ -1567,13 +1546,10 @@ const InputField = ({
 
   // Regular input field
   return (
-    <label className={`col-span-${colSpan} flex flex-col gap-1`}>
-      <p className='uppercase text-xs text-gray-500 font-semibold'>
-        {label}{' '}
-        {name === 'cancellationReason' && (
-          <span className='text-red-500'>*</span>
-        )}
-      </p>
+    <label
+      className={`col-span-${colSpan} row-span-${rowSpan} flex flex-col gap-1`}
+    >
+      <p className='uppercase text-xs text-gray-500 font-semibold'>{label}</p>
       <input
         type={type}
         name={name}
@@ -1585,12 +1561,13 @@ const InputField = ({
         disabled={disabled}
         required={isRequired}
         className={clsx(
-          'outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 ',
+          'outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400',
           {
             capitalize: isCapitalize,
             uppercase: isUpperCase,
             'w-56': !isFullWidth,
             'w-full': isFullWidth,
+            'h-full': rowSpan === 2,
             'outline-gray-200': !isDarkerOutline,
             'outline-gray-300': isDarkerOutline
           }

@@ -496,11 +496,18 @@ function TimelineLogDetailsModal ({
                         isUpperCase={true}
                       />
 
-                      {/* type */}
-                      <StatisField
-                        label='Truck Type'
-                        value={timelineDetails?.targetDeployment?.truckType}
-                      />
+                      <div className='grid grid-cols-2 gap-x-6'>
+                        {/* type */}
+                        <StatisField
+                          label='Truck Type'
+                          value={timelineDetails?.targetDeployment?.truckType}
+                        />
+
+                        <StatisField
+                          label='Helper Count'
+                          value={timelineDetails?.targetDeployment?.helperCount}
+                        />
+                      </div>
 
                       <StatisField
                         label='Driver'
@@ -509,14 +516,18 @@ function TimelineLogDetailsModal ({
 
                       <div className='grid grid-cols-2 gap-6'>
                         <StatisField
-                          label='Helper Count'
-                          value={timelineDetails?.targetDeployment?.helperCount}
+                          label='Sacks Count'
+                          value={timelineDetails?.targetDeployment?.sacksCount}
+                          type='number'
+                          formatNumber={true}
                         />
-
-                        {/* status */}
                         <StatisField
-                          label='Status'
-                          value={timelineDetails?.targetDeployment?.status}
+                          label='Load Weight (kg)'
+                          value={
+                            timelineDetails?.targetDeployment?.loadWeightKg
+                          }
+                          type='number'
+                          formatNumber={true}
                         />
                       </div>
                     </div>
@@ -543,21 +554,15 @@ function TimelineLogDetailsModal ({
                         isUpperCase={true}
                       />
 
-                      {/* type */}
-                      <StatisField
-                        label='Truck Type'
-                        value={
-                          timelineDetails?.targetDeployment?.replacement
-                            ?.replacementTruckType
-                        }
-                      />
+                      <div className='grid grid-cols-2 gap-x-6'>
+                        <StatisField
+                          label='Truck Type'
+                          value={
+                            timelineDetails?.targetDeployment?.replacement
+                              ?.replacementTruckType
+                          }
+                        />
 
-                      <StatisField
-                        label='Driver'
-                        value={`${timelineDetails?.targetDeployment?.replacement?.replacementDriverId?.firstname} ${timelineDetails?.targetDeployment?.replacement?.replacementDriverId?.lastname}`}
-                      />
-
-                      <div className='grid grid-cols-2 gap-6'>
                         <StatisField
                           label='Helper Count'
                           value={
@@ -567,11 +572,28 @@ function TimelineLogDetailsModal ({
                           type='number'
                           formatNumber={true}
                         />
+                      </div>
 
-                        {/* status */}
+                      {/* type */}
+                      <StatisField
+                        label='Driver'
+                        value={`${timelineDetails?.targetDeployment?.replacement?.replacementDriverId?.firstname} ${timelineDetails?.targetDeployment?.replacement?.replacementDriverId?.lastname}`}
+                      />
+
+                      <div className='grid grid-cols-2 gap-6'>
                         <StatisField
-                          label='Status'
-                          value={timelineDetails?.targetDeployment?.status}
+                          label='Sacks Count'
+                          value={timelineDetails?.targetDeployment?.sacksCount}
+                          type='number'
+                          formatNumber={true}
+                        />
+                        <StatisField
+                          label='Load Weight (kg)'
+                          value={
+                            timelineDetails?.targetDeployment?.loadWeightKg
+                          }
+                          type='number'
+                          formatNumber={true}
                         />
                       </div>
                     </div>
@@ -584,6 +606,34 @@ function TimelineLogDetailsModal ({
                     Other Details
                   </h3>
                   <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
+                    <div className='grid grid-cols-2 gap-x-6'>
+                      <StatisField
+                        label='Territory'
+                        value={timelineDetails?.targetDeployment?.territory}
+                        type='text'
+                      />
+
+                      <StatisField
+                        label='Hybrid'
+                        value={timelineDetails?.targetDeployment?.hybrid}
+                        type='text'
+                      />
+                    </div>
+
+                    <div className='grid grid-cols-2 gap-x-6'>
+                      <StatisField
+                        label='Status'
+                        value={timelineDetails?.status}
+                        type='text'
+                      />
+
+                      <StatisField
+                        label='Flagging'
+                        value={timelineDetails?.targetDeployment?.flagging}
+                        type='text'
+                      />
+                    </div>
+
                     <StatisField
                       label='Assigned at'
                       value={DateTime.fromISO(
@@ -593,20 +643,10 @@ function TimelineLogDetailsModal ({
                         .toFormat('MMM d, yyyy - hh:mm a')}
                     />
 
-                    <div className='grid grid-cols-2 gap-6'>
-                      <StatisField
-                        label='Sacks Count'
-                        value={timelineDetails?.targetDeployment?.sacksCount}
-                        type='number'
-                        formatNumber={true}
-                      />
-                      <StatisField
-                        label='Load Weight (kg)'
-                        value={timelineDetails?.targetDeployment?.loadWeightKg}
-                        type='number'
-                        formatNumber={true}
-                      />
-                    </div>
+                    <StatisField
+                      label='Flagging Remarks'
+                      value={timelineDetails?.targetDeployment?.flaggingRemarks}
+                    />
 
                     <StatisField
                       label='Pick-up Location'
@@ -614,8 +654,10 @@ function TimelineLogDetailsModal ({
                     />
 
                     <StatisField
-                      label='Destination'
-                      value={timelineDetails?.targetDeployment?.destination}
+                      label='Cancelation Remarks'
+                      value={
+                        timelineDetails?.targetDeployment?.cancellationReason
+                      }
                     />
                   </div>
                 </div>
@@ -630,6 +672,7 @@ function TimelineLogDetailsModal ({
 
 const StatisField = ({
   colSpan = 1,
+  rowSpan = 1,
   label,
   type,
   name,
@@ -641,7 +684,8 @@ const StatisField = ({
   formatNumber = false,
   thousandSeparator = true,
   decimalScale = 0,
-  allowNegative = false
+  allowNegative = false,
+  isSolo
 }) => {
   // If it's a number field with formatting, use NumericFormat
   if (formatNumber && type === 'number') {
@@ -717,15 +761,59 @@ const StatisField = ({
     )
   }
 
+  if (label === 'Flagging') {
+    return (
+      <label className={`col-span-${colSpan} flex flex-col gap-1`}>
+        <span className='uppercase text-xs text-gray-500 font-semibold'>
+          {label}
+        </span>
+        <div
+          className={clsx(
+            'outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400',
+            {
+              capitalize: isCapitalize,
+              uppercase: isUpperCase,
+              'w-56': !isFullWidth,
+              'w-full': isFullWidth,
+              'outline-gray-200': !isDarkerOutline,
+              'outline-gray-300': isDarkerOutline
+            }
+          )}
+        >
+          <p
+            className={clsx(
+              'capitalize w-fit px-2 py-0.5 rounded-full text-sm',
+              {
+                'bg-emerald-500/10 text-emerald-500': value === 'Green',
+                'bg-orange-500/10 text-orange-500': value === 'Orange',
+                'bg-yellow-500/10 text-yellow-500': value === 'Yellow',
+                'bg-red-500/10 text-red-500': value === 'Red'
+              }
+            )}
+          >
+            {value}
+          </p>
+        </div>
+      </label>
+    )
+  }
+
   // Regular input field
   return (
-    <label className={`col-span-${colSpan} flex flex-col gap-1`}>
+    <label
+      className={clsx(
+        `col-span-${colSpan} row-span-${rowSpan} flex flex-col gap-1`,
+        {
+          'h-full': label === 'Cancellation Reason'
+        }
+      )}
+    >
       <span className='uppercase text-xs text-gray-500 font-semibold '>
         {label}
       </span>
       <p
         className={clsx(
-          'outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 ',
+          'outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 h-full',
           {
             capitalize: isCapitalize,
             uppercase: isUpperCase,
