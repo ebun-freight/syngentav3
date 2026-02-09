@@ -1635,24 +1635,33 @@ function Deployments () {
 
                   {userData.data.role !== 'subcon' && (
                     <>
-                      <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
-                        <p className='font-semibold'>Subcon</p>
-                        <select
-                          name='subcon'
-                          value={tempFilters.subcon}
-                          onChange={handleChangeFilter}
-                          className='w-full focus:outline-none'
-                        >
-                          <option value=''>All</option>
-                          {SUBCON_OPTIONS.map((item, index) => (
-                            <option key={index} value={item.value}>
-                              {item.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      {userData.data.role !== 'visitor' && (
+                        <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                          <p className='font-semibold'>Subcon</p>
+                          <select
+                            name='subcon'
+                            value={tempFilters.subcon}
+                            onChange={handleChangeFilter}
+                            className='w-full focus:outline-none'
+                          >
+                            <option value=''>All</option>
+                            {SUBCON_OPTIONS.map((item, index) => (
+                              <option key={index} value={item.value}>
+                                {item.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
 
-                      <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                      <label
+                        className={clsx(
+                          'flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2',
+                          {
+                            'col-span-2': userData.data.role === 'visitor'
+                          }
+                        )}
+                      >
                         <p className='font-semibold'>Territory</p>
                         <select
                           name='territory'

@@ -31,8 +31,8 @@ export const TRUCK_REPLACEMENT_REASONS = [
 export const DEPLOYMENT_STATUS = [
   { value: 'preparing', label: 'Preparing' },
   { value: 'ongoing', label: 'Ongoing' },
-  { value: 'completed', label: 'completed' },
-  { value: 'canceled', label: 'canceled' }
+  { value: 'completed', label: 'Completed' },
+  { value: 'canceled', label: 'Canceled' }
 ]
 
 export const SUBCON_OPTIONS = [

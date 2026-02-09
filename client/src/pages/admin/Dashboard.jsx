@@ -1120,7 +1120,25 @@ const Dashboard = () => {
   const getTerritoryPerformanceStackedData = () => {
     if (!analytics?.charts?.territoryPerformance?.data)
       return { labels: [], datasets: [] }
+
+    // Get top 10 territories
     const territories = analytics.charts.territoryPerformance.data.slice(0, 10)
+
+    // Create an array of objects with territory data and corresponding breakdown
+    const territoryData = territories.map((territory, index) => ({
+      territory: territory,
+      breakdown: analytics.charts.territoryPerformance.statusBreakdown[index]
+    }))
+
+    // Sort alphabetically by territory name
+    territoryData.sort((a, b) =>
+      a.territory.name.localeCompare(b.territory.name)
+    )
+
+    // Extract sorted arrays
+    const sortedTerritories = territoryData.map(item => item.territory)
+    const sortedBreakdowns = territoryData.map(item => item.breakdown)
+
     const statusOrder = ['preparing', 'ongoing', 'completed', 'canceled']
     const statusLabels = {
       preparing: 'Preparing',
@@ -1134,11 +1152,10 @@ const Dashboard = () => {
       completed: colors.blue,
       canceled: colors.red
     }
+
     const datasets = statusOrder.map(status => ({
       label: statusLabels[status],
-      data: territories.map((territory, index) => {
-        const breakdown =
-          analytics.charts.territoryPerformance.statusBreakdown[index]
+      data: sortedBreakdowns.map(breakdown => {
         return breakdown ? breakdown[status] || 0 : 0
       }),
       backgroundColor: statusColors[status],
@@ -1150,7 +1167,11 @@ const Dashboard = () => {
       categoryPercentage: 0.8,
       barPercentage: 0.9
     }))
-    return { labels: territories.map(territory => territory.name), datasets }
+
+    return {
+      labels: sortedTerritories.map(territory => territory.name),
+      datasets
+    }
   }
 
   const MetricCard = ({
