@@ -163,7 +163,11 @@ const getAllTrucks = async (req, res, next) => {
       oldest: { createdAt: 1 },
       latest: { createdAt: -1 },
       'a-z': { plateNo: 1 },
-      'z-a': { plateNo: -1 }
+      'z-a': { plateNo: -1 },
+      'trips-asc': { tripCount: 1 },
+      'trips-desc': { tripCount: -1 },
+      'subcon-asc': { subcon: 1 },
+      'subcon-desc': { subcon: -1 }
     }
 
     const sortQuery = sortOptions[sort] || sortOptions.latest

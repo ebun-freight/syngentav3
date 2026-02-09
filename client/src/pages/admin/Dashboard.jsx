@@ -47,6 +47,7 @@ import {
 } from 'react-icons/tb'
 import { error_illustration } from '../../consts/images'
 import { useUserContext } from '../../contexts/UserContext'
+import clsx from 'clsx'
 
 // Register Chart.js components INCLUDING datalabels plugin
 ChartJS.register(
@@ -1317,7 +1318,12 @@ const Dashboard = () => {
         {activeTab === 'overview' && (
           <>
             {/* Metrics */}
-            <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4'>
+            <div
+              className={clsx('grid grid-cols-1 md:grid-cols-2 gap-4', {
+                'xl:grid-cols-6': isVisitor,
+                'xl:grid-cols-4': !isVisitor
+              })}
+            >
               <MetricCard
                 icon={TbRocket}
                 title='Total Deployments'
@@ -1364,6 +1370,7 @@ const Dashboard = () => {
                 subtitle='Last 24 hours'
                 color='text-purple-600'
               />
+
               {isSubcon && analytics?.subconAnalytics && (
                 <>
                   <MetricCard
@@ -1378,6 +1385,7 @@ const Dashboard = () => {
                     } total trucks`}
                     color='text-indigo-600'
                   />
+
                   <MetricCard
                     icon={HiOutlineUser}
                     title='Available Drivers'
@@ -1392,11 +1400,44 @@ const Dashboard = () => {
                   />
                 </>
               )}
+
+              {isVisitor && (
+                <>
+                  <MetricCard
+                    icon={HiOutlineCube}
+                    title='Total Sacks'
+                    value={
+                      analytics.performanceMetrics.totalCompletedSacks?.toLocaleString() ||
+                      '0'
+                    }
+                    subtitle={`Avg: ${
+                      analytics.performanceMetrics.avgCompletedSacks?.toFixed(
+                        2
+                      ) || '0'
+                    } per trip`}
+                    color='text-emerald-600'
+                  />
+
+                  <MetricCard
+                    icon={HiOutlineScale}
+                    title='Total Weight'
+                    value={`${
+                      analytics.performanceMetrics.totalCompletedWeight?.toLocaleString() ||
+                      '0'
+                    } kg`}
+                    subtitle={`Avg: ${
+                      analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
+                      '0'
+                    } kg per trip`}
+                    color='text-violet-600'
+                  />
+                </>
+              )}
             </div>
 
             {/* Performance Metrics for Admins */}
             {isAdmin && (
-              <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6  gap-4'>
+              <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4'>
                 <MetricCard
                   icon={HiOutlineTruck}
                   title='Truck Utilization'
@@ -1419,32 +1460,36 @@ const Dashboard = () => {
                   }/${analytics.performanceMetrics.totalDrivers || 0} deployed`}
                   color='text-cyan-600'
                 />
+
                 <MetricCard
                   icon={HiOutlineCube}
-                  title='Avg Sacks per Trip'
+                  title='Total Sacks'
                   value={
-                    analytics.performanceMetrics.avgSacksPerDeployment?.toFixed(
+                    analytics.performanceMetrics.totalCompletedSacks?.toLocaleString() ||
+                    '0'
+                  }
+                  subtitle={`Avg: ${
+                    analytics.performanceMetrics.avgCompletedSacks?.toFixed(
                       1
                     ) || '0'
-                  }
-                  subtitle={`Max: ${
-                    analytics.performanceMetrics.maxSacks || 0
-                  }`}
+                  } per trip`}
                   color='text-emerald-600'
                 />
+
                 <MetricCard
                   icon={HiOutlineScale}
-                  title='Avg Weight per Trip'
+                  title='Total Weight'
                   value={`${
-                    analytics.performanceMetrics.avgWeightPerDeployment?.toFixed(
-                      1
-                    ) || '0'
-                  }kg`}
-                  subtitle={`Max: ${
-                    analytics.performanceMetrics.maxWeight || 0
-                  }kg`}
+                    analytics.performanceMetrics.totalCompletedWeight?.toLocaleString() ||
+                    '0'
+                  } kg`}
+                  subtitle={`Avg: ${
+                    analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
+                    '0'
+                  } kg per trip`}
                   color='text-violet-600'
                 />
+
                 <MetricCard
                   icon={HiOutlineTrendingUp}
                   title='Completion Rate'
@@ -1911,7 +1956,7 @@ const Dashboard = () => {
                   </p>
                 </div>
                 <div className='h-80'>
-                  <Pie
+                  <Doughnut
                     data={getUserStatusData()}
                     options={pieDoughnutOptions}
                   />

@@ -175,6 +175,10 @@ function DriverManagement () {
                       <option value='oldest'>Oldest</option>
                       <option value='a-z'>A to Z</option>
                       <option value='z-a'>Z to A</option>
+                      <option value='trips-asc'>Trip-asc</option>
+                      <option value='trips-desc'>Trip-desc</option>
+                      <option value='subcon-asc'>Subcon-asc</option>
+                      <option value='subcon-desc'>Subcon-desc</option>
                     </select>
                   </label>
 

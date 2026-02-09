@@ -279,6 +279,27 @@ const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
+      // NEW: Completed deployments cargo metrics
+      completedCargoMetrics: Deployment.aggregate([
+        {
+          $match: {
+            ...baseFilter,
+            status: 'completed'
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalCompletedSacks: { $sum: '$sacksCount' },
+            totalCompletedWeight: { $sum: '$loadWeightKg' },
+            avgCompletedSacks: { $avg: '$sacksCount' },
+            avgCompletedWeight: { $avg: '$loadWeightKg' },
+            maxCompletedSacks: { $max: '$sacksCount' },
+            maxCompletedWeight: { $max: '$loadWeightKg' }
+          }
+        }
+      ]),
+
       // Additional deployment status counts
       pendingDeployments: Deployment.countDocuments({
         ...baseFilter,
@@ -929,7 +950,7 @@ const getDashboardAnalytics = async (req, res) => {
         ? ((data.completedDeployments / finalizedDeployments) * 100).toFixed(1)
         : 0
 
-    // Calculate total sacks and weight
+    // Calculate total sacks and weight (excluding canceled)
     const totalSacksResult = await Deployment.aggregate([
       {
         $match: {
@@ -949,12 +970,21 @@ const getDashboardAnalytics = async (req, res) => {
     const totalSacks = totalSacksResult[0]?.totalSacks || 0
     const totalWeight = totalSacksResult[0]?.totalWeight || 0
 
-    // Calculate average sacks and weight per deployment
+    // Calculate average sacks and weight per deployment (excluding canceled)
     const efficiencyData = data.deploymentEfficiency[0] || {}
     const avgSacks = efficiencyData.avgSacks || 0
     const avgWeight = efficiencyData.avgWeight || 0
     const maxSacks = efficiencyData.maxSacks || 0
     const maxWeight = efficiencyData.maxWeight || 0
+
+    // Extract completed cargo metrics
+    const completedCargoData = data.completedCargoMetrics[0] || {}
+    const totalCompletedSacks = completedCargoData.totalCompletedSacks || 0
+    const totalCompletedWeight = completedCargoData.totalCompletedWeight || 0
+    const avgCompletedSacks = completedCargoData.avgCompletedSacks || 0
+    const avgCompletedWeight = completedCargoData.avgCompletedWeight || 0
+    const maxCompletedSacks = completedCargoData.maxCompletedSacks || 0
+    const maxCompletedWeight = completedCargoData.maxCompletedWeight || 0
 
     // Calculate truck utilization rate
     const utilizationRate =
@@ -1193,12 +1223,23 @@ const getDashboardAnalytics = async (req, res) => {
         yearlyDeployments: data.yearlyDeployments || 0,
         deploymentsLast30Days: data.deploymentsLast30Days || 0,
         recentActivity: data.recentActivity || 0,
+
+        // Total sacks and weight (excluding canceled)
         totalSacks: totalSacks || 0,
         totalWeight: totalWeight || 0,
         avgSacksPerDeployment: parseFloat(avgSacks.toFixed(1)),
         avgWeightPerDeployment: parseFloat(avgWeight.toFixed(1)),
         maxSacks: maxSacks || 0,
         maxWeight: maxWeight || 0,
+
+        // NEW: Completed deployments sacks and weight
+        totalCompletedSacks: totalCompletedSacks || 0,
+        totalCompletedWeight: totalCompletedWeight || 0,
+        avgCompletedSacks: parseFloat(avgCompletedSacks.toFixed(1)),
+        avgCompletedWeight: parseFloat(avgCompletedWeight.toFixed(1)),
+        maxCompletedSacks: maxCompletedSacks || 0,
+        maxCompletedWeight: maxCompletedWeight || 0,
+
         utilizationRate: parseFloat(utilizationRate),
         driverUtilizationRate: parseFloat(driverUtilizationRate),
         completionRate: parseFloat(completionRate),
@@ -1469,13 +1510,21 @@ const getDashboardAnalytics = async (req, res) => {
         availableDrivers: data.availableDrivers,
         deployedDrivers: data.deployedDrivers,
 
-        // Cargo metrics
+        // Cargo metrics (all non-canceled)
         totalSacks: totalSacks || 0,
         totalWeight: totalWeight || 0,
         avgSacksPerDeployment: parseFloat(avgSacks.toFixed(1)),
         avgWeightPerDeployment: parseFloat(avgWeight.toFixed(1)),
         maxSacks: maxSacks || 0,
         maxWeight: maxWeight || 0,
+
+        // NEW: Completed cargo metrics
+        totalCompletedSacks: totalCompletedSacks || 0,
+        totalCompletedWeight: totalCompletedWeight || 0,
+        avgCompletedSacks: parseFloat(avgCompletedSacks.toFixed(1)),
+        avgCompletedWeight: parseFloat(avgCompletedWeight.toFixed(1)),
+        maxCompletedSacks: maxCompletedSacks || 0,
+        maxCompletedWeight: maxCompletedWeight || 0,
 
         // Performance rates
         completionRate: parseFloat(completionRate),

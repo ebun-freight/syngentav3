@@ -25,7 +25,7 @@ import {
 import { NumericFormat } from 'react-number-format'
 import clsx from 'clsx'
 
-function CreateTruckModal ({ isOpen, onClose, onCreate, allTools }) {
+function CreateTruckModal ({ isOpen, onClose, onCreate }) {
   const [formData, setFormData] = useState({
     plateNo: '',
     truckType: '',

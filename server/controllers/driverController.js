@@ -168,13 +168,15 @@ const getAllDrivers = async (req, res, next) => {
       latest: { createdAt: -1 },
       'a-z': { firstname: 1 },
       'z-a': { firstname: -1 },
-      'trips-high': { tripCount: -1 },
-      'trips-low': { tripCount: 1 }
+      'trips-asc': { tripCount: 1 },
+      'trips-desc': { tripCount: -1 },
+      'subcon-asc': { subcon: 1 },
+      'subcon-desc': { subcon: -1 }
     }
 
     const sortQuery = sortOptions[sort] || sortOptions.latest
 
-    // query databas
+    // query database
     const [total, drivers] = await Promise.all([
       Driver.countDocuments(query),
       Driver.find(query).skip(skip).limit(limit).sort(sortQuery)

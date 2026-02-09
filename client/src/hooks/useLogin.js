@@ -17,9 +17,11 @@ const useLogin = () => {
       sessionStorage.setItem('userToken', response.data.token)
       toast.success(response.data.message)
 
-      console.log(response.data)
-
-      navigate('/secure/dashboard')
+      if (response.data.user.role === 'subcon') {
+        return navigate('/secure/deployments')
+      } else {
+        navigate('/secure/dashboard')
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Something went wrong!')
     } finally {

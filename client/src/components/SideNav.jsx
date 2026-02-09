@@ -44,7 +44,7 @@ function SideNav () {
         )}
       >
         <div className='flex items-center justify-center gap-3 p-6 border-b border-white/10'>
-          <img src={ebun_logo_light} alt='' className='w-14  scale-x-[-1]' />
+          <img src={ebun_logo_light} alt='' className='w-14' />
           <div>
             <h1 className='font-semibold text-4xl tracking-widest text-white uppercase'>
               EBUN
@@ -102,9 +102,9 @@ function SideNav () {
               <br />
               All rights reserved
             </p>
-            <p className='text-xs text-white/40 text-center mt-1 text-nowrap whitespace-nowrap'>
+            {/* <p className='text-xs text-white/40 text-center mt-1 text-nowrap whitespace-nowrap'>
               Version {APP_CONFIG.version}
-            </p>
+            </p> */}
           </div>
         </div>
       </div>

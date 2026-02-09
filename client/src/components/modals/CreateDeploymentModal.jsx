@@ -54,21 +54,29 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
   const [truckQuery, setTruckQuery] = useState('')
   const [driverQuery, setDriverQuery] = useState('')
 
-  // Prepare options
+  // Prepare options with filtering and sorting
   const truckOptions =
     trucks
       ?.filter(truck => truck.status === 'available')
+      .sort((a, b) => (a.tripCount || 0) - (b.tripCount || 0)) // Sort by tripCount ascending
       .map(truck => ({
         value: truck._id,
-        label: `${truck.plateNo.toUpperCase()} (${truck.truckType})`
+        label: `${truck.plateNo.toUpperCase()} (${truck.truckType}) - ${
+          truck.tripCount || 0
+        } trips`,
+        tripCount: truck.tripCount || 0
       })) || []
 
   const driverOptions =
     drivers
       ?.filter(driver => driver.status === 'available')
+      .sort((a, b) => (a.tripCount || 0) - (b.tripCount || 0)) // Sort by tripCount ascending
       .map(driver => ({
         value: driver._id,
-        label: `${driver.firstname} ${driver.lastname}`
+        label: `${driver.firstname} ${driver.lastname} - ${
+          driver.tripCount || 0
+        } trips`,
+        tripCount: driver.tripCount || 0
       })) || []
 
   // Filter options based on search
