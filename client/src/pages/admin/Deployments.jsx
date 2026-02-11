@@ -1361,13 +1361,13 @@ function Deployments () {
     // Add empty rows
     worksheet4.addRow([])
 
-    // Subtotal (row 15)
+    // Subtotal (row 15) - Grand Total minus 12% VAT
     const subtotalRow4 = worksheet4.getRow(15)
     subtotalRow4.values = [
       '',
       '',
       'SUBTOTAL',
-      { formula: 'SUM(D11:D13)' },
+      { formula: 'SUM(D11:D13)-(SUM(D11:D13)*0.12)' },
       '',
       '',
       ''
@@ -1383,20 +1383,28 @@ function Deployments () {
       alignment: { horizontal: 'center', vertical: 'middle' }
     }
 
-    // VAT (row 16)
+    // ADD 12% VAT (row 16) - 12% of the sum
     const vatRow = worksheet4.getRow(16)
-    vatRow.values = ['', '', 'ADD 12% VAT', { formula: 'D15*0.12' }, '', '', '']
+    vatRow.values = [
+      '',
+      '',
+      'ADD 12% VAT',
+      { formula: 'SUM(D11:D13)*0.12' },
+      '',
+      '',
+      ''
+    ]
     vatRow.height = 22
     vatRow.getCell(3).style = styles.dataLeft
     vatRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
 
-    // Grand Total (row 17)
+    // Grand Total (row 17) - Sum of Regular Trips + Underload Charges + Demurrage Fee
     const grandTotalRow = worksheet4.getRow(17)
     grandTotalRow.values = [
       '',
       '',
       'GRAND TOTAL',
-      { formula: 'D15+D16' },
+      { formula: 'SUM(D11:D13)' },
       '',
       '',
       ''

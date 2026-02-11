@@ -166,7 +166,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
             </button>
 
             <form onSubmit={handleSubmit} className='px-6 py-8 '>
-              <h2 className='text-lg font-semibold'>Deploy Truck</h2>
+              <h2 className='text-lg font-semibold'>Create a Deployment</h2>
               <div className='grid grid-cols-2 gap-x-6 gap-y-4 mt-4'>
                 {/* Searchable Truck Select */}
                 <div className='flex flex-col gap-1'>
