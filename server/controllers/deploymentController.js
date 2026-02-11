@@ -11,23 +11,42 @@ const { DateTime } = require('luxon')
 const createDeployment = async (req, res, next) => {
   try {
     const {
+      // pickup details
+      pickupSite,
+      municipality,
+      fieldContactPerson,
+      fieldContactPersonNo,
+      scheduledPickupTime,
+      estimatedQuantityKg,
+
+      // truck & driver details
       truckId,
       driverId,
       truckType,
       helperCount,
-      pickupSite,
+
+      // delivery details
       destination,
+      receivingContactPerson,
+      receivingContactPersonNo,
+      hybrid,
+      territory,
+      flagging,
+      flaggingRemarks,
       sacksCount,
+
+      // load details
       loadWeightKg,
+
+      // timeline details
       departed,
       pickupIn,
       pickupOut,
       destArrival,
       destDeparture,
-      territory,
-      hybrid,
-      flagging,
-      flaggingRemarks
+
+      // other tags
+      subcon
     } = req.body
 
     // Check permissions
@@ -37,14 +56,26 @@ const createDeployment = async (req, res, next) => {
 
     // Validate fields
     validateFields({
+      // pickup details
+      pickupSite,
+      municipality,
+      fieldContactPerson,
+      fieldContactPersonNo,
+      scheduledPickupTime,
+      estimatedQuantityKg,
+
+      // truck & driver details
       truckId,
       driverId,
       truckType,
       helperCount,
-      pickupSite,
+
+      // delivery details
       destination,
-      territory,
+      receivingContactPerson,
+      receivingContactPersonNo,
       hybrid,
+      territory,
       flagging
     })
 
@@ -68,25 +99,43 @@ const createDeployment = async (req, res, next) => {
 
     // Create deployment
     const newDeployment = await Deployment.create({
+      // pickup details
+      pickupSite,
+      municipality,
+      fieldContactPerson,
+      fieldContactPersonNo,
+      scheduledPickupTime,
+      estimatedQuantityKg,
+
+      // truck & driver details
       truckId,
       driverId,
       truckType,
       helperCount,
-      pickupSite,
+
+      // delivery details
       destination,
+      receivingContactPerson,
+      receivingContactPersonNo,
+      hybrid,
+      territory,
+      flagging,
+      flaggingRemarks,
       sacksCount: sacksCount || 0,
+
+      // load details
       loadWeightKg: loadWeightKg || 0,
+
+      // timeline details
       departed: departed || '',
       pickupIn: pickupIn || '',
       pickupOut: pickupOut || '',
       destArrival: destArrival || '',
       destDeparture: destDeparture || '',
-      subcon: truck.subcon,
-      isSoftDeleted: false,
-      territory,
-      hybrid,
-      flagging,
-      flaggingRemarks
+
+      // other tags
+      subcon: subcon || truck.subcon,
+      isSoftDeleted: false
     })
 
     // Update truck and driver status

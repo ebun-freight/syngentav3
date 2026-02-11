@@ -7,44 +7,93 @@ const deploymentSchema = new mongoose.Schema(
       unique: true,
       index: true
     },
+
+    // ------------- pickup details ------------- //
+    pickupSite: {
+      type: String,
+      required: [true, 'Pick-up site is required']
+    },
+    municipality: {
+      type: String,
+      required: [true, 'Municipality is required']
+    },
+    fieldContactPerson: {
+      type: String,
+      required: [true, 'Field Contact Person is required']
+    },
+    fieldContactPersonNo: {
+      type: String,
+      required: [true, "Field Contact Person's No. is required"]
+    },
+    scheduledPickupTime: {
+      type: String,
+      required: [true, 'Scheduled Pickup Time is required']
+    },
+    estimatedQuantityKg: {
+      type: String,
+      required: [true, 'Estimated Quantity is required']
+    },
+
+    // ------------- truck & driver details ------------- //
     truckId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Truck',
       required: [true, 'Truck is required']
+    },
+    truckType: {
+      type: String,
+      required: [true, 'Truck type is required']
     },
     driverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Driver',
       required: [true, 'Driver is required']
     },
-    truckType: {
-      type: String,
-      required: [true, 'Truck type is required']
-    },
     helperCount: {
       type: String,
       required: [true, 'Helper count is required']
     },
-    pickupSite: {
-      type: String,
-      required: [true, 'Pick-up site is required']
-    },
+
+    // ------------- delivery details ------------- //
     destination: {
       type: String,
       required: [true, 'Destination is required']
+    },
+    receivingContactPerson: {
+      type: String,
+      required: [true, 'Receiving Contact Person is required']
+    },
+    receivingContactPersonNo: {
+      type: String,
+      required: [true, "Receiving Contact Person's No. is required"]
+    },
+    hybrid: {
+      type: String,
+      required: [true, 'Hybrid is required']
+    },
+    territory: {
+      type: String,
+      required: [true, 'Territory is required']
+    },
+    flagging: {
+      type: String,
+      required: [true, 'Flagging is required']
+    },
+    flaggingRemarks: {
+      type: String
     },
     sacksCount: {
       type: Number,
       default: 0
     },
+
+    // ------------- load details ------------- //
     loadWeightKg: {
       type: Number,
       default: 0
     },
-    status: {
-      type: String,
-      default: 'preparing'
-    },
+
+    // ------------- replacement details ------------- //
     replacement: {
       replacementTruckId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -60,6 +109,8 @@ const deploymentSchema = new mongoose.Schema(
       reason: String,
       remarks: String
     },
+
+    // ------------- timeline details ------------- //
     departed: {
       type: String,
       default: ''
@@ -80,29 +131,21 @@ const deploymentSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+
+    // ------------- other tags ------------- //
     subcon: {
       type: String,
       required: [true, 'Subcon is required']
     },
-    territory: {
+    status: {
       type: String,
-      required: [true, 'Territory is required']
-    },
-    hybrid: {
-      type: String,
-      required: [true, 'Hybrid is required']
-    },
-    flagging: {
-      type: String,
-      required: [true, 'Flagging is required']
-    },
-    flaggingRemarks: {
-      type: String
+      default: 'preparing'
     },
     cancellationReason: {
       type: String,
       default: ''
     },
+
     isSoftDeleted: {
       type: Boolean,
       default: false

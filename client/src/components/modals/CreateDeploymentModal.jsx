@@ -21,28 +21,47 @@ import useCreateDeployment from '../../hooks/useCreateDeployment'
 import {
   FLAGGING_OPTIONS,
   HYBRID_OPTIONS,
-  PICKUP_LOCATION,
   TERRITORY_OPTIONS
 } from '../../utils/deploymentOptions'
 import { NumericFormat } from 'react-number-format'
 
 const defaultValue = {
+  // pickup details
+  pickupSite: '',
+  municipality: '',
+  fieldContactPerson: '',
+  fieldContactPersonNo: '',
+  scheduledPickupTime: '',
+  estimatedQuantityKg: '',
+
+  // truck & driver details
   truckId: '',
   driverId: '',
   truckType: '',
   helperCount: 0,
-  pickupSite: '',
+
+  // delivery details
   destination: 'Prasad Seeds Phils. (Rosales)',
+  receivingContactPerson: '',
+  receivingContactPersonNo: '',
+  hybrid: '',
+  territory: '',
+  flagging: '',
+  flaggingRemarks: '',
   sacksCount: 0,
+
+  // load details
+  loadWeightKg: 0,
+
+  // timeline details
   departed: '',
   pickupIn: '',
   pickupOut: '',
   destArrival: '',
   destDeparture: '',
-  hybrid: '',
-  territory: '',
-  flagging: '',
-  flaggingRemarks: ''
+
+  // other tags
+  subcon: ''
 }
 
 function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) {
@@ -58,7 +77,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
   const truckOptions =
     trucks
       ?.filter(truck => truck.status === 'available')
-      .sort((a, b) => (a.tripCount || 0) - (b.tripCount || 0)) // Sort by tripCount ascending
+      .sort((a, b) => (a.tripCount || 0) - (b.tripCount || 0))
       .map(truck => ({
         value: truck._id,
         label: `${truck.plateNo.toUpperCase()} (${truck.truckType}) - ${
@@ -70,7 +89,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
   const driverOptions =
     drivers
       ?.filter(driver => driver.status === 'available')
-      .sort((a, b) => (a.tripCount || 0) - (b.tripCount || 0)) // Sort by tripCount ascending
+      .sort((a, b) => (a.tripCount || 0) - (b.tripCount || 0))
       .map(driver => ({
         value: driver._id,
         label: `${driver.firstname} ${driver.lastname} - ${
@@ -103,7 +122,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
 
   const handleClose = () => {
     onClose()
-
     setFormData(defaultValue)
     setTruckQuery('')
     setDriverQuery('')
@@ -156,180 +174,258 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
           leaveFrom='opacity-100 translate-y-0'
           leaveTo='opacity-0 -translate-y-8'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-2xl rounded-2xl bg-white shadow-xl overflow-hidden relative '>
+          <DialogPanel className='font-poppins text-gray-900 w-full max-w-4xl rounded-2xl bg-white shadow-xl overflow-hidden relative max-h-[90vh] overflow-y-auto scrollbar-thin'>
             {/* close button */}
             <button
               onClick={handleClose}
-              className='absolute top-4 right-4 hover:bg-gray-100 p-1 rounded-full text-2xl text-gray-600 cursor-pointer transition-all'
+              className='absolute top-4 right-4 hover:bg-gray-100 p-1 rounded-full text-2xl text-gray-600 cursor-pointer transition-all z-10'
             >
               <IoClose />
             </button>
 
-            <form onSubmit={handleSubmit} className='px-6 py-8 '>
-              <h2 className='text-lg font-semibold'>Create a Deployment</h2>
-              <div className='grid grid-cols-2 gap-x-6 gap-y-4 mt-4'>
-                {/* Searchable Truck Select */}
-                <div className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Select Truck
-                  </span>
-                  <Combobox
-                    value={formData.truckId}
-                    onChange={value =>
-                      setFormData(prev => ({ ...prev, truckId: value }))
-                    }
-                  >
-                    <div className='relative'>
-                      <ComboboxInput
-                        className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
-                        displayValue={truck =>
-                          selectedTruck ? selectedTruck.label : ''
-                        }
-                        onChange={event => setTruckQuery(event.target.value)}
-                        placeholder='Search plate no.'
-                        required
-                        autoComplete='off'
-                      />
-                      <ComboboxButton className='absolute inset-y-0 right-0 flex items-center px-2 hover:bg-gray-100 rounded-sm'>
-                        <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                      </ComboboxButton>
-                      <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                        {filteredTrucks.length === 0 ? (
-                          <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                            Nothing found.
-                          </div>
-                        ) : (
-                          filteredTrucks.map(truck => (
-                            <ComboboxOption
-                              key={truck.value}
-                              value={truck.value}
-                              className={({ focus }) =>
-                                `relative cursor-default select-none py-2 px-4 text-base ${
-                                  focus ? 'bg-gray-50' : 'text-gray-900'
-                                } ${
-                                  formData.truckId === truck.value
-                                    ? 'bg-gray-100'
-                                    : ''
-                                }`
-                              }
-                            >
-                              {({ selected }) => (
-                                <span className='block truncate capitalize'>
-                                  {truck.label}
-                                </span>
-                              )}
-                            </ComboboxOption>
-                          ))
-                        )}
-                      </ComboboxOptions>
-                    </div>
-                  </Combobox>
-                </div>
+            <form onSubmit={handleSubmit} className='px-6 py-8'>
+              <h2 className='text-lg font-semibold mb-6'>
+                Create a Deployment
+              </h2>
 
-                {/* Searchable Driver Select */}
-                <div className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Select Driver
-                  </span>
-                  <Combobox
-                    value={formData.driverId}
-                    onChange={value =>
-                      setFormData(prev => ({ ...prev, driverId: value }))
-                    }
-                  >
-                    <div className='relative'>
-                      <ComboboxInput
-                        className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
-                        displayValue={driver =>
-                          selectedDriver ? selectedDriver.label : ''
-                        }
-                        onChange={event => setDriverQuery(event.target.value)}
-                        placeholder='Search driver name'
-                        required
-                        autoComplete='off'
-                      />
-                      <ComboboxButton className='absolute inset-y-0 right-0 flex items-center px-2 hover:bg-gray-100 rounded-sm'>
-                        <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                      </ComboboxButton>
-                      <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                        {filteredDrivers.length === 0 ? (
-                          <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                            Nothing found.
-                          </div>
-                        ) : (
-                          filteredDrivers.map(driver => (
-                            <ComboboxOption
-                              key={driver.value}
-                              value={driver.value}
-                              className={({ focus }) =>
-                                `relative cursor-default select-none py-2 px-4 text-base ${
-                                  focus ? 'bg-gray-50' : 'text-gray-900'
-                                } ${
-                                  formData.driverId === driver.value
-                                    ? 'bg-gray-100'
-                                    : ''
-                                }`
-                              }
-                            >
-                              {({ selected }) => (
-                                <span className='block truncate capitalize'>
-                                  {driver.label}
-                                </span>
-                              )}
-                            </ComboboxOption>
-                          ))
-                        )}
-                      </ComboboxOptions>
-                    </div>
-                  </Combobox>
-                </div>
+              {/* PICKUP DETAILS SECTION */}
+              <div className='mb-6'>
+                <h3 className='text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide'>
+                  Pickup Details
+                </h3>
+                <div className='grid grid-cols-2 gap-x-6 gap-y-4'>
+                  <InputField
+                    label='Pick-up Site'
+                    type='text'
+                    name='pickupSite'
+                    placeholder='Pick-up Site'
+                    value={formData.pickupSite}
+                    onChange={handleChange}
+                  />
 
-                {/* type */}
-                <label className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Truck Type
-                  </span>
-                  <div className='relative'>
-                    <select
-                      name='truckType'
-                      value={formData.truckType}
-                      onChange={handleChange}
-                      required
-                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full'
+                  <InputField
+                    label='Municipality'
+                    type='text'
+                    name='municipality'
+                    placeholder='Municipality'
+                    value={formData.municipality}
+                    onChange={handleChange}
+                  />
+
+                  <InputField
+                    label='Field Contact Person'
+                    type='text'
+                    name='fieldContactPerson'
+                    placeholder='Field Contact Person'
+                    value={formData.fieldContactPerson}
+                    onChange={handleChange}
+                  />
+
+                  <InputField
+                    label='Field Contact Person No.'
+                    type='text'
+                    name='fieldContactPersonNo'
+                    placeholder='Contact Number'
+                    value={formData.fieldContactPersonNo}
+                    onChange={handleChange}
+                  />
+
+                  <InputField
+                    label='Scheduled Pickup Time'
+                    type='datetime-local'
+                    name='scheduledPickupTime'
+                    placeholder='Scheduled Pickup Time'
+                    value={formData.scheduledPickupTime}
+                    onChange={handleChange}
+                  />
+
+                  <InputField
+                    label='Estimated Quantity (Kg)'
+                    type='number'
+                    name='estimatedQuantityKg'
+                    placeholder='Estimated Quantity'
+                    value={formData.estimatedQuantityKg}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* TRUCK & DRIVER DETAILS SECTION */}
+              <div className='mb-6'>
+                <h3 className='text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide'>
+                  Truck & Driver Details
+                </h3>
+                <div className='grid grid-cols-2 gap-x-6 gap-y-4'>
+                  {/* Searchable Truck Select */}
+                  <div className='flex flex-col gap-1'>
+                    <span className='uppercase text-xs text-gray-500 font-semibold'>
+                      Select Truck
+                    </span>
+                    <Combobox
+                      value={formData.truckId}
+                      onChange={value =>
+                        setFormData(prev => ({ ...prev, truckId: value }))
+                      }
                     >
-                      <option value='' disabled>
-                        Select
-                      </option>
-                      {TRUCK_TYPES.map((item, index) => (
-                        <option key={index} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                      <div className='relative'>
+                        <ComboboxInput
+                          className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
+                          displayValue={truck =>
+                            selectedTruck ? selectedTruck.label : ''
+                          }
+                          onChange={event => setTruckQuery(event.target.value)}
+                          placeholder='Search plate no.'
+                          required
+                          autoComplete='off'
+                        />
+                        <ComboboxButton className='absolute inset-y-0 right-0 flex items-center px-2 hover:bg-gray-100 rounded-sm'>
+                          <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
+                        </ComboboxButton>
+                        <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
+                          {filteredTrucks.length === 0 ? (
+                            <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
+                              Nothing found.
+                            </div>
+                          ) : (
+                            filteredTrucks.map(truck => (
+                              <ComboboxOption
+                                key={truck.value}
+                                value={truck.value}
+                                className={({ focus }) =>
+                                  `relative cursor-default select-none py-2 px-4 text-base ${
+                                    focus ? 'bg-gray-50' : 'text-gray-900'
+                                  } ${
+                                    formData.truckId === truck.value
+                                      ? 'bg-gray-100'
+                                      : ''
+                                  }`
+                                }
+                              >
+                                {({ selected }) => (
+                                  <span className='block truncate capitalize'>
+                                    {truck.label}
+                                  </span>
+                                )}
+                              </ComboboxOption>
+                            ))
+                          )}
+                        </ComboboxOptions>
+                      </div>
+                    </Combobox>
                   </div>
-                </label>
 
-                <InputField
-                  label='Helper Count'
-                  type='number'
-                  name='helperCount'
-                  placeholder='Helper Count'
-                  value={formData.helperCount}
-                  onChange={handleChange}
-                  formatNumber={true}
-                />
+                  {/* Searchable Driver Select */}
+                  <div className='flex flex-col gap-1'>
+                    <span className='uppercase text-xs text-gray-500 font-semibold'>
+                      Select Driver
+                    </span>
+                    <Combobox
+                      value={formData.driverId}
+                      onChange={value =>
+                        setFormData(prev => ({ ...prev, driverId: value }))
+                      }
+                    >
+                      <div className='relative'>
+                        <ComboboxInput
+                          className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
+                          displayValue={driver =>
+                            selectedDriver ? selectedDriver.label : ''
+                          }
+                          onChange={event => setDriverQuery(event.target.value)}
+                          placeholder='Search driver name'
+                          required
+                          autoComplete='off'
+                        />
+                        <ComboboxButton className='absolute inset-y-0 right-0 flex items-center px-2 hover:bg-gray-100 rounded-sm'>
+                          <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
+                        </ComboboxButton>
+                        <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
+                          {filteredDrivers.length === 0 ? (
+                            <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
+                              Nothing found.
+                            </div>
+                          ) : (
+                            filteredDrivers.map(driver => (
+                              <ComboboxOption
+                                key={driver.value}
+                                value={driver.value}
+                                className={({ focus }) =>
+                                  `relative cursor-default select-none py-2 px-4 text-base ${
+                                    focus ? 'bg-gray-50' : 'text-gray-900'
+                                  } ${
+                                    formData.driverId === driver.value
+                                      ? 'bg-gray-100'
+                                      : ''
+                                  }`
+                                }
+                              >
+                                {({ selected }) => (
+                                  <span className='block truncate capitalize'>
+                                    {driver.label}
+                                  </span>
+                                )}
+                              </ComboboxOption>
+                            ))
+                          )}
+                        </ComboboxOptions>
+                      </div>
+                    </Combobox>
+                  </div>
 
-                <InputField
-                  label='Pick-up Location'
-                  type='text'
-                  name='pickupSite'
-                  placeholder='Pick-up Location'
-                  value={formData.pickupSite}
-                  onChange={handleChange}
-                />
+                  {/* truck type */}
+                  <label className='flex flex-col gap-1'>
+                    <span className='uppercase text-xs text-gray-500 font-semibold'>
+                      Truck Type
+                    </span>
+                    <div className='relative'>
+                      <select
+                        name='truckType'
+                        value={formData.truckType}
+                        onChange={handleChange}
+                        required
+                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full'
+                      >
+                        <option value='' disabled>
+                          Select
+                        </option>
+                        {TRUCK_TYPES.map((item, index) => (
+                          <option key={index} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                    </div>
+                  </label>
 
-                <div className='grid grid-cols-2 gap-x-6'>
+                  <InputField
+                    label='Helper Count'
+                    type='number'
+                    name='helperCount'
+                    placeholder='Helper Count'
+                    value={formData.helperCount}
+                    onChange={handleChange}
+                    formatNumber={true}
+                  />
+                </div>
+              </div>
+
+              {/* DELIVERY DETAILS SECTION */}
+              <div className='mb-6'>
+                <h3 className='text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide'>
+                  Delivery Details
+                </h3>
+                <div className='grid grid-cols-4 gap-x-6 gap-y-4'>
+                  <InputField
+                    label='Receiving Contact Person'
+                    type='text'
+                    name='receivingContactPerson'
+                    placeholder='Contact Person'
+                    value={formData.receivingContactPerson}
+                    onChange={handleChange}
+                    colSpan={2}
+                  />
+
                   {/* hybrid */}
                   <label className='flex flex-col gap-1'>
                     <span className='uppercase text-xs text-gray-500 font-semibold'>
@@ -356,7 +452,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                     </div>
                   </label>
 
-                  {/* hybrid */}
+                  {/* territory */}
                   <label className='flex flex-col gap-1'>
                     <span className='uppercase text-xs text-gray-500 font-semibold'>
                       Territory
@@ -381,63 +477,73 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                       <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
                     </div>
                   </label>
-                </div>
 
-                {/* flagging */}
-                <label className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Flagging
-                  </span>
-                  <div className='relative'>
-                    <select
-                      name='flagging'
-                      value={formData.flagging}
-                      onChange={handleChange}
-                      required
-                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full'
-                    >
-                      <option value='' disabled>
-                        Select
-                      </option>
-                      {FLAGGING_OPTIONS.map((item, index) => (
-                        <option key={index} value={item}>
-                          {item}
+                  <InputField
+                    label='Contact No.'
+                    type='text'
+                    name='receivingContactPersonNo'
+                    placeholder='Contact Number'
+                    value={formData.receivingContactPersonNo}
+                    onChange={handleChange}
+                    colSpan={2}
+                  />
+
+                  {/* flagging */}
+                  <label className='flex flex-col gap-1'>
+                    <span className='uppercase text-xs text-gray-500 font-semibold'>
+                      Flagging
+                    </span>
+                    <div className='relative'>
+                      <select
+                        name='flagging'
+                        value={formData.flagging}
+                        onChange={handleChange}
+                        required
+                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full'
+                      >
+                        <option value='' disabled>
+                          Select
                         </option>
-                      ))}
-                    </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
-                  </div>
-                </label>
+                        {FLAGGING_OPTIONS.map((item, index) => (
+                          <option key={index} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                    </div>
+                  </label>
 
-                {/* flagging remarks */}
-                <InputField
-                  label='Flagging Remarks'
-                  type='text'
-                  name='flaggingRemarks'
-                  placeholder='Flagging Remarks'
-                  value={formData.flaggingRemarks}
-                  onChange={handleChange}
-                  isRequired={false}
-                />
-
-                <div className='col-span-full mt-6'>
-                  <button
-                    type='submit'
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
-                  >
-                    {isLoading ? (
-                      <>
-                        <span className='loading loading-spinner loading-xs'></span>
-                        Deploying
-                      </>
-                    ) : (
-                      <>
-                        <PiMapPinAreaFill className='text-xl' />
-                        Deploy Truck
-                      </>
-                    )}
-                  </button>
+                  <InputField
+                    label='Flagging Remarks'
+                    type='text'
+                    name='flaggingRemarks'
+                    placeholder='Flagging Remarks'
+                    value={formData.flaggingRemarks}
+                    onChange={handleChange}
+                    isRequired={false}
+                  />
                 </div>
+              </div>
+
+              {/* SUBMIT BUTTON */}
+              <div className='mt-8'>
+                <button
+                  type='submit'
+                  className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
+                >
+                  {isLoading ? (
+                    <>
+                      <span className='loading loading-spinner loading-xs'></span>
+                      Deploying
+                    </>
+                  ) : (
+                    <>
+                      <PiMapPinAreaFill className='text-xl' />
+                      Deploy Truck
+                    </>
+                  )}
+                </button>
               </div>
             </form>
           </DialogPanel>
@@ -509,6 +615,7 @@ const InputField = ({
         onChange={onChange}
         disabled={disabled}
         required={isRequired}
+        placeholder={placeholder}
         className={clsx(
           'outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400',
           {

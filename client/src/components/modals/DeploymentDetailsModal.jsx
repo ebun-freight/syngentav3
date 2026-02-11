@@ -14,7 +14,7 @@ import { IoClose, IoWarning } from 'react-icons/io5'
 import { DEPLOYMENT_STATUS, TRUCK_TYPES } from '../../utils/generalOptions'
 import { MdKeyboardArrowDown } from 'react-icons/md'
 import { useEffect, useState } from 'react'
-import { FaPen, FaSave, FaTrash, FaUserEdit } from 'react-icons/fa'
+import { FaPen, FaSave, FaTrash } from 'react-icons/fa'
 import { DateTime } from 'luxon'
 import useUpdateDeployment from '../../hooks/useUpdateDeployment'
 import { toast } from 'react-toastify'
@@ -22,7 +22,8 @@ import { HiDotsHorizontal } from 'react-icons/hi'
 import { NumericFormat } from 'react-number-format'
 import {
   FLAGGING_OPTIONS,
-  PICKUP_LOCATION
+  HYBRID_OPTIONS,
+  TERRITORY_OPTIONS
 } from '../../utils/deploymentOptions'
 import { useUserContext } from '../../contexts/UserContext'
 
@@ -45,6 +46,7 @@ function DeploymentDetailsModal ({
   const [isEditMode, setIsEditMode] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [isReplacementShow, setIsReplacementShow] = useState(false)
+  const [activeTab, setActiveTab] = useState('overview')
 
   // Search states
   const [truckQuery, setTruckQuery] = useState('')
@@ -110,6 +112,7 @@ function DeploymentDetailsModal ({
   const handleCloseModal = () => {
     setEditForm(deployment)
     setIsReplacementShow(false)
+    setActiveTab('overview')
     setTruckQuery('')
     setDriverQuery('')
     setReplacementTruckQuery('')
@@ -131,6 +134,7 @@ function DeploymentDetailsModal ({
     if (isOpen && deployment) {
       setIsEditMode(false)
       setEditForm(deployment)
+      setActiveTab('overview')
     }
   }, [isOpen, deployment])
 
@@ -150,7 +154,7 @@ function DeploymentDetailsModal ({
   const filteredTrucks =
     trucks?.filter(
       truck =>
-        truck.status === 'available' && // Only show available trucks
+        truck.status === 'available' &&
         (truck.plateNo.toLowerCase().includes(truckQuery.toLowerCase()) ||
           truck.truckType.toLowerCase().includes(truckQuery.toLowerCase()))
     ) || []
@@ -158,7 +162,7 @@ function DeploymentDetailsModal ({
   const filteredDrivers =
     drivers?.filter(
       driver =>
-        driver.status === 'available' && // Only show available drivers
+        driver.status === 'available' &&
         (driver.firstname.toLowerCase().includes(driverQuery.toLowerCase()) ||
           driver.lastname.toLowerCase().includes(driverQuery.toLowerCase()))
     ) || []
@@ -221,11 +225,11 @@ function DeploymentDetailsModal ({
           leaveFrom='opacity-100 translate-y-0'
           leaveTo='opacity-0 -translate-y-8'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-5xl rounded-2xl bg-white shadow-xl overflow-hidden relative'>
+          <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-xl overflow-hidden relative max-h-[90vh] overflow-y-auto scrollbar-thin'>
             {/* edit mode warning */}
             <p
               className={clsx(
-                'bg-orange-500 text-white px-4 right-26 font-medium py-3 text-sm flex items-center gap-2  transition-all absolute rounded-b-md shadow-warning tracking-wider',
+                'bg-orange-500 text-white px-4 right-26 font-medium py-3 text-sm flex items-center gap-2  transition-all absolute rounded-b-md shadow-warning tracking-wider z-10',
                 {
                   '-translate-y-12': !isEditMode,
                   'translate-y-0': isEditMode
@@ -237,7 +241,7 @@ function DeploymentDetailsModal ({
             </p>
 
             {/* top right buttons */}
-            <div className='absolute top-4 right-4 flex items-center gap-2'>
+            <div className='absolute top-4 right-4 flex items-center gap-2 z-10'>
               {/* replacement history button */}
               <div className='dropdown dropdown-bottom dropdown-end'>
                 <div
@@ -639,7 +643,6 @@ function DeploymentDetailsModal ({
                         {deployment?.destDeparture ||
                         deployment?.destArrival ? (
                           <div className='outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400 flex items-center gap-2'>
-                            {/* <LuClock /> */}
                             {(() => {
                               const { days, hours, minutes } = DateTime.fromISO(
                                 editForm.destDeparture
@@ -695,7 +698,7 @@ function DeploymentDetailsModal ({
 
               {/* deployment details */}
               <div className='px-6 py-8 flex-1 flex flex-col'>
-                <div className='flex items-center gap-3'>
+                <div className='flex items-center gap-3 mb-4'>
                   <h2 className='text-lg font-semibold'>Deployment Details</h2>
                   <div
                     className='bg-gray-100 px-2 py-1 rounded-md shadow-card3 text-sm font-medium relative cursor-copy'
@@ -703,7 +706,6 @@ function DeploymentDetailsModal ({
                       e.stopPropagation()
                       navigator.clipboard.writeText(deployment.deploymentCode)
 
-                      // Show feedback tooltip
                       const div = e.currentTarget
                       const tooltip = document.createElement('div')
                       tooltip.className =
@@ -712,7 +714,6 @@ function DeploymentDetailsModal ({
 
                       div.appendChild(tooltip)
 
-                      // Remove after 1 second
                       setTimeout(() => {
                         if (div.contains(tooltip)) {
                           div.removeChild(tooltip)
@@ -725,690 +726,85 @@ function DeploymentDetailsModal ({
                   </div>
                 </div>
 
-                {!isReplacementShow ? (
-                  // Original truck details
-                  <div className='mt-3 space-y-2'>
-                    <h3 className='text-xs uppercase font-semibold text-gray-500'>
-                      Truck Details
-                    </h3>
-                    <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
-                      {/* plate no. */}
-                      <label className='flex flex-col gap-1'>
-                        <span className='uppercase text-xs text-gray-500 font-semibold'>
-                          Plate No.
-                        </span>
-                        {isEditMode ? (
-                          <Combobox
-                            value={
-                              // Handle both object and string formats
-                              typeof editForm?.truckId === 'object'
-                                ? editForm?.truckId?._id
-                                : editForm?.truckId
-                            }
-                            onChange={value =>
-                              handleComboboxChange('truckId', value)
-                            }
-                          >
-                            <div className='relative'>
-                              <ComboboxInput
-                                className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 uppercase'
-                                displayValue={truckId => {
-                                  // Handle both object and string ID formats
-                                  const actualId =
-                                    typeof truckId === 'object'
-                                      ? truckId?._id
-                                      : truckId
-                                  const truck = trucks?.find(
-                                    t => t._id === actualId
-                                  )
-                                  return truck ? truck.plateNo : ''
-                                }}
-                                onChange={event =>
-                                  setTruckQuery(event.target.value)
-                                }
-                                required
-                              />
-                              <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                                <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                              </ComboboxButton>
-                              <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                                {filteredTrucks.length === 0 &&
-                                truckQuery !== '' ? (
-                                  <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                                    Nothing found.
-                                  </div>
-                                ) : (
-                                  filteredTrucks.map(truck => (
-                                    <ComboboxOption
-                                      key={truck._id}
-                                      value={truck._id}
-                                      className={({ focus }) =>
-                                        `relative cursor-default select-none py-2 px-4 text-base ${
-                                          focus ? 'bg-gray-50' : 'text-gray-900'
-                                        } ${
-                                          // Handle both object and string formats for comparison
-                                          (typeof editForm?.truckId === 'object'
-                                            ? editForm?.truckId?._id
-                                            : editForm?.truckId) === truck._id
-                                            ? 'bg-gray-100'
-                                            : ''
-                                        }`
-                                      }
-                                    >
-                                      {({ selected }) => (
-                                        <span className='block truncate uppercase'>
-                                          {truck.plateNo}
-                                        </span>
-                                      )}
-                                    </ComboboxOption>
-                                  ))
-                                )}
-                              </ComboboxOptions>
-                            </div>
-                          </Combobox>
-                        ) : (
-                          <p className='outline outline-gray-200 px-3 py-2 rounded break-all uppercase'>
-                            {currentTruck?.plateNo}
-                          </p>
-                        )}
-                      </label>
-
-                      <div className='grid grid-cols-2 gap-x-6'>
-                        {/* type */}
-                        <label className='flex flex-col gap-1'>
-                          <span className='uppercase text-xs text-gray-500 font-semibold'>
-                            Truck Type
-                          </span>
-                          {isEditMode ? (
-                            <div className='relative'>
-                              <select
-                                name='truckType'
-                                value={editForm?.truckType}
-                                onChange={handleChange}
-                                className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
-                              >
-                                {TRUCK_TYPES.map((item, index) => (
-                                  <option key={index} value={item.value}>
-                                    {item.label}
-                                  </option>
-                                ))}
-                              </select>
-                              <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
-                            </div>
-                          ) : (
-                            <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
-                              {editForm?.truckType}
-                            </p>
-                          )}
-                        </label>
-
-                        {/* helper count */}
-                        <InputField
-                          label='Helper Count'
-                          type='number'
-                          name='helperCount'
-                          placeholder='Helper Count'
-                          value={editForm?.helperCount}
-                          disabled={!isEditMode}
-                          onChange={handleChange}
-                          formatNumber={true}
-                        />
-                      </div>
-
-                      {/* driver */}
-                      <label className='flex flex-col gap-1'>
-                        <span className='uppercase text-xs text-gray-500 font-semibold'>
-                          Driver
-                        </span>
-                        {isEditMode ? (
-                          <Combobox
-                            value={
-                              // Handle both object and string formats
-                              typeof editForm?.driverId === 'object'
-                                ? editForm?.driverId?._id
-                                : editForm?.driverId
-                            }
-                            onChange={value =>
-                              handleComboboxChange('driverId', value)
-                            }
-                          >
-                            <div className='relative'>
-                              <ComboboxInput
-                                className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
-                                displayValue={driverId => {
-                                  // Handle both object and string ID formats
-                                  const actualId =
-                                    typeof driverId === 'object'
-                                      ? driverId?._id
-                                      : driverId
-                                  const driver = drivers?.find(
-                                    d => d._id === actualId
-                                  )
-                                  return driver
-                                    ? `${driver.firstname} ${driver.lastname}`
-                                    : ''
-                                }}
-                                onChange={event =>
-                                  setDriverQuery(event.target.value)
-                                }
-                                required
-                              />
-                              <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                                <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                              </ComboboxButton>
-                              <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                                {filteredDrivers.length === 0 &&
-                                driverQuery !== '' ? (
-                                  <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                                    Nothing found.
-                                  </div>
-                                ) : (
-                                  filteredDrivers.map(driver => (
-                                    <ComboboxOption
-                                      key={driver._id}
-                                      value={driver._id}
-                                      className={({ focus }) =>
-                                        `relative cursor-default select-none py-2 px-4 text-base ${
-                                          focus ? 'bg-gray-50' : 'text-gray-900'
-                                        } ${
-                                          // Handle both object and string formats for comparison
-                                          (typeof editForm?.driverId ===
-                                          'object'
-                                            ? editForm?.driverId?._id
-                                            : editForm?.driverId) === driver._id
-                                            ? 'bg-gray-100'
-                                            : ''
-                                        }`
-                                      }
-                                    >
-                                      {({ selected }) => (
-                                        <span className='block truncate capitalize'>
-                                          {`${driver.firstname} ${driver.lastname}`}
-                                        </span>
-                                      )}
-                                    </ComboboxOption>
-                                  ))
-                                )}
-                              </ComboboxOptions>
-                            </div>
-                          </Combobox>
-                        ) : (
-                          <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
-                            {editForm?.driverId?._id
-                              ? `${editForm.driverId.firstname} ${editForm.driverId.lastname}`
-                              : 'N/A'}
-                          </p>
-                        )}
-                      </label>
-
-                      <div className='grid grid-cols-2 gap-6'>
-                        <InputField
-                          label='Sacks Count'
-                          type='number'
-                          name='sacksCount'
-                          value={editForm?.sacksCount}
-                          disabled={!isEditMode}
-                          onChange={handleChange}
-                          formatNumber={true}
-                          thousandSeparator={true}
-                          decimalScale={0}
-                        />
-
-                        <InputField
-                          label='Load Weight (kg)'
-                          type='number'
-                          name='loadWeightKg'
-                          value={editForm?.loadWeightKg}
-                          disabled={!isEditMode}
-                          onChange={handleChange}
-                          formatNumber={true}
-                          thousandSeparator={true}
-                          decimalScale={2}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  // Replacement truck details
-                  <div className='mt-3 space-y-2'>
-                    <div className='flex justify-between'>
-                      <h3 className='text-xs uppercase font-semibold text-gray-500'>
-                        Truck Details
-                      </h3>
-                      <p className='text-xs text-red-500'>
-                        *This is a replacement truck
-                      </p>
-                    </div>
-                    <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
-                      {/* plate no. */}
-                      <label className='flex flex-col gap-1'>
-                        <span className='uppercase text-xs text-gray-500 font-semibold'>
-                          Plate No.
-                        </span>
-                        {isEditMode ? (
-                          <Combobox
-                            value={
-                              // Handle both object and string formats
-                              typeof editForm?.replacement
-                                ?.replacementTruckId === 'object'
-                                ? editForm?.replacement?.replacementTruckId?._id
-                                : editForm?.replacement?.replacementTruckId
-                            }
-                            onChange={value =>
-                              handleComboboxChange(
-                                'replacement.replacementTruckId',
-                                value
-                              )
-                            }
-                          >
-                            <div className='relative'>
-                              <ComboboxInput
-                                className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 uppercase'
-                                displayValue={truckId => {
-                                  // Handle both object and string ID formats
-                                  const actualId =
-                                    typeof truckId === 'object'
-                                      ? truckId?._id
-                                      : truckId
-                                  const truck = trucks?.find(
-                                    t => t._id === actualId
-                                  )
-                                  return truck ? truck.plateNo : ''
-                                }}
-                                onChange={event =>
-                                  setReplacementTruckQuery(event.target.value)
-                                }
-                                placeholder='Search plate no.'
-                                required
-                              />
-                              <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                                <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                              </ComboboxButton>
-                              <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                                {filteredReplacementTrucks.length === 0 &&
-                                replacementTruckQuery !== '' ? (
-                                  <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                                    Nothing found.
-                                  </div>
-                                ) : (
-                                  filteredReplacementTrucks.map(truck => (
-                                    <ComboboxOption
-                                      key={truck._id}
-                                      value={truck._id}
-                                      className={({ focus }) =>
-                                        `relative cursor-default select-none py-2 px-4 text-base ${
-                                          focus ? 'bg-gray-50' : 'text-gray-900'
-                                        } ${
-                                          // Handle both object and string formats for comparison
-                                          (typeof editForm?.replacement
-                                            ?.replacementTruckId === 'object'
-                                            ? editForm?.replacement
-                                                ?.replacementTruckId?._id
-                                            : editForm?.replacement
-                                                ?.replacementTruckId) ===
-                                          truck._id
-                                            ? 'bg-gray-100'
-                                            : ''
-                                        }`
-                                      }
-                                    >
-                                      {({ selected }) => (
-                                        <span className='block truncate uppercase'>
-                                          {truck.plateNo}
-                                        </span>
-                                      )}
-                                    </ComboboxOption>
-                                  ))
-                                )}
-                              </ComboboxOptions>
-                            </div>
-                          </Combobox>
-                        ) : (
-                          <p className='outline outline-gray-200 px-3 py-2 rounded break-all uppercase'>
-                            {editForm?.replacement?.replacementTruckId?.plateNo}
-                          </p>
-                        )}
-                      </label>
-
-                      <div className='grid grid-cols-2 gap-x-6'>
-                        {/* type */}
-                        <label className='flex flex-col gap-1'>
-                          <span className='uppercase text-xs text-gray-500 font-semibold'>
-                            Truck Type
-                          </span>
-                          {isEditMode ? (
-                            <div className='relative'>
-                              <select
-                                name='replacement.replacementTruckType'
-                                value={
-                                  editForm?.replacement?.replacementTruckType
-                                }
-                                onChange={handleChange}
-                                className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
-                              >
-                                {TRUCK_TYPES.map((item, index) => (
-                                  <option key={index} value={item.value}>
-                                    {item.label}
-                                  </option>
-                                ))}
-                              </select>
-                              <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
-                            </div>
-                          ) : (
-                            <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
-                              {editForm?.replacement?.replacementTruckType}
-                            </p>
-                          )}
-                        </label>
-
-                        {/* helper count */}
-                        <InputField
-                          label='Helper Count'
-                          type='number'
-                          name='helperCount'
-                          placeholder='Helper Count'
-                          value={editForm?.helperCount}
-                          disabled={!isEditMode}
-                          onChange={handleChange}
-                          formatNumber={true}
-                        />
-                      </div>
-
-                      {/* driver */}
-                      <label className='flex flex-col gap-1'>
-                        <span className='uppercase text-xs text-gray-500 font-semibold'>
-                          Driver
-                        </span>
-                        {isEditMode ? (
-                          <Combobox
-                            value={
-                              // Handle both object and string formats
-                              typeof editForm?.replacement
-                                ?.replacementDriverId === 'object'
-                                ? editForm?.replacement?.replacementDriverId
-                                    ?._id
-                                : editForm?.replacement?.replacementDriverId
-                            }
-                            onChange={value =>
-                              handleComboboxChange(
-                                'replacement.replacementDriverId',
-                                value
-                              )
-                            }
-                          >
-                            <div className='relative'>
-                              <ComboboxInput
-                                className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
-                                displayValue={driverId => {
-                                  // Handle both object and string ID formats
-                                  const actualId =
-                                    typeof driverId === 'object'
-                                      ? driverId?._id
-                                      : driverId
-                                  const driver = drivers?.find(
-                                    d => d._id === actualId
-                                  )
-                                  return driver
-                                    ? `${driver.firstname} ${driver.lastname}`
-                                    : ''
-                                }}
-                                onChange={event =>
-                                  setReplacementDriverQuery(event.target.value)
-                                }
-                                placeholder='Search driver name'
-                                required
-                              />
-                              <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                                <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                              </ComboboxButton>
-                              <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                                {filteredReplacementDrivers.length === 0 &&
-                                replacementDriverQuery !== '' ? (
-                                  <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                                    Nothing found.
-                                  </div>
-                                ) : (
-                                  filteredReplacementDrivers.map(driver => (
-                                    <ComboboxOption
-                                      key={driver._id}
-                                      value={driver._id}
-                                      className={({ focus }) =>
-                                        `relative cursor-default select-none py-2 px-4 text-base ${
-                                          focus ? 'bg-gray-50' : 'text-gray-900'
-                                        } ${
-                                          // Handle both object and string formats for comparison
-                                          (typeof editForm?.replacement
-                                            ?.replacementDriverId === 'object'
-                                            ? editForm?.replacement
-                                                ?.replacementDriverId?._id
-                                            : editForm?.replacement
-                                                ?.replacementDriverId) ===
-                                          driver._id
-                                            ? 'bg-gray-100'
-                                            : ''
-                                        }`
-                                      }
-                                    >
-                                      {({ selected }) => (
-                                        <span className='block truncate capitalize'>
-                                          {`${driver.firstname} ${driver.lastname}`}
-                                        </span>
-                                      )}
-                                    </ComboboxOption>
-                                  ))
-                                )}
-                              </ComboboxOptions>
-                            </div>
-                          </Combobox>
-                        ) : (
-                          <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
-                            {editForm?.replacement?.replacementDriverId
-                              ? `${editForm.replacement.replacementDriverId.firstname} ${editForm.replacement.replacementDriverId.lastname}`
-                              : ''}{' '}
-                          </p>
-                        )}
-                      </label>
-
-                      <div className='grid grid-cols-2 gap-6'>
-                        <InputField
-                          label='Sacks Count'
-                          type='number'
-                          name='sacksCount'
-                          value={editForm?.sacksCount}
-                          disabled={!isEditMode}
-                          onChange={handleChange}
-                          formatNumber={true}
-                          thousandSeparator={true}
-                          decimalScale={0}
-                        />
-
-                        <InputField
-                          label='Load Weight (kg)'
-                          type='number'
-                          name='loadWeightKg'
-                          value={editForm?.loadWeightKg}
-                          disabled={!isEditMode}
-                          onChange={handleChange}
-                          formatNumber={true}
-                          thousandSeparator={true}
-                          decimalScale={2}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* other details */}
-                <div className='mt-3 space-y-2'>
-                  <h3 className='col-span-full text-xs uppercase font-semibold text-gray-500'>
-                    Other Details
-                  </h3>
-                  <div className='grid grid-cols-2 grid-rows-3 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
-                    <div className='grid grid-cols-2 gap-x-6'>
-                      {/* territory */}
-                      <InputField
-                        label='Territory'
-                        type='text'
-                        name='territory'
-                        value={editForm?.territory}
-                        disabled={!isEditMode}
-                        onChange={handleChange}
-                        formatNumber={true}
-                      />
-
-                      {/* territory */}
-                      <InputField
-                        label='Hybrid'
-                        type='text'
-                        name='hybrid'
-                        value={editForm?.hybrid}
-                        disabled={!isEditMode}
-                        onChange={handleChange}
-                        formatNumber={true}
-                      />
-                    </div>
-
-                    <div className='grid grid-cols-2 gap-x-6'>
-                      {/* status */}
-                      <label className='flex flex-col gap-1'>
-                        <span className='uppercase text-xs text-gray-500 font-semibold'>
-                          Status
-                        </span>
-                        {isEditMode ? (
-                          <div className='relative'>
-                            <select
-                              name='status'
-                              value={editForm?.status}
-                              onChange={handleChange}
-                              className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
-                            >
-                              {DEPLOYMENT_STATUS.map((item, index) => (
-                                <option key={index} value={item.value}>
-                                  {item.label}
-                                </option>
-                              ))}
-                            </select>
-                            <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
-                          </div>
-                        ) : (
-                          <div className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
-                            <p
-                              className={clsx(
-                                'capitalize w-fit px-2 py-0.5 rounded-full text-sm',
-                                {
-                                  'bg-orange-500/10 text-orange-500':
-                                    editForm?.status === 'preparing',
-                                  'bg-emerald-500/10 text-emerald-500':
-                                    editForm?.status === 'ongoing',
-                                  'bg-blue-500/10 text-blue-500':
-                                    editForm?.status === 'completed',
-                                  'bg-red-500/10 text-red-500':
-                                    editForm?.status === 'canceled'
-                                }
-                              )}
-                            >
-                              {editForm?.status}
-                            </p>
-                          </div>
-                        )}
-                      </label>
-
-                      {/* flagging */}
-                      <label className='flex flex-col gap-1'>
-                        <span className='uppercase text-xs text-gray-500 font-semibold'>
-                          Flagging
-                        </span>
-                        {isEditMode ? (
-                          <div className='relative'>
-                            <select
-                              name='flagging'
-                              value={editForm?.flagging}
-                              onChange={handleChange}
-                              className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
-                            >
-                              {FLAGGING_OPTIONS.map((item, index) => (
-                                <option key={index} value={item}>
-                                  {item}
-                                </option>
-                              ))}
-                            </select>
-                            <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
-                          </div>
-                        ) : (
-                          <div className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
-                            <p
-                              className={clsx(
-                                'capitalize w-fit px-2 py-0.5 rounded-full text-sm',
-                                {
-                                  'bg-emerald-500/10 text-emerald-500':
-                                    editForm?.flagging === 'Green',
-                                  'bg-orange-500/10 text-orange-500':
-                                    editForm?.flagging === 'Orange',
-                                  'bg-yellow-500/10 text-yellow-500':
-                                    editForm?.flagging === 'Yellow',
-                                  'bg-red-500/10 text-red-500':
-                                    editForm?.flagging === 'Red'
-                                }
-                              )}
-                            >
-                              {editForm?.flagging || 'N/A'}
-                            </p>
-                          </div>
-                        )}
-                      </label>
-                    </div>
-
-                    <label className='flex flex-col gap-1'>
-                      <span className='uppercase text-xs text-gray-500 font-semibold'>
-                        Assigned At
-                      </span>
-                      <p className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
-                        {DateTime.fromISO(editForm?.createdAt)
-                          .setZone('Asia/Manila')
-                          .toFormat('MMM d, yyyy - hh:mm a')}
-                      </p>
-                    </label>
-
-                    <InputField
-                      label='Flagging Remarks'
-                      type='text'
-                      name='flaggingRemarks'
-                      placeholder=''
-                      maxLength={50}
-                      value={editForm?.flaggingRemarks}
-                      disabled={!isEditMode}
-                      onChange={handleChange}
-                      isRequired={false}
-                    />
-
-                    <InputField
-                      label='Pick-up Location'
-                      type='text'
-                      name='pickupSite'
-                      placeholder='Pick-up Location'
-                      maxLength={50}
-                      value={editForm?.pickupSite}
-                      disabled={!isEditMode}
-                      onChange={handleChange}
-                    />
-
-                    <InputField
-                      label='Cancellation Reason'
-                      type='text'
-                      name='cancellationReason'
-                      placeholder=''
-                      maxLength={50}
-                      value={editForm?.cancellationReason}
-                      disabled={!isEditMode || editForm?.status !== 'canceled'}
-                      onChange={handleChange}
-                      isRequired={false}
-                      isCapitalize={false}
-                    />
-                  </div>
+                {/* TABS */}
+                <div className='flex gap-2 border-b border-gray-200 mb-4'>
+                  <button
+                    type='button'
+                    onClick={() => setActiveTab('overview')}
+                    className={clsx(
+                      'px-4 py-2 text-sm font-medium transition-colors relative',
+                      {
+                        'text-emerald-600': activeTab === 'overview',
+                        'text-gray-500 hover:text-gray-700':
+                          activeTab !== 'overview'
+                      }
+                    )}
+                  >
+                    Overview
+                    {activeTab === 'overview' && (
+                      <div className='absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600'></div>
+                    )}
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setActiveTab('details')}
+                    className={clsx(
+                      'px-4 py-2 text-sm font-medium transition-colors relative',
+                      {
+                        'text-emerald-600': activeTab === 'details',
+                        'text-gray-500 hover:text-gray-700':
+                          activeTab !== 'details'
+                      }
+                    )}
+                  >
+                    Additional Details
+                    {activeTab === 'details' && (
+                      <div className='absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600'></div>
+                    )}
+                  </button>
                 </div>
 
+                {/* TAB CONTENT */}
+                <div className='flex-1 overflow-y-auto'>
+                  {activeTab === 'overview' && (
+                    <OverviewTab
+                      isEditMode={isEditMode}
+                      editForm={editForm}
+                      deployment={deployment}
+                      isReplacementShow={isReplacementShow}
+                      trucks={trucks}
+                      drivers={drivers}
+                      currentTruck={currentTruck}
+                      currentDriver={currentDriver}
+                      filteredTrucks={filteredTrucks}
+                      filteredDrivers={filteredDrivers}
+                      filteredReplacementTrucks={filteredReplacementTrucks}
+                      filteredReplacementDrivers={filteredReplacementDrivers}
+                      truckQuery={truckQuery}
+                      driverQuery={driverQuery}
+                      replacementTruckQuery={replacementTruckQuery}
+                      replacementDriverQuery={replacementDriverQuery}
+                      setTruckQuery={setTruckQuery}
+                      setDriverQuery={setDriverQuery}
+                      setReplacementTruckQuery={setReplacementTruckQuery}
+                      setReplacementDriverQuery={setReplacementDriverQuery}
+                      handleChange={handleChange}
+                      handleComboboxChange={handleComboboxChange}
+                    />
+                  )}
+
+                  {activeTab === 'details' && (
+                    <AdditionalDetailsTab
+                      isEditMode={isEditMode}
+                      editForm={editForm}
+                      handleChange={handleChange}
+                    />
+                  )}
+                </div>
+
+                {/* ACTION BUTTONS */}
                 {updatable && (
-                  <div className='flex gap-4 col-span-full mt-full mt-6'>
+                  <div className='flex gap-4 col-span-full mt-6 pt-4 border-t border-gray-200'>
                     {isEditMode ? (
                       <>
                         <button
@@ -1479,6 +875,794 @@ function DeploymentDetailsModal ({
         </TransitionChild>
       </div>
     </Dialog>
+  )
+}
+
+// OVERVIEW TAB COMPONENT
+const OverviewTab = ({
+  isEditMode,
+  editForm,
+  deployment,
+  isReplacementShow,
+  trucks,
+  drivers,
+  currentTruck,
+  currentDriver,
+  filteredTrucks,
+  filteredDrivers,
+  filteredReplacementTrucks,
+  filteredReplacementDrivers,
+  truckQuery,
+  driverQuery,
+  replacementTruckQuery,
+  replacementDriverQuery,
+  setTruckQuery,
+  setDriverQuery,
+  setReplacementTruckQuery,
+  setReplacementDriverQuery,
+  handleChange,
+  handleComboboxChange
+}) => {
+  return (
+    <div className='space-y-4'>
+      {!isReplacementShow ? (
+        // Original truck details
+        <div className='space-y-2'>
+          <h3 className='text-xs uppercase font-semibold text-gray-500'>
+            Truck Details
+          </h3>
+          <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
+            {/* plate no. */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Plate No.
+              </span>
+              {isEditMode ? (
+                <Combobox
+                  value={
+                    typeof editForm?.truckId === 'object'
+                      ? editForm?.truckId?._id
+                      : editForm?.truckId
+                  }
+                  onChange={value => handleComboboxChange('truckId', value)}
+                >
+                  <div className='relative'>
+                    <ComboboxInput
+                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 uppercase'
+                      displayValue={truckId => {
+                        const actualId =
+                          typeof truckId === 'object' ? truckId?._id : truckId
+                        const truck = trucks?.find(t => t._id === actualId)
+                        return truck ? truck.plateNo : ''
+                      }}
+                      onChange={event => setTruckQuery(event.target.value)}
+                      required
+                    />
+                    <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
+                      <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
+                    </ComboboxButton>
+                    <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
+                      {filteredTrucks.length === 0 && truckQuery !== '' ? (
+                        <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
+                          Nothing found.
+                        </div>
+                      ) : (
+                        filteredTrucks.map(truck => (
+                          <ComboboxOption
+                            key={truck._id}
+                            value={truck._id}
+                            className={({ focus }) =>
+                              `relative cursor-default select-none py-2 px-4 text-base ${
+                                focus ? 'bg-gray-50' : 'text-gray-900'
+                              } ${
+                                (typeof editForm?.truckId === 'object'
+                                  ? editForm?.truckId?._id
+                                  : editForm?.truckId) === truck._id
+                                  ? 'bg-gray-100'
+                                  : ''
+                              }`
+                            }
+                          >
+                            {({ selected }) => (
+                              <span className='block truncate uppercase'>
+                                {truck.plateNo}
+                              </span>
+                            )}
+                          </ComboboxOption>
+                        ))
+                      )}
+                    </ComboboxOptions>
+                  </div>
+                </Combobox>
+              ) : (
+                <p className='outline outline-gray-200 px-3 py-2 rounded break-all uppercase'>
+                  {currentTruck?.plateNo}
+                </p>
+              )}
+            </label>
+
+            <div className='grid grid-cols-2 gap-x-6'>
+              {/* type */}
+              <label className='flex flex-col gap-1'>
+                <span className='uppercase text-xs text-gray-500 font-semibold'>
+                  Truck Type
+                </span>
+                {isEditMode ? (
+                  <div className='relative'>
+                    <select
+                      name='truckType'
+                      value={editForm?.truckType}
+                      onChange={handleChange}
+                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
+                    >
+                      {TRUCK_TYPES.map((item, index) => (
+                        <option key={index} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                  </div>
+                ) : (
+                  <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
+                    {editForm?.truckType}
+                  </p>
+                )}
+              </label>
+
+              {/* helper count */}
+              <InputField
+                label='Helper Count'
+                type='number'
+                name='helperCount'
+                placeholder='Helper Count'
+                value={editForm?.helperCount}
+                disabled={!isEditMode}
+                onChange={handleChange}
+                formatNumber={true}
+              />
+            </div>
+
+            {/* driver */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Driver
+              </span>
+              {isEditMode ? (
+                <Combobox
+                  value={
+                    typeof editForm?.driverId === 'object'
+                      ? editForm?.driverId?._id
+                      : editForm?.driverId
+                  }
+                  onChange={value => handleComboboxChange('driverId', value)}
+                >
+                  <div className='relative'>
+                    <ComboboxInput
+                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
+                      displayValue={driverId => {
+                        const actualId =
+                          typeof driverId === 'object'
+                            ? driverId?._id
+                            : driverId
+                        const driver = drivers?.find(d => d._id === actualId)
+                        return driver
+                          ? `${driver.firstname} ${driver.lastname}`
+                          : ''
+                      }}
+                      onChange={event => setDriverQuery(event.target.value)}
+                      required
+                    />
+                    <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
+                      <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
+                    </ComboboxButton>
+                    <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
+                      {filteredDrivers.length === 0 && driverQuery !== '' ? (
+                        <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
+                          Nothing found.
+                        </div>
+                      ) : (
+                        filteredDrivers.map(driver => (
+                          <ComboboxOption
+                            key={driver._id}
+                            value={driver._id}
+                            className={({ focus }) =>
+                              `relative cursor-default select-none py-2 px-4 text-base ${
+                                focus ? 'bg-gray-50' : 'text-gray-900'
+                              } ${
+                                (typeof editForm?.driverId === 'object'
+                                  ? editForm?.driverId?._id
+                                  : editForm?.driverId) === driver._id
+                                  ? 'bg-gray-100'
+                                  : ''
+                              }`
+                            }
+                          >
+                            {({ selected }) => (
+                              <span className='block truncate capitalize'>
+                                {`${driver.firstname} ${driver.lastname}`}
+                              </span>
+                            )}
+                          </ComboboxOption>
+                        ))
+                      )}
+                    </ComboboxOptions>
+                  </div>
+                </Combobox>
+              ) : (
+                <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
+                  {editForm?.driverId?._id
+                    ? `${editForm.driverId.firstname} ${editForm.driverId.lastname}`
+                    : 'N/A'}
+                </p>
+              )}
+            </label>
+
+            <div className='grid grid-cols-2 gap-x-6'>
+              <InputField
+                label='Sacks Count'
+                type='number'
+                name='sacksCount'
+                value={editForm?.sacksCount}
+                disabled={!isEditMode}
+                onChange={handleChange}
+                formatNumber={true}
+                thousandSeparator={true}
+                decimalScale={0}
+                isRequired={false}
+              />
+
+              <InputField
+                label='Load Weight (kg)'
+                type='number'
+                name='loadWeightKg'
+                value={editForm?.loadWeightKg}
+                disabled={!isEditMode}
+                onChange={handleChange}
+                formatNumber={true}
+                thousandSeparator={true}
+                decimalScale={2}
+                isRequired={false}
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Replacement truck details
+        <div className='space-y-2'>
+          <div className='flex justify-between'>
+            <h3 className='text-xs uppercase font-semibold text-gray-500'>
+              Truck Details
+            </h3>
+            <p className='text-xs text-red-500'>*This is a replacement truck</p>
+          </div>
+          <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
+            {/* plate no. */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Plate No.
+              </span>
+              {isEditMode ? (
+                <Combobox
+                  value={
+                    typeof editForm?.replacement?.replacementTruckId ===
+                    'object'
+                      ? editForm?.replacement?.replacementTruckId?._id
+                      : editForm?.replacement?.replacementTruckId
+                  }
+                  onChange={value =>
+                    handleComboboxChange(
+                      'replacement.replacementTruckId',
+                      value
+                    )
+                  }
+                >
+                  <div className='relative'>
+                    <ComboboxInput
+                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 uppercase'
+                      displayValue={truckId => {
+                        const actualId =
+                          typeof truckId === 'object' ? truckId?._id : truckId
+                        const truck = trucks?.find(t => t._id === actualId)
+                        return truck ? truck.plateNo : ''
+                      }}
+                      onChange={event =>
+                        setReplacementTruckQuery(event.target.value)
+                      }
+                      placeholder='Search plate no.'
+                      required
+                    />
+                    <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
+                      <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
+                    </ComboboxButton>
+                    <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
+                      {filteredReplacementTrucks.length === 0 &&
+                      replacementTruckQuery !== '' ? (
+                        <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
+                          Nothing found.
+                        </div>
+                      ) : (
+                        filteredReplacementTrucks.map(truck => (
+                          <ComboboxOption
+                            key={truck._id}
+                            value={truck._id}
+                            className={({ focus }) =>
+                              `relative cursor-default select-none py-2 px-4 text-base ${
+                                focus ? 'bg-gray-50' : 'text-gray-900'
+                              } ${
+                                (typeof editForm?.replacement
+                                  ?.replacementTruckId === 'object'
+                                  ? editForm?.replacement?.replacementTruckId
+                                      ?._id
+                                  : editForm?.replacement
+                                      ?.replacementTruckId) === truck._id
+                                  ? 'bg-gray-100'
+                                  : ''
+                              }`
+                            }
+                          >
+                            {({ selected }) => (
+                              <span className='block truncate uppercase'>
+                                {truck.plateNo}
+                              </span>
+                            )}
+                          </ComboboxOption>
+                        ))
+                      )}
+                    </ComboboxOptions>
+                  </div>
+                </Combobox>
+              ) : (
+                <p className='outline outline-gray-200 px-3 py-2 rounded break-all uppercase'>
+                  {editForm?.replacement?.replacementTruckId?.plateNo}
+                </p>
+              )}
+            </label>
+
+            {/* driver */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Driver
+              </span>
+              {isEditMode ? (
+                <Combobox
+                  value={
+                    typeof editForm?.replacement?.replacementDriverId ===
+                    'object'
+                      ? editForm?.replacement?.replacementDriverId?._id
+                      : editForm?.replacement?.replacementDriverId
+                  }
+                  onChange={value =>
+                    handleComboboxChange(
+                      'replacement.replacementDriverId',
+                      value
+                    )
+                  }
+                >
+                  <div className='relative'>
+                    <ComboboxInput
+                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
+                      displayValue={driverId => {
+                        const actualId =
+                          typeof driverId === 'object'
+                            ? driverId?._id
+                            : driverId
+                        const driver = drivers?.find(d => d._id === actualId)
+                        return driver
+                          ? `${driver.firstname} ${driver.lastname}`
+                          : ''
+                      }}
+                      onChange={event =>
+                        setReplacementDriverQuery(event.target.value)
+                      }
+                      placeholder='Search driver name'
+                      required
+                    />
+                    <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
+                      <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
+                    </ComboboxButton>
+                    <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
+                      {filteredReplacementDrivers.length === 0 &&
+                      replacementDriverQuery !== '' ? (
+                        <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
+                          Nothing found.
+                        </div>
+                      ) : (
+                        filteredReplacementDrivers.map(driver => (
+                          <ComboboxOption
+                            key={driver._id}
+                            value={driver._id}
+                            className={({ focus }) =>
+                              `relative cursor-default select-none py-2 px-4 text-base ${
+                                focus ? 'bg-gray-50' : 'text-gray-900'
+                              } ${
+                                (typeof editForm?.replacement
+                                  ?.replacementDriverId === 'object'
+                                  ? editForm?.replacement?.replacementDriverId
+                                      ?._id
+                                  : editForm?.replacement
+                                      ?.replacementDriverId) === driver._id
+                                  ? 'bg-gray-100'
+                                  : ''
+                              }`
+                            }
+                          >
+                            {({ selected }) => (
+                              <span className='block truncate capitalize'>
+                                {`${driver.firstname} ${driver.lastname}`}
+                              </span>
+                            )}
+                          </ComboboxOption>
+                        ))
+                      )}
+                    </ComboboxOptions>
+                  </div>
+                </Combobox>
+              ) : (
+                <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
+                  {editForm?.replacement?.replacementDriverId
+                    ? `${editForm.replacement.replacementDriverId.firstname} ${editForm.replacement.replacementDriverId.lastname}`
+                    : ''}{' '}
+                </p>
+              )}
+            </label>
+
+            {/* type */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Truck Type
+              </span>
+              {isEditMode ? (
+                <div className='relative'>
+                  <select
+                    name='replacement.replacementTruckType'
+                    value={editForm?.replacement?.replacementTruckType}
+                    onChange={handleChange}
+                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
+                  >
+                    {TRUCK_TYPES.map((item, index) => (
+                      <option key={index} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                </div>
+              ) : (
+                <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
+                  {editForm?.replacement?.replacementTruckType}
+                </p>
+              )}
+            </label>
+
+            {/* helper count */}
+            <InputField
+              label='Helper Count'
+              type='number'
+              name='helperCount'
+              placeholder='Helper Count'
+              value={editForm?.helperCount}
+              disabled={!isEditMode}
+              onChange={handleChange}
+              formatNumber={true}
+            />
+
+            <InputField
+              label='Sacks Count'
+              type='number'
+              name='sacksCount'
+              value={editForm?.sacksCount}
+              disabled={!isEditMode}
+              onChange={handleChange}
+              formatNumber={true}
+              thousandSeparator={true}
+              decimalScale={0}
+              isRequired={false}
+            />
+
+            <InputField
+              label='Load Weight (kg)'
+              type='number'
+              name='loadWeightKg'
+              value={editForm?.loadWeightKg}
+              disabled={!isEditMode}
+              onChange={handleChange}
+              formatNumber={true}
+              thousandSeparator={true}
+              decimalScale={2}
+              isRequired={false}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* other details */}
+      <div className='space-y-2'>
+        <h3 className='col-span-full text-xs uppercase font-semibold text-gray-500'>
+          Other Details
+        </h3>
+        <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
+          <div className='grid grid-cols-2 gap-x-6'>
+            <InputField
+              label='Territory'
+              type='text'
+              name='territory'
+              value={editForm?.territory}
+              disabled={!isEditMode}
+              onChange={handleChange}
+            />
+
+            <InputField
+              label='Hybrid'
+              type='text'
+              name='hybrid'
+              value={editForm?.hybrid}
+              disabled={!isEditMode}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className='grid grid-cols-2 gap-x-6'>
+            {/* status */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Status
+              </span>
+              {isEditMode ? (
+                <div className='relative'>
+                  <select
+                    name='status'
+                    value={editForm?.status}
+                    onChange={handleChange}
+                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
+                  >
+                    {DEPLOYMENT_STATUS.map((item, index) => (
+                      <option key={index} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                </div>
+              ) : (
+                <div className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
+                  <p
+                    className={clsx(
+                      'capitalize w-fit px-2 py-0.5 rounded-full text-sm',
+                      {
+                        'bg-orange-500/10 text-orange-500':
+                          editForm?.status === 'preparing',
+                        'bg-emerald-500/10 text-emerald-500':
+                          editForm?.status === 'ongoing',
+                        'bg-blue-500/10 text-blue-500':
+                          editForm?.status === 'completed',
+                        'bg-red-500/10 text-red-500':
+                          editForm?.status === 'canceled'
+                      }
+                    )}
+                  >
+                    {editForm?.status}
+                  </p>
+                </div>
+              )}
+            </label>
+
+            {/* flagging */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Flagging
+              </span>
+              {isEditMode ? (
+                <div className='relative'>
+                  <select
+                    name='flagging'
+                    value={editForm?.flagging}
+                    onChange={handleChange}
+                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
+                  >
+                    {FLAGGING_OPTIONS.map((item, index) => (
+                      <option key={index} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                </div>
+              ) : (
+                <div className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
+                  <p
+                    className={clsx(
+                      'capitalize w-fit px-2 py-0.5 rounded-full text-sm',
+                      {
+                        'bg-emerald-500/10 text-emerald-500':
+                          editForm?.flagging === 'Green',
+                        'bg-orange-500/10 text-orange-500':
+                          editForm?.flagging === 'Orange',
+                        'bg-yellow-500/10 text-yellow-500':
+                          editForm?.flagging === 'Yellow',
+                        'bg-red-500/10 text-red-500':
+                          editForm?.flagging === 'Red'
+                      }
+                    )}
+                  >
+                    {editForm?.flagging || 'N/A'}
+                  </p>
+                </div>
+              )}
+            </label>
+          </div>
+
+          <label className='flex flex-col gap-1'>
+            <span className='uppercase text-xs text-gray-500 font-semibold'>
+              Assigned At
+            </span>
+            <p className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
+              {DateTime.fromISO(editForm?.createdAt)
+                .setZone('Asia/Manila')
+                .toFormat('MMM d, yyyy - hh:mm a')}
+            </p>
+          </label>
+
+          <InputField
+            label='Flagging Remarks'
+            type='text'
+            name='flaggingRemarks'
+            placeholder=''
+            maxLength={50}
+            value={editForm?.flaggingRemarks}
+            disabled={!isEditMode}
+            onChange={handleChange}
+            isRequired={false}
+          />
+
+          <InputField
+            label='Pick-up Location'
+            type='text'
+            name='pickupSite'
+            placeholder='Pick-up Location'
+            maxLength={50}
+            value={editForm?.pickupSite}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+
+          <InputField
+            label='Cancellation Reason'
+            type='text'
+            name='cancellationReason'
+            placeholder=''
+            maxLength={50}
+            value={editForm?.cancellationReason}
+            disabled={!isEditMode || editForm?.status !== 'canceled'}
+            onChange={handleChange}
+            isRequired={false}
+            isCapitalize={false}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ADDITIONAL DETAILS TAB COMPONENT
+const AdditionalDetailsTab = ({ isEditMode, editForm, handleChange }) => {
+  return (
+    <div className='space-y-4'>
+      {/* PICKUP DETAILS SECTION */}
+      <div className='space-y-2'>
+        <h3 className='text-xs uppercase font-semibold text-gray-500'>
+          Pickup Details
+        </h3>
+        <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
+          <InputField
+            label='Pick-up Site'
+            type='text'
+            name='pickupSite'
+            placeholder='Pick-up Site'
+            value={editForm?.pickupSite}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+
+          <InputField
+            label='Municipality'
+            type='text'
+            name='municipality'
+            placeholder='Municipality'
+            value={editForm?.municipality}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+
+          <InputField
+            label='Field Contact Person'
+            type='text'
+            name='fieldContactPerson'
+            placeholder='Contact Person'
+            value={editForm?.fieldContactPerson}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+
+          <InputField
+            label='Field Contact No.'
+            type='text'
+            name='fieldContactPersonNo'
+            placeholder='Contact Number'
+            value={editForm?.fieldContactPersonNo}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+
+          <InputField
+            label='Scheduled Pickup Time'
+            type='datetime-local'
+            name='scheduledPickupTime'
+            placeholder='Scheduled Pickup Time'
+            value={editForm?.scheduledPickupTime}
+            disabled={!isEditMode}
+            onChange={handleChange}
+            isCapitalize={false}
+          />
+
+          <InputField
+            label='Estimated Quantity (Kg)'
+            type='text'
+            name='estimatedQuantityKg'
+            placeholder='Estimated Quantity'
+            value={editForm?.estimatedQuantityKg}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+        </div>
+      </div>
+
+      {/* DELIVERY DETAILS SECTION */}
+      <div className='space-y-2'>
+        <h3 className='text-xs uppercase font-semibold text-gray-500'>
+          Delivery Details
+        </h3>
+        <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
+          <InputField
+            label='Receiving Contact Person'
+            type='text'
+            name='receivingContactPerson'
+            placeholder='Contact Person'
+            value={editForm?.receivingContactPerson}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+
+          <InputField
+            label='Receiving Contact No.'
+            type='text'
+            name='receivingContactPersonNo'
+            placeholder='Contact Number'
+            value={editForm?.receivingContactPersonNo}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+
+          <InputField
+            label='Territory'
+            type='text'
+            name='territory'
+            value={editForm?.territory}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+
+          <InputField
+            label='Hybrid'
+            type='text'
+            name='hybrid'
+            value={editForm?.hybrid}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+        </div>
+      </div>
+    </div>
   )
 }
 
