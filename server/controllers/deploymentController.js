@@ -430,7 +430,8 @@ const updateDeployment = async (req, res, next) => {
       hybrid,
       flagging,
       flaggingRemarks,
-      cancellationReason // NEW FIELD
+      cancellationReason, // NEW FIELD
+      isTMOPrinted
     } = req.body
 
     // Check permissions
@@ -490,6 +491,7 @@ const updateDeployment = async (req, res, next) => {
       flaggingRemarks: existingDeployment.flaggingRemarks,
       cancellationReason: existingDeployment.cancellationReason, // NEW
       subcon: existingDeployment.subcon,
+      isTMOPrinted: existingDeployment.isTMOPrinted,
       replacementTruckId:
         existingDeployment.replacement?.replacementTruckId?.toString(),
       replacementDriverId:
@@ -1004,7 +1006,11 @@ const updateDeployment = async (req, res, next) => {
       flaggingRemarks:
         flaggingRemarks !== undefined
           ? flaggingRemarks
-          : existingDeployment.flaggingRemarks
+          : existingDeployment.flaggingRemarks,
+      isTMOPrinted:
+        isTMOPrinted !== undefined
+          ? isTMOPrinted
+          : existingDeployment.isTMOPrinted
     }
 
     // Validate that subcon is not empty
@@ -1359,6 +1365,16 @@ const updateDeployment = async (req, res, next) => {
           `Cancellation reason updated to: ${finalCancellationReason}`
         )
       }
+    }
+
+    // Activity log for isTMOPrinted change
+    if (
+      isTMOPrinted !== undefined &&
+      isTMOPrinted !== originalValues.isTMOPrinted
+    ) {
+      await createActivityLog(
+        `TMO ${isTMOPrinted ? 'exported and printed' : 'not exported'}`
+      )
     }
 
     // Populate and return

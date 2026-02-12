@@ -14,35 +14,23 @@ import { IoClose, IoWarning } from 'react-icons/io5'
 import { DEPLOYMENT_STATUS, TRUCK_TYPES } from '../../utils/generalOptions'
 import { MdKeyboardArrowDown } from 'react-icons/md'
 import { useEffect, useState } from 'react'
-import {
-  FaPen,
-  FaPrint,
-  FaSave,
-  FaTrash,
-  FaTruck,
-  FaTruckLoading,
-  FaTruckMoving
-} from 'react-icons/fa'
 import { DateTime } from 'luxon'
 import useUpdateDeployment from '../../hooks/useUpdateDeployment'
 import { toast } from 'react-toastify'
 import { HiDotsHorizontal } from 'react-icons/hi'
 import { NumericFormat } from 'react-number-format'
-import {
-  FLAGGING_OPTIONS,
-  HYBRID_OPTIONS,
-  TERRITORY_OPTIONS
-} from '../../utils/deploymentOptions'
+import { FLAGGING_OPTIONS } from '../../utils/deploymentOptions'
 import { useUserContext } from '../../contexts/UserContext'
 import {
-  TbArrowsExchange,
   TbDeviceFloppy,
   TbExchange,
   TbPencilMinus,
   TbPrinter,
-  TbReplaceFilled,
   TbTrash
 } from 'react-icons/tb'
+import jsPDF from 'jspdf'
+import { API_DEPLOYMENT } from '../../utils/APIRoutes'
+import axios from 'axios'
 
 function DeploymentDetailsModal ({
   isOpen,
@@ -123,6 +111,225 @@ function DeploymentDetailsModal ({
     } else {
       console.log(result.error)
       toast.error(result.error)
+    }
+  }
+
+  const handlePrintTMO = async () => {
+    if (!deployment) {
+      toast.error('No deployment data available')
+      return
+    }
+
+    try {
+      // Helper function to capitalize words
+      const capitalizeWords = str => {
+        if (!str) return ''
+        return str
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+      }
+
+      // Helper function to format truck type
+      const formatTruckType = type => {
+        if (!type) return ''
+        const lowerType = type.toLowerCase().trim()
+        return (
+          TRUCK_TYPES[lowerType] || capitalizeWords(type.replace(/-/g, ' '))
+        )
+      }
+
+      // Determine active truck and driver (considering replacement)
+      const hasReplacement = deployment?.replacement?.replacementTruckId?._id
+      const activeTruck = hasReplacement
+        ? deployment.replacement.replacementTruckId
+        : deployment.truckId
+      const activeDriver = hasReplacement
+        ? deployment.replacement.replacementDriverId
+        : deployment.driverId
+      const activeTruckType = hasReplacement
+        ? deployment.replacement.replacementTruckType
+        : deployment.truckType
+
+      // Create PDF
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+
+      // Set font
+      doc.setFont('helvetica', 'bold')
+
+      // Title
+      doc.setFontSize(18)
+      doc.text('TRANSPORT MOVEMENT ORDER', 105, 20, { align: 'center' })
+
+      // Deployment Code
+      doc.setFontSize(14)
+      doc.text(`TMO No: ${deployment.deploymentCode}`, 105, 30, {
+        align: 'center'
+      })
+
+      // Add a line
+      doc.setLineWidth(0.5)
+      doc.line(20, 35, 190, 35)
+
+      // Content section
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      let yPos = 50
+
+      // Truck Details Section
+      doc.text('TRUCK DETAILS', 20, yPos)
+      yPos += 8
+      doc.setFont('helvetica', 'normal')
+      doc.text(
+        `Plate No: ${activeTruck?.plateNo?.toUpperCase() || 'N/A'}`,
+        25,
+        yPos
+      )
+      yPos += 6
+      doc.text(`Truck Type: ${formatTruckType(activeTruckType)}`, 25, yPos)
+      yPos += 6
+      doc.text(`Subcon: ${deployment.subcon || 'N/A'}`, 25, yPos)
+      yPos += 10
+
+      // Driver Details Section
+      doc.setFont('helvetica', 'bold')
+      doc.text('DRIVER DETAILS', 20, yPos)
+      yPos += 8
+      doc.setFont('helvetica', 'normal')
+      const driverName = activeDriver
+        ? `${capitalizeWords(activeDriver.firstname)} ${capitalizeWords(
+            activeDriver.lastname
+          )}`
+        : 'N/A'
+      doc.text(`Driver: ${driverName}`, 25, yPos)
+      yPos += 6
+      doc.text(`Helper Count: ${deployment.helperCount || 'N/A'}`, 25, yPos)
+      yPos += 10
+
+      // Pickup Details Section
+      doc.setFont('helvetica', 'bold')
+      doc.text('PICKUP DETAILS', 20, yPos)
+      yPos += 8
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Pickup Site: ${deployment.pickupSite || 'N/A'}`, 25, yPos)
+      yPos += 6
+      doc.text(`Municipality: ${deployment.municipality || 'N/A'}`, 25, yPos)
+      yPos += 6
+      doc.text(
+        `Field Contact: ${deployment.fieldContactPerson || 'N/A'}`,
+        25,
+        yPos
+      )
+      yPos += 6
+      doc.text(
+        `Contact No: ${deployment.fieldContactPersonNo || 'N/A'}`,
+        25,
+        yPos
+      )
+      yPos += 6
+      doc.text(
+        `Scheduled Pickup: ${deployment.scheduledPickupTime || 'N/A'}`,
+        25,
+        yPos
+      )
+      yPos += 6
+      doc.text(
+        `Est. Quantity: ${deployment.estimatedQuantityKg || 'N/A'} kg`,
+        25,
+        yPos
+      )
+      yPos += 10
+
+      // Delivery Details Section
+      doc.setFont('helvetica', 'bold')
+      doc.text('DELIVERY DETAILS', 20, yPos)
+      yPos += 8
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Destination: ${deployment.destination || 'N/A'}`, 25, yPos)
+      yPos += 6
+      doc.text(
+        `Receiving Contact: ${deployment.receivingContactPerson || 'N/A'}`,
+        25,
+        yPos
+      )
+      yPos += 6
+      doc.text(
+        `Contact No: ${deployment.receivingContactPersonNo || 'N/A'}`,
+        25,
+        yPos
+      )
+      yPos += 6
+      doc.text(`Territory: ${deployment.territory || 'N/A'}`, 25, yPos)
+      yPos += 6
+      doc.text(`Hybrid: ${deployment.hybrid || 'N/A'}`, 25, yPos)
+      yPos += 6
+      doc.text(`Flagging: ${deployment.flagging || 'N/A'}`, 25, yPos)
+      if (deployment.flaggingRemarks) {
+        yPos += 6
+        doc.text(`Remarks: ${deployment.flaggingRemarks}`, 25, yPos)
+      }
+      yPos += 15
+
+      // Status
+      doc.setFont('helvetica', 'bold')
+      doc.text(`Status: ${capitalizeWords(deployment.status)}`, 20, yPos)
+      yPos += 10
+
+      // Footer
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'italic')
+      const timestamp = DateTime.now()
+        .setZone('Asia/Manila')
+        .toFormat('MMMM dd, yyyy hh:mm a')
+      doc.text(`Generated on: ${timestamp}`, 105, 280, { align: 'center' })
+
+      // Save PDF
+      const filename = `TMO_${deployment.deploymentCode}.pdf`
+      doc.save(filename)
+
+      // Small delay to ensure download initiated
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      if (!deployment.isTMOPrinted) {
+        // After PDF is generated, call backend to update isTMOPrinted
+        try {
+          const response = await axios.patch(
+            `${API_DEPLOYMENT}/${deployment._id}`,
+            { isTMOPrinted: true },
+            {
+              headers: {
+                Authorization: `Bearer ${sessionStorage.getItem('userToken')}`
+              }
+            }
+          )
+
+          // Update local state
+          onUpdate(response.data.deployment)
+
+          toast.success(
+            `TMO exported successfully for ${deployment.deploymentCode}`
+          )
+        } catch (error) {
+          console.error('Error updating TMO print status:', error)
+          toast.warning(
+            `PDF generated successfully, but failed to update print status: ${
+              error.response?.data?.message || error.message
+            }`
+          )
+        }
+      } else {
+        toast.success(
+          `TMO exported successfully for ${deployment.deploymentCode}`
+        )
+      }
+    } catch (error) {
+      console.error('Error generating TMO PDF:', error)
+      toast.error(`Error generating TMO PDF: ${error.message}`)
     }
   }
 
@@ -881,7 +1088,7 @@ function DeploymentDetailsModal ({
 
                         <button
                           type='button'
-                          onClick={() => setIsEditMode(true)}
+                          onClick={handlePrintTMO}
                           disabled={isLoading}
                           className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-6 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
                         >
