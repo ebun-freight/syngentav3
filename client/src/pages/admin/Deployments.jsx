@@ -38,7 +38,7 @@ const defaultFilters = {
   assignedAt: '',
   departedAt: '',
   search: '',
-  perPage: 100,
+  perPage: 200,
   page: 1
 }
 
@@ -1514,6 +1514,251 @@ function Deployments () {
 
   const handleExportToSubconBillingCSV = async () => {}
 
+  const handleExportToTMO = async () => {
+    if (!allDeployments || allDeployments.length === 0) {
+      alert('No data to export')
+      return
+    }
+
+    // Filter deployments: status='preparing' OR isTMOPrinted=false
+    const tmoDeployments = allDeployments.filter(
+      deployment =>
+        deployment.status === 'preparing' || deployment.isTMOPrinted === false
+    )
+
+    if (tmoDeployments.length === 0) {
+      alert('No deployments available for TMO export')
+      return
+    }
+
+    try {
+      // Helper function to capitalize words
+      const capitalizeWords = str => {
+        if (!str) return ''
+        return str
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+      }
+
+      // Helper function to format truck type
+      const formatTruckType = type => {
+        if (!type) return ''
+        const lowerType = type.toLowerCase().trim()
+        return (
+          TRUCK_TYPES[lowerType] || capitalizeWords(type.replace(/-/g, ' '))
+        )
+      }
+
+      // Generate PDFs for each deployment
+      for (let i = 0; i < tmoDeployments.length; i++) {
+        const deployment = tmoDeployments[i]
+
+        // Determine active truck and driver (considering replacement)
+        const hasReplacement = deployment?.replacement?.replacementTruckId?._id
+        const activeTruck = hasReplacement
+          ? deployment.replacement.replacementTruckId
+          : deployment.truckId
+        const activeDriver = hasReplacement
+          ? deployment.replacement.replacementDriverId
+          : deployment.driverId
+        const activeTruckType = hasReplacement
+          ? deployment.replacement.replacementTruckType
+          : deployment.truckType
+
+        // Create PDF
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        })
+
+        // Set font
+        doc.setFont('helvetica', 'bold')
+
+        // Title
+        doc.setFontSize(18)
+        doc.text('TRANSPORT MOVEMENT ORDER', 105, 20, { align: 'center' })
+
+        // Deployment Code
+        doc.setFontSize(14)
+        doc.text(`TMO No: ${deployment.deploymentCode}`, 105, 30, {
+          align: 'center'
+        })
+
+        // Add a line
+        doc.setLineWidth(0.5)
+        doc.line(20, 35, 190, 35)
+
+        // Content section
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        let yPos = 50
+
+        // Truck Details Section
+        doc.text('TRUCK DETAILS', 20, yPos)
+        yPos += 8
+        doc.setFont('helvetica', 'normal')
+        doc.text(
+          `Plate No: ${activeTruck?.plateNo?.toUpperCase() || 'N/A'}`,
+          25,
+          yPos
+        )
+        yPos += 6
+        doc.text(`Truck Type: ${formatTruckType(activeTruckType)}`, 25, yPos)
+        yPos += 6
+        doc.text(`Subcon: ${deployment.subcon || 'N/A'}`, 25, yPos)
+        yPos += 10
+
+        // Driver Details Section
+        doc.setFont('helvetica', 'bold')
+        doc.text('DRIVER DETAILS', 20, yPos)
+        yPos += 8
+        doc.setFont('helvetica', 'normal')
+        const driverName = activeDriver
+          ? `${capitalizeWords(activeDriver.firstname)} ${capitalizeWords(
+              activeDriver.lastname
+            )}`
+          : 'N/A'
+        doc.text(`Driver: ${driverName}`, 25, yPos)
+        yPos += 6
+        doc.text(`Helper Count: ${deployment.helperCount || 'N/A'}`, 25, yPos)
+        yPos += 10
+
+        // Pickup Details Section
+        doc.setFont('helvetica', 'bold')
+        doc.text('PICKUP DETAILS', 20, yPos)
+        yPos += 8
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Pickup Site: ${deployment.pickupSite || 'N/A'}`, 25, yPos)
+        yPos += 6
+        doc.text(`Municipality: ${deployment.municipality || 'N/A'}`, 25, yPos)
+        yPos += 6
+        doc.text(
+          `Field Contact: ${deployment.fieldContactPerson || 'N/A'}`,
+          25,
+          yPos
+        )
+        yPos += 6
+        doc.text(
+          `Contact No: ${deployment.fieldContactPersonNo || 'N/A'}`,
+          25,
+          yPos
+        )
+        yPos += 6
+        doc.text(
+          `Scheduled Pickup: ${deployment.scheduledPickupTime || 'N/A'}`,
+          25,
+          yPos
+        )
+        yPos += 6
+        doc.text(
+          `Est. Quantity: ${deployment.estimatedQuantityKg || 'N/A'} kg`,
+          25,
+          yPos
+        )
+        yPos += 10
+
+        // Delivery Details Section
+        doc.setFont('helvetica', 'bold')
+        doc.text('DELIVERY DETAILS', 20, yPos)
+        yPos += 8
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Destination: ${deployment.destination || 'N/A'}`, 25, yPos)
+        yPos += 6
+        doc.text(
+          `Receiving Contact: ${deployment.receivingContactPerson || 'N/A'}`,
+          25,
+          yPos
+        )
+        yPos += 6
+        doc.text(
+          `Contact No: ${deployment.receivingContactPersonNo || 'N/A'}`,
+          25,
+          yPos
+        )
+        yPos += 6
+        doc.text(`Territory: ${deployment.territory || 'N/A'}`, 25, yPos)
+        yPos += 6
+        doc.text(`Hybrid: ${deployment.hybrid || 'N/A'}`, 25, yPos)
+        yPos += 6
+        doc.text(`Flagging: ${deployment.flagging || 'N/A'}`, 25, yPos)
+        if (deployment.flaggingRemarks) {
+          yPos += 6
+          doc.text(`Remarks: ${deployment.flaggingRemarks}`, 25, yPos)
+        }
+        yPos += 15
+
+        // Status
+        doc.setFont('helvetica', 'bold')
+        doc.text(`Status: ${capitalizeWords(deployment.status)}`, 20, yPos)
+        yPos += 10
+
+        // Footer
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'italic')
+        const timestamp = DateTime.now()
+          .setZone('Asia/Manila')
+          .toFormat('MMMM dd, yyyy hh:mm a')
+        doc.text(`Generated on: ${timestamp}`, 105, 280, { align: 'center' })
+
+        // Save PDF
+        const filename = `TMO_${deployment.deploymentCode}.pdf`
+        doc.save(filename)
+
+        // Add small delay between downloads to prevent browser blocking
+        if (i < tmoDeployments.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+      }
+
+      // After all PDFs are generated, call backend to update isTMOPrinted
+      const deploymentIds = tmoDeployments.map(d => d._id)
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/deployment/bulk-update-tmo`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ deploymentIds })
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error('Failed to update TMO print status')
+        }
+
+        const data = await response.json()
+
+        // Update local state to reflect the changes
+        setAllDeployments(prevDeployments =>
+          prevDeployments.map(deployment =>
+            deploymentIds.includes(deployment._id)
+              ? { ...deployment, isTMOPrinted: true }
+              : deployment
+          )
+        )
+
+        alert(
+          `Successfully exported ${tmoDeployments.length} TMO(s) and marked as printed`
+        )
+      } catch (error) {
+        console.error('Error updating TMO print status:', error)
+        alert(
+          `PDFs generated successfully, but failed to update print status: ${error.message}`
+        )
+      }
+    } catch (error) {
+      console.error('Error generating TMO PDFs:', error)
+      alert(`Error generating TMO PDFs: ${error.message}`)
+    }
+  }
+
   const handleAddNewDeployment = newDeployment => {
     console.log('NEW DEPLOYMENT', newDeployment)
     setAllDeployments(prev => [newDeployment, ...prev])
@@ -1921,7 +2166,7 @@ function Deployments () {
                     <td>{total}</td>
                     <td>Code</td>
                     <td>Truck Details</td>
-                    <td>Destination</td>
+                    {/* <td>Destination</td> */}
                     <td>Status</td>
                     <td>Departed</td>
                     <td>Pick-up In</td>
@@ -2002,7 +2247,7 @@ function Deployments () {
                         </div>
                       </td>
 
-                      <td className='max-w-28'>{deployment.destination}</td>
+                      {/* <td className='max-w-28'>{deployment.destination}</td> */}
 
                       <td>
                         <div

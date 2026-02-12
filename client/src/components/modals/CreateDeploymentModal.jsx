@@ -228,6 +228,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                     placeholder='Contact Number'
                     value={formData.fieldContactPersonNo}
                     onChange={handleChange}
+                    plateNoMaxLength={11}
                   />
 
                   <InputField

@@ -46,7 +46,8 @@ const createDeployment = async (req, res, next) => {
       destDeparture,
 
       // other tags
-      subcon
+      subcon,
+      isTMOPrinted = false
     } = req.body
 
     // Check permissions
@@ -135,6 +136,7 @@ const createDeployment = async (req, res, next) => {
 
       // other tags
       subcon: subcon || truck.subcon,
+      isTMOPrinted,
       isSoftDeleted: false
     })
 
@@ -194,7 +196,7 @@ const getAllDeployments = async (req, res, next) => {
       sort = 'latest',
       assignedAt,
       departedAt,
-      perPage = 100,
+      perPage = 200,
       page = 1,
       includeDeleted = false,
       subcon, // This is the query parameter for non-subcon users

@@ -14,7 +14,15 @@ import { IoClose, IoWarning } from 'react-icons/io5'
 import { DEPLOYMENT_STATUS, TRUCK_TYPES } from '../../utils/generalOptions'
 import { MdKeyboardArrowDown } from 'react-icons/md'
 import { useEffect, useState } from 'react'
-import { FaPen, FaSave, FaTrash } from 'react-icons/fa'
+import {
+  FaPen,
+  FaPrint,
+  FaSave,
+  FaTrash,
+  FaTruck,
+  FaTruckLoading,
+  FaTruckMoving
+} from 'react-icons/fa'
 import { DateTime } from 'luxon'
 import useUpdateDeployment from '../../hooks/useUpdateDeployment'
 import { toast } from 'react-toastify'
@@ -26,6 +34,15 @@ import {
   TERRITORY_OPTIONS
 } from '../../utils/deploymentOptions'
 import { useUserContext } from '../../contexts/UserContext'
+import {
+  TbArrowsExchange,
+  TbDeviceFloppy,
+  TbExchange,
+  TbPencilMinus,
+  TbPrinter,
+  TbReplaceFilled,
+  TbTrash
+} from 'react-icons/tb'
 
 function DeploymentDetailsModal ({
   isOpen,
@@ -762,6 +779,23 @@ function DeploymentDetailsModal ({
                       <div className='absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600'></div>
                     )}
                   </button>
+
+                  <div
+                    className={clsx(
+                      'ml-auto px-4 py-2 text-sm font-medium text-gray-500 rounded-t-lg outline outline-gray-200 flex items-center justify-center gap-2 '
+                    )}
+                  >
+                    {deployment?.isTMOPrinted
+                      ? 'TMO PRINTED'
+                      : 'TMO NOT PRINTED'}
+
+                    <div
+                      className={clsx('w-2 aspect-square rounded-full', {
+                        'bg-green-500': deployment?.isTMOPrinted,
+                        'bg-red-500': !deployment?.isTMOPrinted
+                      })}
+                    ></div>
+                  </div>
                 </div>
 
                 {/* TAB CONTENT */}
@@ -827,7 +861,7 @@ function DeploymentDetailsModal ({
                             </>
                           ) : (
                             <>
-                              <FaSave className='text-base -mt-0.5' />
+                              <TbDeviceFloppy className='text-lg -mt-0.5' />
                               Save
                             </>
                           )}
@@ -839,20 +873,20 @@ function DeploymentDetailsModal ({
                           type='button'
                           onClick={() => setIsEditMode(true)}
                           disabled={isLoading}
-                          className='bg-linear-to-b from-blue-500 to-blue-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
+                          className='bg-linear-to-b from-blue-500 to-blue-600 text-white px-6 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
                         >
-                          <FaPen className='text-base -mt-0.5' />
+                          <TbPencilMinus className='text-lg -mt-0.5' />
                           Update
                         </button>
 
                         <button
                           type='button'
-                          onClick={openDeleteModal}
+                          onClick={() => setIsEditMode(true)}
                           disabled={isLoading}
-                          className='bg-linear-to-b from-red-500 to-red-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
+                          className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-6 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
                         >
-                          <FaTrash className='text-base -mt-0.5' />
-                          Delete
+                          <TbPrinter className='text-lg -mt-0.5' />
+                          Print TMO
                         </button>
 
                         {!isReplacementShow && (
@@ -860,11 +894,22 @@ function DeploymentDetailsModal ({
                             type='button'
                             onClick={openReplacementModal}
                             disabled={isLoading}
-                            className='bg-linear-to-b from-gray-400 to-gray-500 text-white px-8 py-2 uppercase text-sm font-semibold rounded cursor-pointer active:scale-95 transition-all hover:brightness-95 ml-auto'
+                            className='bg-linear-to-b from-amber-500 to-amber-600 text-white px-6 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
                           >
+                            <TbExchange className='text-lg -mt-0.5' />
                             Replace Truck
                           </button>
                         )}
+
+                        <button
+                          type='button'
+                          onClick={openDeleteModal}
+                          disabled={isLoading}
+                          className='bg-linear-to-b from-red-500 to-red-600 text-white px-6 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95  ml-auto'
+                        >
+                          <TbTrash className='text-lg -mt-0.5' />
+                          Delete
+                        </button>
                       </>
                     )}
                   </div>

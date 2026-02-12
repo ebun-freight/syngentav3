@@ -145,6 +145,10 @@ const deploymentSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    isTMOPrinted: {
+      type: Boolean,
+      default: false
+    },
 
     isSoftDeleted: {
       type: Boolean,
