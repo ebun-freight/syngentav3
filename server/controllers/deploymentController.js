@@ -430,7 +430,7 @@ const updateDeployment = async (req, res, next) => {
       hybrid,
       flagging,
       flaggingRemarks,
-      cancellationReason, // NEW FIELD
+      cancellationReason,
       isTMOPrinted
     } = req.body
 
@@ -460,6 +460,24 @@ const updateDeployment = async (req, res, next) => {
 
     if (!existingDeployment) {
       return next(createError(404, 'Deployment not found'))
+    }
+
+    // ✅ NEW: Validate TMO is printed before allowing departed updates (EARLY CATCH)
+    if (departed !== undefined && departed !== null && departed.trim() !== '') {
+      // Determine the current isTMOPrinted value
+      const currentIsTMOPrinted =
+        isTMOPrinted !== undefined
+          ? isTMOPrinted
+          : existingDeployment.isTMOPrinted
+
+      if (!currentIsTMOPrinted) {
+        return next(
+          createError(
+            400,
+            'TMO must be exported/printed before updating departure time'
+          )
+        )
+      }
     }
 
     // Get deployment code for logging

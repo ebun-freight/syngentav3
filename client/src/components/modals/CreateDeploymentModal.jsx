@@ -223,7 +223,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
 
                   <InputField
                     label='Field Contact Person No.'
-                    type='text'
+                    type='tel'
                     name='fieldContactPersonNo'
                     placeholder='Contact Number'
                     value={formData.fieldContactPersonNo}
@@ -481,11 +481,12 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
 
                   <InputField
                     label='Contact No.'
-                    type='text'
+                    type='tel'
                     name='receivingContactPersonNo'
                     placeholder='Contact Number'
                     value={formData.receivingContactPersonNo}
                     onChange={handleChange}
+                    plateNoMaxLength={11}
                     colSpan={2}
                   />
 

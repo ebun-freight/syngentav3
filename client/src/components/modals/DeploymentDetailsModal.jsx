@@ -31,6 +31,7 @@ import {
 import jsPDF from 'jspdf'
 import { API_DEPLOYMENT } from '../../utils/APIRoutes'
 import axios from 'axios'
+import { SMC_HEADER_IMAGE, TMO_HEADER } from '../../consts/base_64_images'
 
 function DeploymentDetailsModal ({
   isOpen,
@@ -127,7 +128,13 @@ function DeploymentDetailsModal ({
         return str
           .toLowerCase()
           .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .map(word => {
+            // Handle words with parentheses
+            if (word.includes('(') || word.includes(')')) {
+              return word.replace(/\b\w/g, char => char.toUpperCase())
+            }
+            return word.charAt(0).toUpperCase() + word.slice(1)
+          })
           .join(' ')
       }
 
@@ -160,133 +167,428 @@ function DeploymentDetailsModal ({
       })
 
       // Set font
+      doc.setFont('helvetica')
+
+      // Colors
+      const darkGray = [55, 65, 81]
+      const borderColor = [200, 200, 200]
+
+      // Page margins
+      const margin = 15
+      const pageWidth = 210
+      const contentWidth = pageWidth - margin * 2
+
+      let yPos = 12
+
+      // Add image - left side (smaller)
+      try {
+        const logoWidth = 32
+        const logoHeight = 12
+
+        doc.addImage(
+          SMC_HEADER_IMAGE,
+          'PNG',
+          margin,
+          yPos,
+          logoWidth,
+          logoHeight
+        )
+
+        // Text below the image on the left side
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(0, 0, 160) // ← Muted navy blue - professional, not too dark/bright
+        doc.text('A Glocal Company', margin, yPos + logoHeight + 4)
+
+        // Text on the right side
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(0, 0, 160) // ← Same muted navy blue
+        doc.text(
+          '"Global Expertise, Grown Locally"',
+          pageWidth - margin,
+          yPos + logoHeight + 4,
+          {
+            align: 'right'
+          }
+        )
+
+        yPos += logoHeight + 25
+      } catch (error) {
+        console.warn('Could not load logo, continuing without it')
+        // Continue without logo if there's an error
+      }
+
+      // HEADER SECTION - Clean and Professional
+      doc.setTextColor(0, 0, 0)
+      doc.setFontSize(16)
       doc.setFont('helvetica', 'bold')
-
-      // Title
-      doc.setFontSize(18)
-      doc.text('TRANSPORT MOVEMENT ORDER', 105, 20, { align: 'center' })
-
-      // Deployment Code
-      doc.setFontSize(14)
-      doc.text(`TMO No: ${deployment.deploymentCode}`, 105, 30, {
+      doc.text('TRANSPORT MOVEMENT ORDER', pageWidth / 2, yPos, {
         align: 'center'
       })
 
-      // Add a line
-      doc.setLineWidth(0.5)
-      doc.line(20, 35, 190, 35)
-
-      // Content section
-      doc.setFontSize(11)
-      doc.setFont('helvetica', 'bold')
-      let yPos = 50
-
-      // Truck Details Section
-      doc.text('TRUCK DETAILS', 20, yPos)
       yPos += 8
-      doc.setFont('helvetica', 'normal')
-      doc.text(
-        `Plate No: ${activeTruck?.plateNo?.toUpperCase() || 'N/A'}`,
-        25,
-        yPos
-      )
-      yPos += 6
-      doc.text(`Truck Type: ${formatTruckType(activeTruckType)}`, 25, yPos)
-      yPos += 6
-      doc.text(`Subcon: ${deployment.subcon || 'N/A'}`, 25, yPos)
+
+      // Horizontal line under title
+      doc.setLineWidth(0.5)
+      doc.setDrawColor(...borderColor)
+      doc.line(margin, yPos, pageWidth - margin, yPos)
+
       yPos += 10
 
-      // Driver Details Section
+      // Date and TMO No on the right side with underlines and gap
+      doc.setFontSize(10)
+      const currentDate = DateTime.now()
+        .setZone('Asia/Manila')
+        .toFormat('MMMM dd, yyyy')
+
+      const rightAlignX = pageWidth - margin
+      const headerGap = 3 // Gap between label and value for date/TMO
+
+      // Date with underline and gap
       doc.setFont('helvetica', 'bold')
-      doc.text('DRIVER DETAILS', 20, yPos)
-      yPos += 8
+      doc.text('Date:', rightAlignX - 60, yPos)
       doc.setFont('helvetica', 'normal')
+      const dateLabelWidth = doc.getTextWidth('Date: ')
+      const dateValueStartX = rightAlignX - 60 + dateLabelWidth + headerGap
+      doc.text(currentDate, dateValueStartX, yPos)
+
+      // Draw underline for date
+      doc.setLineWidth(0.2)
+      doc.setDrawColor(...borderColor)
+      doc.line(dateValueStartX, yPos + 1, rightAlignX, yPos + 1)
+
+      yPos += 5
+
+      // TMO No with underline and gap
+      doc.setFont('helvetica', 'bold')
+      doc.text('TMO No:', rightAlignX - 60, yPos)
+      doc.setFont('helvetica', 'normal')
+      const tmoLabelWidth = doc.getTextWidth('TMO No: ')
+      const tmoValueStartX = rightAlignX - 60 + tmoLabelWidth + headerGap
+      const tmoNumber = deployment.deploymentCode.toUpperCase()
+      doc.text(tmoNumber, tmoValueStartX, yPos)
+
+      // Draw underline for TMO No
+      doc.setLineWidth(0.2)
+      doc.line(tmoValueStartX, yPos + 1, rightAlignX, yPos + 1)
+
+      yPos += 8
+
+      // Helper function to draw section header
+      const drawSectionHeader = (title, startY) => {
+        doc.setFillColor(240, 240, 240)
+        doc.rect(margin, startY, contentWidth, 6, 'F')
+        doc.setDrawColor(...borderColor)
+        doc.rect(margin, startY, contentWidth, 6)
+
+        doc.setTextColor(0, 0, 0)
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'bold')
+        doc.text(title, margin + 2, startY + 4.5)
+
+        return startY + 6
+      }
+
+      // Helper function to draw a field with underline and centered value
+      const drawField = (label, value, x, y, maxWidth = 80) => {
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        doc.text(label + ':', x, y)
+
+        const labelWidth = doc.getTextWidth(label + ': ')
+        const gap = 3
+
+        doc.setFont('helvetica', 'normal')
+
+        const displayValue = value || ''
+
+        const underlineWidth = maxWidth - labelWidth - gap - 2
+        const underlineStartX = x + labelWidth + gap
+
+        if (displayValue) {
+          // Center the text on the underline
+          const centerX = underlineStartX + underlineWidth / 2
+          doc.text(displayValue, centerX, y, { align: 'center' })
+        }
+
+        doc.setLineWidth(0.2)
+        doc.line(
+          underlineStartX,
+          y + 1,
+          underlineStartX + underlineWidth,
+          y + 1
+        )
+
+        return y + 6
+      }
+
+      // 1. PICKUP DETAILS
+      yPos = drawSectionHeader('1. PICKUP DETAILS', yPos)
+
+      const leftColX = margin + 2
+      const rightColX = pageWidth / 2 + 2
+      const fieldWidth = contentWidth / 2 - 4
+
+      let leftY = yPos + 7
+      let rightY = yPos + 7
+
+      // Left side
+      leftY = drawField(
+        'Farm / Collection Point',
+        capitalizeWords(deployment.pickupSite),
+        leftColX,
+        leftY,
+        fieldWidth
+      )
+      leftY = drawField(
+        'Municipality',
+        capitalizeWords(deployment.municipality),
+        leftColX,
+        leftY,
+        fieldWidth
+      )
+      leftY = drawField(
+        'Estimated Quantity (kg)',
+        deployment.estimatedQuantityKg,
+        leftColX,
+        leftY,
+        fieldWidth
+      )
+
+      // Right side
+      rightY = drawField(
+        'Field Contact Person',
+        capitalizeWords(deployment.fieldContactPerson),
+        rightColX,
+        rightY,
+        fieldWidth
+      )
+      rightY = drawField(
+        'Contact No',
+        deployment.fieldContactPersonNo,
+        rightColX,
+        rightY,
+        fieldWidth
+      )
+
+      yPos = Math.max(leftY, rightY) + 3
+
+      // 2. TRUCK & DRIVER DETAILS
+      yPos = drawSectionHeader('2. TRUCK & DRIVER DETAILS', yPos)
+
+      leftY = yPos + 7
+      rightY = yPos + 7
+
       const driverName = activeDriver
         ? `${capitalizeWords(activeDriver.firstname)} ${capitalizeWords(
             activeDriver.lastname
           )}`
-        : 'N/A'
-      doc.text(`Driver: ${driverName}`, 25, yPos)
-      yPos += 6
-      doc.text(`Helper Count: ${deployment.helperCount || 'N/A'}`, 25, yPos)
-      yPos += 10
+        : ''
 
-      // Pickup Details Section
+      // Left side
+      leftY = drawField(
+        'Truck Plate Number',
+        activeTruck?.plateNo?.toUpperCase(),
+        leftColX,
+        leftY,
+        fieldWidth
+      )
+      leftY = drawField(
+        'Truck Type',
+        formatTruckType(activeTruckType),
+        leftColX,
+        leftY,
+        fieldWidth
+      )
+      leftY = drawField(
+        'Helper Count',
+        deployment.helperCount?.toString(),
+        leftColX,
+        leftY,
+        fieldWidth
+      )
+
+      // Right side
+      rightY = drawField(
+        "Driver's Name",
+        driverName,
+        rightColX,
+        rightY,
+        fieldWidth
+      )
+      rightY = drawField(
+        "Driver's License No",
+        activeDriver?.licenseNo?.toUpperCase() || '',
+        rightColX,
+        rightY,
+        fieldWidth
+      )
+
+      yPos = Math.max(leftY, rightY) + 3
+
+      // 3. DELIVERY DETAILS
+      yPos = drawSectionHeader('3. DELIVERY DETAILS', yPos)
+
+      leftY = yPos + 7
+      rightY = yPos + 7
+
+      // Left side
+      leftY = drawField(
+        'Delivery / Tolling Facility',
+        capitalizeWords(deployment.destination),
+        leftColX,
+        leftY,
+        fieldWidth
+      )
+      leftY = drawField(
+        'Receiving Contact Person',
+        capitalizeWords(deployment.receivingContactPerson),
+        leftColX,
+        leftY,
+        fieldWidth
+      )
+      leftY = drawField(
+        'Contact No',
+        deployment.receivingContactPersonNo,
+        leftColX,
+        leftY,
+        fieldWidth
+      )
+      leftY = drawField('No. of Sacks', '', leftColX, leftY, fieldWidth)
+
+      // Right side
+      rightY = drawField(
+        'Territory',
+        capitalizeWords(deployment.territory),
+        rightColX,
+        rightY,
+        fieldWidth
+      )
+      rightY = drawField(
+        'Hybrid',
+        capitalizeWords(deployment.hybrid),
+        rightColX,
+        rightY,
+        fieldWidth
+      )
+      rightY = drawField(
+        'Flagging',
+        capitalizeWords(deployment.flagging),
+        rightColX,
+        rightY,
+        fieldWidth
+      )
+      rightY = drawField(
+        'Reason of Flagging',
+        capitalizeWords(deployment.flaggingRemarks),
+        rightColX,
+        rightY,
+        fieldWidth
+      )
+
+      yPos = Math.max(leftY, rightY) + 3
+
+      // 4. LOAD DETAILS
+      yPos = drawSectionHeader(
+        '4. LOAD DETAILS (To be completed on-site)',
+        yPos
+      )
+
+      leftY = yPos + 7
+
+      // Left side only
+      leftY = drawField('Gross Weight', '', leftColX, leftY, fieldWidth)
+      leftY = drawField('Tare Weight', '', leftColX, leftY, fieldWidth)
+      leftY = drawField('Net Weight', '', leftColX, leftY, fieldWidth)
+
+      yPos = leftY + 3
+
+      // 5. CONFIRMATION
+      yPos = drawSectionHeader('5. CONFIRMATION', yPos)
+      yPos += 7
+
+      // Two columns for signatures
+      const signatureBoxWidth = contentWidth / 2 - 2
+      const signatureBoxHeight = 25
+
+      // Left column - Loaded by
+      doc.setDrawColor(...borderColor)
+      doc.setLineWidth(0.3)
+      doc.rect(margin, yPos, signatureBoxWidth, signatureBoxHeight)
+
       doc.setFont('helvetica', 'bold')
-      doc.text('PICKUP DETAILS', 20, yPos)
-      yPos += 8
+      doc.setFontSize(9)
+      doc.text('Loaded by (Field Personnel)', margin + 2, yPos + 4)
+
       doc.setFont('helvetica', 'normal')
-      doc.text(`Pickup Site: ${deployment.pickupSite || 'N/A'}`, 25, yPos)
-      yPos += 6
-      doc.text(`Municipality: ${deployment.municipality || 'N/A'}`, 25, yPos)
-      yPos += 6
-      doc.text(
-        `Field Contact: ${deployment.fieldContactPerson || 'N/A'}`,
-        25,
-        yPos
+      doc.setFontSize(8)
+      doc.text('Name:', margin + 2, yPos + 10)
+      doc.line(
+        margin + 12,
+        yPos + 10.5,
+        margin + signatureBoxWidth - 2,
+        yPos + 10.5
       )
-      yPos += 6
-      doc.text(
-        `Contact No: ${deployment.fieldContactPersonNo || 'N/A'}`,
-        25,
-        yPos
-      )
-      yPos += 6
-      doc.text(
-        `Scheduled Pickup: ${deployment.scheduledPickupTime || 'N/A'}`,
-        25,
-        yPos
-      )
-      yPos += 6
-      doc.text(
-        `Est. Quantity: ${deployment.estimatedQuantityKg || 'N/A'} kg`,
-        25,
-        yPos
-      )
-      yPos += 10
 
-      // Delivery Details Section
+      doc.text('Signature:', margin + 2, yPos + 18)
+      doc.line(
+        margin + 17,
+        yPos + 18.5,
+        margin + signatureBoxWidth - 2,
+        yPos + 18.5
+      )
+
+      // Right column - Received by
+      const rightBoxX = pageWidth / 2 + 1
+      doc.rect(rightBoxX, yPos, signatureBoxWidth, signatureBoxHeight)
+
       doc.setFont('helvetica', 'bold')
-      doc.text('DELIVERY DETAILS', 20, yPos)
-      yPos += 8
+      doc.setFontSize(9)
+      doc.text('Received by (Plant Personnel)', rightBoxX + 2, yPos + 4)
+
       doc.setFont('helvetica', 'normal')
-      doc.text(`Destination: ${deployment.destination || 'N/A'}`, 25, yPos)
-      yPos += 6
-      doc.text(
-        `Receiving Contact: ${deployment.receivingContactPerson || 'N/A'}`,
-        25,
-        yPos
+      doc.setFontSize(8)
+      doc.text('Name:', rightBoxX + 2, yPos + 10)
+      doc.line(
+        rightBoxX + 12,
+        yPos + 10.5,
+        rightBoxX + signatureBoxWidth - 2,
+        yPos + 10.5
       )
-      yPos += 6
-      doc.text(
-        `Contact No: ${deployment.receivingContactPersonNo || 'N/A'}`,
-        25,
-        yPos
-      )
-      yPos += 6
-      doc.text(`Territory: ${deployment.territory || 'N/A'}`, 25, yPos)
-      yPos += 6
-      doc.text(`Hybrid: ${deployment.hybrid || 'N/A'}`, 25, yPos)
-      yPos += 6
-      doc.text(`Flagging: ${deployment.flagging || 'N/A'}`, 25, yPos)
-      if (deployment.flaggingRemarks) {
-        yPos += 6
-        doc.text(`Remarks: ${deployment.flaggingRemarks}`, 25, yPos)
-      }
-      yPos += 15
 
-      // Status
+      doc.text('Signature:', rightBoxX + 2, yPos + 18)
+      doc.line(
+        rightBoxX + 17,
+        yPos + 18.5,
+        rightBoxX + signatureBoxWidth - 2,
+        yPos + 18.5
+      )
+
+      yPos += signatureBoxHeight + 8
+
+      // Unloading Date and Time
       doc.setFont('helvetica', 'bold')
-      doc.text(`Status: ${capitalizeWords(deployment.status)}`, 20, yPos)
-      yPos += 10
+      doc.setFontSize(9)
+      doc.text('Unloading Date:', margin, yPos)
+      doc.setFont('helvetica', 'normal')
+      doc.line(margin + 30, yPos + 0.5, margin + 80, yPos + 0.5)
+
+      doc.setFont('helvetica', 'bold')
+      doc.text('Unloading Time:', pageWidth / 2 + 10, yPos)
+      doc.setFont('helvetica', 'normal')
+      doc.line(pageWidth / 2 + 40, yPos + 0.5, pageWidth / 2 + 90, yPos + 0.5)
 
       // Footer
-      doc.setFontSize(9)
+      doc.setFontSize(7)
       doc.setFont('helvetica', 'italic')
+      doc.setTextColor(100, 100, 100)
       const timestamp = DateTime.now()
         .setZone('Asia/Manila')
         .toFormat('MMMM dd, yyyy hh:mm a')
-      doc.text(`Generated on: ${timestamp}`, 105, 280, { align: 'center' })
+      doc.text(`Generated on: ${timestamp}`, pageWidth / 2, 287, {
+        align: 'center'
+      })
 
       // Save PDF
       const filename = `TMO_${deployment.deploymentCode}.pdf`
@@ -310,6 +612,11 @@ function DeploymentDetailsModal ({
 
           // Update local state
           onUpdate(response.data.deployment)
+
+          setEditForm(prev => ({
+            ...prev,
+            isTMOPrinted: true
+          }))
 
           toast.success(
             `TMO exported successfully for ${deployment.deploymentCode}`
@@ -992,14 +1299,12 @@ function DeploymentDetailsModal ({
                       'ml-auto px-4 py-2 text-sm font-medium text-gray-500 rounded-t-lg outline outline-gray-200 flex items-center justify-center gap-2 '
                     )}
                   >
-                    {deployment?.isTMOPrinted
-                      ? 'TMO PRINTED'
-                      : 'TMO NOT PRINTED'}
+                    {editForm?.isTMOPrinted ? 'TMO PRINTED' : 'TMO NOT PRINTED'}
 
                     <div
                       className={clsx('w-2 aspect-square rounded-full', {
-                        'bg-green-500': deployment?.isTMOPrinted,
-                        'bg-red-500': !deployment?.isTMOPrinted
+                        'bg-green-500': editForm?.isTMOPrinted,
+                        'bg-red-500': !editForm?.isTMOPrinted
                       })}
                     ></div>
                   </div>
