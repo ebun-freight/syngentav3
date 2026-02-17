@@ -19,7 +19,11 @@ import useUpdateDeployment from '../../hooks/useUpdateDeployment'
 import { toast } from 'react-toastify'
 import { HiDotsHorizontal } from 'react-icons/hi'
 import { NumericFormat } from 'react-number-format'
-import { FLAGGING_OPTIONS } from '../../utils/deploymentOptions'
+import {
+  FLAGGING_OPTIONS,
+  HYBRID_OPTIONS,
+  TERRITORY_OPTIONS
+} from '../../utils/deploymentOptions'
 import { useUserContext } from '../../contexts/UserContext'
 import {
   TbDeviceFloppy,
@@ -147,6 +151,16 @@ function DeploymentDetailsModal ({
         )
       }
 
+      // Helper function to format numbers with commas
+      const formatNumber = value => {
+        if (!value || value === '' || isNaN(value)) return ''
+        const num = parseFloat(value)
+        return num.toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2
+        })
+      }
+
       // Determine active truck and driver (considering replacement)
       const hasReplacement = deployment?.replacement?.replacementTruckId?._id
       const activeTruck = hasReplacement
@@ -182,8 +196,8 @@ function DeploymentDetailsModal ({
 
       // Add image - left side (smaller)
       try {
-        const logoWidth = 32
-        const logoHeight = 12
+        const logoWidth = 28
+        const logoHeight = 10.5
 
         doc.addImage(
           SMC_HEADER_IMAGE,
@@ -195,13 +209,13 @@ function DeploymentDetailsModal ({
         )
 
         // Text below the image on the left side
-        doc.setFontSize(12)
+        doc.setFontSize(10)
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(0, 0, 160) // ← Muted navy blue - professional, not too dark/bright
         doc.text('A Glocal Company', margin, yPos + logoHeight + 4)
 
         // Text on the right side
-        doc.setFontSize(12)
+        doc.setFontSize(10)
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(0, 0, 160) // ← Same muted navy blue
         doc.text(
@@ -213,7 +227,7 @@ function DeploymentDetailsModal ({
           }
         )
 
-        yPos += logoHeight + 25
+        yPos += logoHeight + 18
       } catch (error) {
         console.warn('Could not load logo, continuing without it')
         // Continue without logo if there's an error
@@ -221,13 +235,13 @@ function DeploymentDetailsModal ({
 
       // HEADER SECTION - Clean and Professional
       doc.setTextColor(0, 0, 0)
-      doc.setFontSize(16)
+      doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
       doc.text('TRANSPORT MOVEMENT ORDER', pageWidth / 2, yPos, {
         align: 'center'
       })
 
-      yPos += 8
+      yPos += 6
 
       // Horizontal line under title
       doc.setLineWidth(0.5)
@@ -349,8 +363,12 @@ function DeploymentDetailsModal ({
         fieldWidth
       )
       leftY = drawField(
-        'Estimated Quantity (kg)',
-        deployment.estimatedQuantityKg,
+        'Scheduled Pickup Time',
+        deployment.scheduledPickupTime
+          ? DateTime.fromISO(deployment.scheduledPickupTime)
+              .setZone('Asia/Manila')
+              .toFormat('MMMM dd, yyyy hh:mm a')
+          : '',
         leftColX,
         leftY,
         fieldWidth
@@ -371,6 +389,13 @@ function DeploymentDetailsModal ({
         rightY,
         fieldWidth
       )
+      rightY = drawField(
+        'Estimated Quantity (kg)',
+        formatNumber(deployment.estimatedQuantityKg),
+        rightColX,
+        rightY,
+        fieldWidth
+      )
 
       yPos = Math.max(leftY, rightY) + 3
 
@@ -386,7 +411,7 @@ function DeploymentDetailsModal ({
           )}`
         : ''
 
-      // Left side
+      // Left side - Truck Plate Number (full width)
       leftY = drawField(
         'Truck Plate Number',
         activeTruck?.plateNo?.toUpperCase(),
@@ -394,20 +419,28 @@ function DeploymentDetailsModal ({
         leftY,
         fieldWidth
       )
-      leftY = drawField(
+
+      // Left side - Truck Type and Helper Count on same line
+      const halfFieldWidth = fieldWidth / 2 - 2
+      const truckTypeX = leftColX
+      const helperCountX = leftColX + fieldWidth / 2 + 2
+
+      drawField(
         'Truck Type',
         formatTruckType(activeTruckType),
-        leftColX,
+        truckTypeX,
         leftY,
-        fieldWidth
+        halfFieldWidth
       )
-      leftY = drawField(
+      drawField(
         'Helper Count',
         deployment.helperCount?.toString(),
-        leftColX,
+        helperCountX,
         leftY,
-        fieldWidth
+        halfFieldWidth
       )
+
+      leftY += 6
 
       // Right side
       rightY = drawField(
@@ -455,7 +488,13 @@ function DeploymentDetailsModal ({
         leftY,
         fieldWidth
       )
-      leftY = drawField('No. of Sacks', '', leftColX, leftY, fieldWidth)
+      leftY = drawField(
+        'No. of Sacks',
+        formatNumber(deployment.sacksCount), // ✅ Apply number formatting (if you want it formatted)
+        leftColX,
+        leftY,
+        fieldWidth
+      )
 
       // Right side
       rightY = drawField(
@@ -489,20 +528,45 @@ function DeploymentDetailsModal ({
 
       yPos = Math.max(leftY, rightY) + 3
 
-      // 4. LOAD DETAILS
+      // 4. LOAD DETAILS - 3 columns in one line
       yPos = drawSectionHeader(
         '4. LOAD DETAILS (To be completed on-site)',
         yPos
       )
 
-      leftY = yPos + 7
+      const loadDetailY = yPos + 7
 
-      // Left side only
-      leftY = drawField('Gross Weight', '', leftColX, leftY, fieldWidth)
-      leftY = drawField('Tare Weight', '', leftColX, leftY, fieldWidth)
-      leftY = drawField('Net Weight', '', leftColX, leftY, fieldWidth)
+      // Calculate 3 column positions
+      const threeColWidth = contentWidth / 3 - 2
+      const firstColX = margin + 2
+      const secondColX = margin + contentWidth / 3 + 1
+      const thirdColX = margin + (contentWidth / 3) * 2 + 1
 
-      yPos = leftY + 3
+      // Draw all three fields on the same line
+      // Note: If you have actual weight values from deployment.loadWeightKg or similar, apply formatNumber()
+      drawField(
+        'Gross Weight',
+        '', // Empty for manual entry, or formatNumber(deployment.grossWeight) if available
+        firstColX,
+        loadDetailY,
+        threeColWidth
+      )
+      drawField(
+        'Tare Weight',
+        '', // Empty for manual entry, or formatNumber(deployment.tareWeight) if available
+        secondColX,
+        loadDetailY,
+        threeColWidth
+      )
+      drawField(
+        'Net Weight',
+        formatNumber(deployment.loadWeightKg), // ✅ Apply number formatting if you have the value
+        thirdColX,
+        loadDetailY,
+        threeColWidth
+      )
+
+      yPos = loadDetailY + 9
 
       // 5. CONFIRMATION
       yPos = drawSectionHeader('5. CONFIRMATION', yPos)
@@ -578,6 +642,25 @@ function DeploymentDetailsModal ({
       doc.text('Unloading Time:', pageWidth / 2 + 10, yPos)
       doc.setFont('helvetica', 'normal')
       doc.line(pageWidth / 2 + 40, yPos + 0.5, pageWidth / 2 + 90, yPos + 0.5)
+
+      yPos += 8
+
+      // 6. REMARKS
+      yPos = drawSectionHeader('6. REMARKS', yPos)
+      yPos += 5
+
+      // Remark box
+      const remarkBoxHeight = 20
+      doc.setDrawColor(...borderColor)
+      doc.setLineWidth(0.3)
+      doc.rect(margin, yPos, contentWidth, remarkBoxHeight)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(150, 150, 150)
+      doc.text('', margin + 2, yPos + 4)
+
+      yPos += remarkBoxHeight + 6
 
       // Footer
       doc.setFontSize(7)
@@ -1344,6 +1427,7 @@ function DeploymentDetailsModal ({
                       isEditMode={isEditMode}
                       editForm={editForm}
                       handleChange={handleChange}
+                      isReplacementShow={isReplacementShow}
                     />
                   )}
                 </div>
@@ -1776,6 +1860,48 @@ const OverviewTab = ({
               )}
             </label>
 
+            <div className='grid grid-cols-2 gap-x-6'>
+              {/* type */}
+              <label className='flex flex-col gap-1'>
+                <span className='uppercase text-xs text-gray-500 font-semibold'>
+                  Truck Type
+                </span>
+                {isEditMode ? (
+                  <div className='relative'>
+                    <select
+                      name='replacement.replacementTruckType'
+                      value={editForm?.replacement?.replacementTruckType}
+                      onChange={handleChange}
+                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
+                    >
+                      {TRUCK_TYPES.map((item, index) => (
+                        <option key={index} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                  </div>
+                ) : (
+                  <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
+                    {editForm?.replacement?.replacementTruckType}
+                  </p>
+                )}
+              </label>
+
+              {/* helper count */}
+              <InputField
+                label='Helper Count'
+                type='number'
+                name='helperCount'
+                placeholder='Helper Count'
+                value={editForm?.helperCount}
+                disabled={!isEditMode}
+                onChange={handleChange}
+                formatNumber={true}
+              />
+            </div>
+
             {/* driver */}
             <label className='flex flex-col gap-1'>
               <span className='uppercase text-xs text-gray-500 font-semibold'>
@@ -1864,71 +1990,33 @@ const OverviewTab = ({
               )}
             </label>
 
-            {/* type */}
-            <label className='flex flex-col gap-1'>
-              <span className='uppercase text-xs text-gray-500 font-semibold'>
-                Truck Type
-              </span>
-              {isEditMode ? (
-                <div className='relative'>
-                  <select
-                    name='replacement.replacementTruckType'
-                    value={editForm?.replacement?.replacementTruckType}
-                    onChange={handleChange}
-                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
-                  >
-                    {TRUCK_TYPES.map((item, index) => (
-                      <option key={index} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
-                </div>
-              ) : (
-                <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
-                  {editForm?.replacement?.replacementTruckType}
-                </p>
-              )}
-            </label>
+            <div className='grid grid-cols-2 gap-x-6'>
+              <InputField
+                label='Sacks Count'
+                type='number'
+                name='sacksCount'
+                value={editForm?.sacksCount}
+                disabled={!isEditMode}
+                onChange={handleChange}
+                formatNumber={true}
+                thousandSeparator={true}
+                decimalScale={0}
+                isRequired={false}
+              />
 
-            {/* helper count */}
-            <InputField
-              label='Helper Count'
-              type='number'
-              name='helperCount'
-              placeholder='Helper Count'
-              value={editForm?.helperCount}
-              disabled={!isEditMode}
-              onChange={handleChange}
-              formatNumber={true}
-            />
-
-            <InputField
-              label='Sacks Count'
-              type='number'
-              name='sacksCount'
-              value={editForm?.sacksCount}
-              disabled={!isEditMode}
-              onChange={handleChange}
-              formatNumber={true}
-              thousandSeparator={true}
-              decimalScale={0}
-              isRequired={false}
-            />
-
-            <InputField
-              label='Load Weight (kg)'
-              type='number'
-              name='loadWeightKg'
-              value={editForm?.loadWeightKg}
-              disabled={!isEditMode}
-              onChange={handleChange}
-              formatNumber={true}
-              thousandSeparator={true}
-              decimalScale={2}
-              isRequired={false}
-            />
+              <InputField
+                label='Load Weight (kg)'
+                type='number'
+                name='loadWeightKg'
+                value={editForm?.loadWeightKg}
+                disabled={!isEditMode}
+                onChange={handleChange}
+                formatNumber={true}
+                thousandSeparator={true}
+                decimalScale={2}
+                isRequired={false}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -1940,23 +2028,61 @@ const OverviewTab = ({
         </h3>
         <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
           <div className='grid grid-cols-2 gap-x-6'>
-            <InputField
-              label='Territory'
-              type='text'
-              name='territory'
-              value={editForm?.territory}
-              disabled={!isEditMode}
-              onChange={handleChange}
-            />
+            {/* territory */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Territory
+              </span>
+              {isEditMode ? (
+                <div className='relative'>
+                  <select
+                    name='territory'
+                    value={editForm?.territory}
+                    onChange={handleChange}
+                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
+                  >
+                    {TERRITORY_OPTIONS.map((item, index) => (
+                      <option key={index} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                </div>
+              ) : (
+                <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
+                  {editForm?.territory}
+                </p>
+              )}
+            </label>
 
-            <InputField
-              label='Hybrid'
-              type='text'
-              name='hybrid'
-              value={editForm?.hybrid}
-              disabled={!isEditMode}
-              onChange={handleChange}
-            />
+            {/* territory */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Hybrid
+              </span>
+              {isEditMode ? (
+                <div className='relative'>
+                  <select
+                    name='hybrid'
+                    value={editForm?.hybrid}
+                    onChange={handleChange}
+                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
+                  >
+                    {HYBRID_OPTIONS.map((item, index) => (
+                      <option key={index} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                </div>
+              ) : (
+                <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
+                  {editForm?.hybrid}
+                </p>
+              )}
+            </label>
           </div>
 
           <div className='grid grid-cols-2 gap-x-6'>
@@ -2102,14 +2228,24 @@ const OverviewTab = ({
 }
 
 // ADDITIONAL DETAILS TAB COMPONENT
-const AdditionalDetailsTab = ({ isEditMode, editForm, handleChange }) => {
+const AdditionalDetailsTab = ({
+  isEditMode,
+  editForm,
+  handleChange,
+  isReplacementShow
+}) => {
   return (
     <div className='space-y-4'>
       {/* PICKUP DETAILS SECTION */}
       <div className='space-y-2'>
-        <h3 className='text-xs uppercase font-semibold text-gray-500'>
-          Pickup Details
-        </h3>
+        <div className='flex justify-between'>
+          <h3 className='text-xs uppercase font-semibold text-gray-500'>
+            Pickup Details
+          </h3>
+          {isReplacementShow && (
+            <p className='text-xs text-red-500'>*This is a replacement truck</p>
+          )}
+        </div>
         <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
           <InputField
             label='Pick-up Site'
@@ -2164,12 +2300,15 @@ const AdditionalDetailsTab = ({ isEditMode, editForm, handleChange }) => {
 
           <InputField
             label='Estimated Quantity (Kg)'
-            type='text'
+            type='number'
             name='estimatedQuantityKg'
             placeholder='Estimated Quantity'
             value={editForm?.estimatedQuantityKg}
             disabled={!isEditMode}
             onChange={handleChange}
+            formatNumber={true}
+            thousandSeparator={true}
+            decimalScale={2}
           />
         </div>
       </div>

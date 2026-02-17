@@ -14,16 +14,11 @@ import { IoClose } from 'react-icons/io5'
 import { useState } from 'react'
 import { MdKeyboardArrowDown } from 'react-icons/md'
 import { toast } from 'react-toastify'
-import { TRUCK_TYPES } from '../../utils/generalOptions'
 import clsx from 'clsx'
 import { PiMapPinAreaFill } from 'react-icons/pi'
 import useCreateDeployment from '../../hooks/useCreateDeployment'
-import {
-  FLAGGING_OPTIONS,
-  HYBRID_OPTIONS,
-  TERRITORY_OPTIONS
-} from '../../utils/deploymentOptions'
 import { NumericFormat } from 'react-number-format'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 
 const defaultValue = {
   // pickup details
@@ -41,7 +36,7 @@ const defaultValue = {
   helperCount: 0,
 
   // delivery details
-  destination: 'Prasad Seeds Phils. (Rosales)',
+  destination: '',
   receivingContactPerson: '',
   receivingContactPersonNo: '',
   hybrid: '',
@@ -65,8 +60,9 @@ const defaultValue = {
 }
 
 function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) {
-  const [formData, setFormData] = useState(defaultValue)
+  const { settings } = useSettingsContext()
 
+  const [formData, setFormData] = useState(defaultValue)
   const { createDeploymentFunction, isLoading } = useCreateDeployment()
 
   // Search states
@@ -193,7 +189,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 <h3 className='text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide'>
                   Pickup Details
                 </h3>
-                <div className='grid grid-cols-2 gap-x-6 gap-y-4'>
+                <div className='grid grid-cols-3 gap-x-6 gap-y-4'>
                   <InputField
                     label='Pick-up Site'
                     type='text'
@@ -204,20 +200,29 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                   />
 
                   <InputField
-                    label='Municipality'
-                    type='text'
-                    name='municipality'
-                    placeholder='Municipality'
-                    value={formData.municipality}
-                    onChange={handleChange}
-                  />
-
-                  <InputField
                     label='Field Contact Person'
                     type='text'
                     name='fieldContactPerson'
                     placeholder='Field Contact Person'
                     value={formData.fieldContactPerson}
+                    onChange={handleChange}
+                  />
+
+                  <InputField
+                    label='Scheduled Pickup Time'
+                    type='datetime-local'
+                    name='scheduledPickupTime'
+                    placeholder='Scheduled Pickup Time'
+                    value={formData.scheduledPickupTime}
+                    onChange={handleChange}
+                  />
+
+                  <InputField
+                    label='Municipality'
+                    type='text'
+                    name='municipality'
+                    placeholder='Municipality'
+                    value={formData.municipality}
                     onChange={handleChange}
                   />
 
@@ -232,21 +237,15 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                   />
 
                   <InputField
-                    label='Scheduled Pickup Time'
-                    type='datetime-local'
-                    name='scheduledPickupTime'
-                    placeholder='Scheduled Pickup Time'
-                    value={formData.scheduledPickupTime}
-                    onChange={handleChange}
-                  />
-
-                  <InputField
                     label='Estimated Quantity (Kg)'
                     type='number'
                     name='estimatedQuantityKg'
                     placeholder='Estimated Quantity'
                     value={formData.estimatedQuantityKg}
                     onChange={handleChange}
+                    formatNumber={true}
+                    thousandSeparator={true}
+                    decimalScale={2}
                   />
                 </div>
               </div>
@@ -373,7 +372,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                     </Combobox>
                   </div>
 
-                  {/* truck type */}
+                  {/* Truck Type */}
                   <label className='flex flex-col gap-1'>
                     <span className='uppercase text-xs text-gray-500 font-semibold'>
                       Truck Type
@@ -384,18 +383,18 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                         value={formData.truckType}
                         onChange={handleChange}
                         required
-                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full'
+                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full capitalize'
                       >
                         <option value='' disabled>
                           Select
                         </option>
-                        {TRUCK_TYPES.map((item, index) => (
-                          <option key={index} value={item.value}>
-                            {item.label}
+                        {settings.trucksDrivers.truckType.map((item, index) => (
+                          <option key={index} value={item}>
+                            {item}
                           </option>
                         ))}
                       </select>
-                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                     </div>
                   </label>
 
@@ -416,7 +415,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 <h3 className='text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide'>
                   Delivery Details
                 </h3>
-                <div className='grid grid-cols-4 gap-x-6 gap-y-4'>
+                <div className='grid grid-cols-5 gap-x-6 gap-y-4'>
                   <InputField
                     label='Receiving Contact Person'
                     type='text'
@@ -427,7 +426,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                     colSpan={2}
                   />
 
-                  {/* hybrid */}
+                  {/* Hybrid */}
                   <label className='flex flex-col gap-1'>
                     <span className='uppercase text-xs text-gray-500 font-semibold'>
                       Hybrid
@@ -438,22 +437,22 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                         value={formData.hybrid}
                         onChange={handleChange}
                         required
-                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full'
+                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full capitalize'
                       >
                         <option value='' disabled>
                           Select
                         </option>
-                        {HYBRID_OPTIONS.map((item, index) => (
+                        {settings.deployments.hybrid.map((item, index) => (
                           <option key={index} value={item}>
                             {item}
                           </option>
                         ))}
                       </select>
-                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                     </div>
                   </label>
 
-                  {/* territory */}
+                  {/* Territory */}
                   <label className='flex flex-col gap-1'>
                     <span className='uppercase text-xs text-gray-500 font-semibold'>
                       Territory
@@ -464,18 +463,44 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                         value={formData.territory}
                         onChange={handleChange}
                         required
-                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full'
+                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full capitalize'
                       >
                         <option value='' disabled>
                           Select
                         </option>
-                        {TERRITORY_OPTIONS.map((item, index) => (
+                        {settings.deployments.territory.map((item, index) => (
                           <option key={index} value={item}>
                             {item}
                           </option>
                         ))}
                       </select>
-                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
+                    </div>
+                  </label>
+
+                  {/* Destination */}
+                  <label className='flex flex-col gap-1'>
+                    <span className='uppercase text-xs text-gray-500 font-semibold'>
+                      Destination
+                    </span>
+                    <div className='relative'>
+                      <select
+                        name='destination'
+                        value={formData.destination}
+                        onChange={handleChange}
+                        required
+                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full capitalize'
+                      >
+                        <option value='' disabled>
+                          Select
+                        </option>
+                        {settings.deployments.destination.map((item, index) => (
+                          <option key={index} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                     </div>
                   </label>
 
@@ -490,7 +515,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                     colSpan={2}
                   />
 
-                  {/* flagging */}
+                  {/* Flagging */}
                   <label className='flex flex-col gap-1'>
                     <span className='uppercase text-xs text-gray-500 font-semibold'>
                       Flagging
@@ -501,18 +526,18 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                         value={formData.flagging}
                         onChange={handleChange}
                         required
-                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full'
+                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none w-full capitalize'
                       >
                         <option value='' disabled>
                           Select
                         </option>
-                        {FLAGGING_OPTIONS.map((item, index) => (
+                        {settings.deployments.flagging.map((item, index) => (
                           <option key={index} value={item}>
                             {item}
                           </option>
                         ))}
                       </select>
-                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                     </div>
                   </label>
 
@@ -524,6 +549,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                     value={formData.flaggingRemarks}
                     onChange={handleChange}
                     isRequired={false}
+                    colSpan={2}
                   />
                 </div>
               </div>
@@ -567,7 +593,6 @@ const InputField = ({
   disabled,
   plateNoMaxLength,
   isRequired = true,
-  // New props for number formatting
   formatNumber = false,
   thousandSeparator = true,
   decimalScale = 0,

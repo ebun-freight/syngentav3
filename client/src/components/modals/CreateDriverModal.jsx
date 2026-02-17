@@ -18,9 +18,11 @@ import useCreateDriver from '../../hooks/useCreateDriver'
 import { FaSave } from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import clsx from 'clsx'
-import { SUBCON_OPTIONS } from '../../utils/generalOptions'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 
 function CreateDriverModal ({ isOpen, onClose, onCreate }) {
+  const { settings } = useSettingsContext()
+
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -35,14 +37,9 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
   const [subconQuery, setSubconQuery] = useState('')
   const { createDriverFunction, isLoading } = useCreateDriver()
 
-  // Filter SUBCON_OPTIONS based on query
-  const filteredSubcons = SUBCON_OPTIONS.filter(subcon =>
-    subcon.label.toLowerCase().includes(subconQuery.toLowerCase())
-  )
-
-  // Find the selected subcon for display
-  const selectedSubcon = SUBCON_OPTIONS.find(
-    subcon => subcon.value === formData.subcon
+  // Filter subcon options from settings based on query
+  const filteredSubcons = settings.trucksDrivers.subcon.filter(subcon =>
+    subcon.toLowerCase().includes(subconQuery.toLowerCase())
   )
 
   const handleClose = () => {
@@ -54,6 +51,7 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
     onClose()
 
     setPreviewImage(null)
+    setSubconQuery('')
     setFormData({
       firstname: '',
       lastname: '',
@@ -67,7 +65,6 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
 
   const handleChange = e => {
     const { name, value } = e.target
-
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
@@ -103,9 +100,7 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
 
     if (result.driver) {
       toast.success(result.message)
-
       console.log(result.driver)
-
       onCreate(result.driver)
       handleClose()
     } else {
@@ -229,6 +224,7 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
                   isRequired={false}
                 />
 
+                {/* Subcon */}
                 <div className='flex flex-col gap-1'>
                   <span className='uppercase text-xs text-gray-500 font-semibold'>
                     Subcon
@@ -242,9 +238,7 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
                     <div className='relative'>
                       <ComboboxInput
                         className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400'
-                        displayValue={() =>
-                          selectedSubcon ? selectedSubcon.label : ''
-                        }
+                        displayValue={() => formData.subcon || ''}
                         onChange={event => setSubconQuery(event.target.value)}
                         placeholder='Search subcon'
                         required
@@ -259,25 +253,23 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
                             Nothing found.
                           </div>
                         ) : (
-                          filteredSubcons.map(subcon => (
+                          filteredSubcons.map((subcon, index) => (
                             <ComboboxOption
-                              key={subcon.value}
-                              value={subcon.value}
+                              key={index}
+                              value={subcon}
                               className={({ focus }) =>
                                 `relative cursor-default select-none py-2 px-4 text-base ${
                                   focus ? 'bg-gray-50' : 'text-gray-900'
                                 } ${
-                                  formData.subcon === subcon.value
+                                  formData.subcon === subcon
                                     ? 'bg-gray-100'
                                     : ''
                                 }`
                               }
                             >
-                              {({ selected }) => (
-                                <span className='block truncate'>
-                                  {subcon.label}
-                                </span>
-                              )}
+                              <span className='block truncate capitalize'>
+                                {subcon}
+                              </span>
                             </ComboboxOption>
                           ))
                         )}
@@ -335,7 +327,6 @@ const InputField = ({
       <input
         type={type}
         name={name}
-        // placeholder={placeholder}
         value={value}
         minLength={2}
         maxLength={phoneMaxLength || 30}

@@ -4,11 +4,7 @@ import CreateDeploymentModal from '../../components/modals/CreateDeploymentModal
 import useGetAllTruck from '../../hooks/useGetAllTruck'
 import useGetAllDriver from '../../hooks/useGetAllDriver'
 import { FaFilter, FaPlus, FaSearch, FaFileExport } from 'react-icons/fa'
-import {
-  DEPLOYMENT_STATUS,
-  SUBCON_OPTIONS,
-  TRUCK_TYPES
-} from '../../utils/generalOptions'
+import { DEPLOYMENT_STATUS } from '../../utils/generalOptions'
 import { IoClose } from 'react-icons/io5'
 import {
   MdOutlineKeyboardArrowLeft,
@@ -25,11 +21,12 @@ import ReplacementModal from '../../components/modals/ReplacementModal'
 import ReplacementHistoryModal from '../../components/modals/ReplacementHistoryModal'
 import { useUserContext } from '../../contexts/UserContext'
 import DeleteDeploymentModal from '../../components/modals/DeleteDeploymentModal'
-import { TERRITORY_OPTIONS } from '../../utils/deploymentOptions'
 import { TbReceiptFilled } from 'react-icons/tb'
-import ExcelJS from 'exceljs'
+import { exportDeploymentToExcel } from '../../utils/exportDeploymentToExcel'
+import { exportBillingToExcel } from '../../utils/exportBillingToExcel'
+import { exportSubconBillingToExcel } from '../../utils/exportSubconBillingToExcel'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 
-// Add defaultFilters constant
 const defaultFilters = {
   status: '',
   sort: 'latest',
@@ -44,6 +41,7 @@ const defaultFilters = {
 
 function Deployments () {
   const { userData } = useUserContext()
+  const { settings } = useSettingsContext()
 
   const [isDeploymentDetailsModalOpen, setIsDeploymentDetailsModalOpen] =
     useState(false)
@@ -69,7 +67,6 @@ function Deployments () {
   const [totalPages, setTotalPages] = useState(null)
   const [selectedDeployment, setSelectedDeployment] = useState({})
 
-  // Initialize with defaultFilters
   const [filters, setFilters] = useState(defaultFilters)
   const [tempFilters, setTempFilters] = useState(defaultFilters)
 
@@ -117,1646 +114,16 @@ function Deployments () {
     }
   }
 
-  const handleExportToCSV = () => {
-    if (!allDeployments || allDeployments.length === 0) {
-      alert('No data to export')
-      return
-    }
-
-    // Helper function to capitalize words
-    const capitalizeWords = str => {
-      if (!str) return ''
-      return str
-        .toLowerCase()
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-    }
-
-    // Helper function to format truck type
-    const formatTruckType = type => {
-      if (!type) return ''
-
-      const lowerType = type.toLowerCase().trim()
-      return TRUCK_TYPES[lowerType] || capitalizeWords(type.replace(/-/g, ' '))
-    }
-
-    // Helper function to format replacement reason (replace underscores with spaces)
-    const formatReplacementReason = reason => {
-      if (!reason) return ''
-      // Replace underscores with spaces and capitalize each word
-      return reason
-        .replace(/_/g, ' ')
-        .toLowerCase()
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-    }
-
-    // Custom 12-hour time formatter for replacement dates
-    const formatReplacementDateTime = dateStr => {
-      if (!dateStr) return ''
-
-      try {
-        const date = DateTime.fromISO(dateStr).setZone('Asia/Manila')
-
-        // Extract components for manual formatting
-        const month = date.toFormat('MMM') // Dec, Jan, etc.
-        const day = date.day
-        const year = date.year
-        const hour = date.hour
-        const minute = date.minute.toString().padStart(2, '0')
-
-        // Convert to 12-hour format
-        const period = hour >= 12 ? 'PM' : 'AM'
-        const hour12 = hour % 12 || 12 // Convert 0 to 12 for 12 AM
-
-        // Format: "Dec 27, 2025 2:21 PM"
-        return `${month} ${day}, ${year} ${hour12}:${minute} ${period}`
-      } catch (error) {
-        console.error('Error formatting replacement date:', dateStr, error)
-        return ''
-      }
-    }
-
-    // Custom 12-hour time formatter for timeline fields
-    const formatTimelineDateTime = dateStr => {
-      if (!dateStr || dateStr === 'Pending') return ''
-
-      try {
-        const date = DateTime.fromISO(dateStr).setZone('Asia/Manila')
-
-        // Extract components for manual formatting
-        const month = date.toFormat('MMM') // Dec, Jan, etc.
-        const day = date.day
-        const year = date.year
-        const hour = date.hour
-        const minute = date.minute.toString().padStart(2, '0')
-
-        // Convert to 12-hour format
-        const period = hour >= 12 ? 'PM' : 'AM'
-        const hour12 = hour % 12 || 12 // Convert 0 to 12 for 12 AM
-
-        // Format: "Dec 27, 2025 2:21 PM"
-        return `${month} ${day}, ${year} ${hour12}:${minute} ${period}`
-      } catch (error) {
-        console.error('Error formatting timeline date:', dateStr, error)
-        return ''
-      }
-    }
-
-    // Calculate unloading time
-    const calculateUnloadingTime = (destArrival, destDeparture) => {
-      if (!destArrival || !destDeparture) return ''
-
-      try {
-        const arrival = DateTime.fromISO(destArrival)
-        const departure = DateTime.fromISO(destDeparture)
-        const { hours, minutes } = departure.diff(arrival, ['hours', 'minutes'])
-
-        if (hours === 0) {
-          return `${Math.floor(minutes)}m`
-        } else if (minutes < 1) {
-          return `${hours}h`
-        } else {
-          return `${hours}h ${Math.floor(minutes)}m`
-        }
-      } catch (error) {
-        console.error('Error calculating unloading time:', error)
-        return 'Error'
-      }
-    }
-
-    // Define CSV headers with NEW FIELDS added after Unloading Time
-    const headers = [
-      'Code',
-      // CURRENT details (shows replacement if exists, otherwise original)
-      'Plate No',
-      'Truck Type',
-      'Driver',
-      'Destination',
-      'Status',
-      'Departed',
-      'Pick-up In',
-      'Pick-up Out',
-      'Dest. Arrival',
-      'Dest. Departure',
-      'Unloading Time',
-      // NEW FIELDS ADDED HERE (after Unloading Time)
-      'Territory',
-      'Hybrid',
-      'Flagging',
-      'Flagging Remarks',
-      // ORIGINAL details that were replaced (only populated if there was a replacement)
-      'Orig Plate No',
-      'Orig Truck Type',
-      'Orig Driver',
-      'Replaced At',
-      'Replacement Reason',
-      'Replacement Remarks'
-    ]
-
-    // Convert deployments to CSV rows
-    const rows = allDeployments.map((deployment, index) => {
-      // Determine if there's a replacement
-      const hasReplacement = deployment?.replacement?.replacementTruckId?._id
-      const replacement = deployment?.replacement
-
-      // CURRENT details (show replacement if exists, otherwise original)
-      const currentPlateNo = hasReplacement
-        ? replacement.replacementTruckId?.plateNo || ''
-        : deployment.truckId?.plateNo || ''
-
-      const currentTruckType = hasReplacement
-        ? replacement.replacementTruckType
-        : deployment.truckType
-
-      const currentDriverObj = hasReplacement
-        ? replacement.replacementDriverId
-        : deployment.driverId
-
-      const currentDriverName = currentDriverObj
-        ? `${capitalizeWords(currentDriverObj.firstname)} ${capitalizeWords(
-            currentDriverObj.lastname
-          )}`
-        : ''
-
-      // ORIGINAL details that were replaced (only if there was a replacement)
-      const origPlateNo = hasReplacement
-        ? deployment.truckId?.plateNo || ''
-        : ''
-
-      const origTruckType = hasReplacement ? deployment.truckType || '' : ''
-
-      const origDriverName =
-        hasReplacement && deployment.driverId
-          ? `${capitalizeWords(
-              deployment.driverId.firstname
-            )} ${capitalizeWords(deployment.driverId.lastname)}`
-          : ''
-
-      const replacementDate = hasReplacement
-        ? formatReplacementDateTime(replacement.replacedAt)
-        : ''
-
-      const replacementReason = hasReplacement
-        ? formatReplacementReason(replacement.reason || '')
-        : ''
-
-      const replacementRemarks = hasReplacement ? replacement.remarks || '' : ''
-
-      // Format status
-      const status = deployment.status
-        ? deployment.status === 'ongoing'
-          ? 'Ongoing'
-          : capitalizeWords(deployment.status)
-        : ''
-
-      // Format destination
-      const destination = deployment.destination || ''
-
-      // Handle canceled status - leave timeline fields blank
-      if (deployment.status === 'canceled') {
-        return [
-          // No "No." column
-          deployment.deploymentCode || '',
-          // CURRENT details
-          currentPlateNo.toUpperCase(),
-          formatTruckType(currentTruckType),
-          currentDriverName,
-          destination,
-          'Canceled',
-          '', // Departed - blank
-          '', // Pick-up In - blank
-          '', // Pick-up Out - blank
-          '', // Dest. Arrival - blank
-          '', // Dest. Departure - blank
-          '', // Unloading Time - blank
-          // NEW FIELDS DATA
-          deployment.territory || '',
-          deployment.hybrid || '',
-          deployment.flagging || '',
-          deployment.flaggingRemarks || '',
-          // ORIGINAL details (only if replaced)
-          origPlateNo.toUpperCase(),
-          formatTruckType(origTruckType),
-          origDriverName,
-          replacementDate,
-          replacementReason,
-          replacementRemarks
-        ]
-      }
-
-      // For non-canceled deployments
-      return [
-        // No "No." column
-        deployment.deploymentCode || '',
-        // CURRENT details
-        currentPlateNo.toUpperCase(),
-        formatTruckType(currentTruckType),
-        currentDriverName,
-        destination,
-        status,
-        formatTimelineDateTime(deployment.departed),
-        formatTimelineDateTime(deployment.pickupIn),
-        formatTimelineDateTime(deployment.pickupOut),
-        formatTimelineDateTime(deployment.destArrival),
-        formatTimelineDateTime(deployment.destDeparture),
-        calculateUnloadingTime(
-          deployment.destArrival,
-          deployment.destDeparture
-        ),
-        // NEW FIELDS DATA
-        deployment.territory || '',
-        deployment.hybrid || '',
-        deployment.flagging || '',
-        deployment.flaggingRemarks || '',
-        // ORIGINAL details (only if replaced)
-        origPlateNo.toUpperCase(),
-        formatTruckType(origTruckType),
-        origDriverName,
-        replacementDate,
-        replacementReason,
-        replacementRemarks
-      ]
-    })
-
-    // Create CSV content with proper escaping
-    const escapeCSV = cell => {
-      if (cell == null || cell === undefined) return '""'
-      const stringCell = String(cell)
-      // Escape quotes and wrap in quotes if contains comma, quote, or newline
-      if (
-        stringCell.includes(',') ||
-        stringCell.includes('"') ||
-        stringCell.includes('\n')
-      ) {
-        return `"${stringCell.replace(/"/g, '""')}"`
-      }
-      return stringCell
-    }
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(escapeCSV).join(','))
-    ].join('\n')
-
-    // Create blob and download
-    const blob = new Blob(['\ufeff' + csvContent], {
-      type: 'text/csv;charset=utf-8;'
-    })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-
-    const timestamp = DateTime.now().toFormat('yyyy-MM-dd_HHmmss')
-    link.setAttribute('href', url)
-    link.setAttribute('download', `deployments_export_${timestamp}.csv`)
-    link.style.visibility = 'hidden'
-
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+  const handleExportToExcel = () => {
+    exportDeploymentToExcel(allDeployments)
   }
 
-  const handleExportToBillingCSV = async () => {
-    if (!allDeployments || allDeployments.length === 0) {
-      alert('No data to export')
-      return
-    }
-
-    // Helper function to capitalize words
-    const capitalizeWords = str => {
-      if (!str) return ''
-      return str
-        .toLowerCase()
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-    }
-
-    // Helper function to format truck type
-    const formatTruckType = type => {
-      if (!type) return ''
-      const typeMappings = {
-        elf: 'Elf',
-        'single-tire': 'Single-Tire',
-        forward: 'Forward',
-        'wing-van': 'Wing Van',
-        'closed-van': 'Closed Van',
-        '10-wheeler': '10 Wheeler',
-        '6-wheeler': '6 Wheeler'
-      }
-      const lowerType = type.toLowerCase().trim()
-      return (
-        typeMappings[lowerType] ||
-        capitalizeWords(type.replace(/-/g, ' ')).toUpperCase()
-      )
-    }
-
-    // Helper function to get minimum load for truck type
-    const getMinimumLoad = truckType => {
-      if (!truckType) return 0
-      const lowerType = truckType.toLowerCase().trim()
-
-      // Define minimum loads for each truck type
-      const minimumLoads = {
-        elf: 5000,
-        forward: 9000
-      }
-
-      return minimumLoads[lowerType] || 0
-    }
-
-    // Helper function to determine if trip is underloaded
-    const isUnderloaded = (truckType, actualWeight) => {
-      const minLoad = getMinimumLoad(truckType)
-      return minLoad > 0 && actualWeight < minLoad
-    }
-
-    // Helper function to get demurrage rate per 12 hours
-    const getDemurrageRate = truckType => {
-      if (!truckType) return 0
-      const lowerType = truckType.toLowerCase().trim()
-
-      const demurrageRates = {
-        elf: 3500,
-        forward: 5000
-      }
-
-      return demurrageRates[lowerType] || 0
-    }
-
-    // Helper function to calculate demurrage charges
-    const calculateDemurrageCharges = (truckType, unloadingMinutes) => {
-      if (!unloadingMinutes || unloadingMinutes < 11 * 60 + 30) {
-        // Less than 11:30 hours = no charge
-        return 0
-      }
-
-      const rate = getDemurrageRate(truckType)
-      if (rate === 0) return 0
-
-      // First block: 11:30 to 24:00 hours = 1 charge
-      // Each additional 12 hours (or portion) = 1 additional charge
-
-      // Convert to total 12-hour blocks
-      // Subtract the first "free" 11.5 hours
-      const chargeableMinutes = unloadingMinutes - (11 * 60 + 30)
-
-      // Calculate number of 12-hour blocks (round up)
-      const twelveHoursInMinutes = 12 * 60
-      const blocks = Math.ceil(chargeableMinutes / twelveHoursInMinutes) + 1 // +1 for the first block
-
-      return blocks * rate
-    }
-
-    // Get current date and time for billing period
-    const billingDate = DateTime.now()
-      .setZone('Asia/Manila')
-      .toFormat('MMMM dd, yyyy')
-
-    // Get company name from first deployment or use default
-    const firstDeployment = allDeployments[0]
-    const companyName =
-      firstDeployment?.company || 'SMC HI-BRED PHILIPPINES INC.'
-
-    // Rate per kg
-    const ratePerKg = 1.5
-
-    // Create a new workbook
-    const workbook = new ExcelJS.Workbook()
-
-    // Define professional color scheme
-    const colors = {
-      primary: 'FF001E36', // Dark Blue
-      secondary: 'FF003057', // Lighter Dark Blue
-      accent: 'FFE3F2FD', // Light Blue-100
-      header: 'FFF5F9FC', // Very Light Blue
-      border: 'FFD1D5DB', // Gray-300
-      text: 'FF111827', // Gray-900
-      textLight: 'FF6B7280', // Gray-500
-      warning: 'FFFEF3C7' // Yellow-100 for underload highlighting
-    }
-
-    // Define professional styles
-    const styles = {
-      title: {
-        font: { bold: true, size: 16, color: { argb: colors.text } },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-        fill: {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: colors.accent }
-        }
-      },
-      subtitle: {
-        font: { bold: true, size: 12, color: { argb: colors.text } },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-        fill: {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: colors.accent }
-        },
-        border: {
-          top: { style: 'thin', color: { argb: colors.border } },
-          left: { style: 'thin', color: { argb: colors.border } },
-          bottom: { style: 'thin', color: { argb: colors.border } },
-          right: { style: 'thin', color: { argb: colors.border } }
-        }
-      },
-      header: {
-        font: { bold: true, size: 11, color: { argb: 'FFFFFFFF' } },
-        alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
-        fill: {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: colors.primary }
-        },
-        border: {
-          top: { style: 'thin', color: { argb: colors.border } },
-          left: { style: 'thin', color: { argb: colors.border } },
-          bottom: { style: 'thin', color: { argb: colors.border } },
-          right: { style: 'thin', color: { argb: colors.border } }
-        }
-      },
-      data: {
-        font: { size: 10, color: { argb: colors.text } },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-        border: {
-          top: { style: 'thin', color: { argb: colors.border } },
-          left: { style: 'thin', color: { argb: colors.border } },
-          bottom: { style: 'thin', color: { argb: colors.border } },
-          right: { style: 'thin', color: { argb: colors.border } }
-        }
-      },
-      dataLeft: {
-        font: { size: 10, color: { argb: colors.text } },
-        alignment: { horizontal: 'left', vertical: 'middle' },
-        border: {
-          top: { style: 'thin', color: { argb: colors.border } },
-          left: { style: 'thin', color: { argb: colors.border } },
-          bottom: { style: 'thin', color: { argb: colors.border } },
-          right: { style: 'thin', color: { argb: colors.border } }
-        }
-      },
-      total: {
-        font: { bold: true, size: 11, color: { argb: 'FFFFFFFF' } },
-        alignment: { horizontal: 'center', vertical: 'middle' },
-        fill: {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: colors.secondary }
-        }
-      },
-      label: {
-        font: { bold: true, size: 10, color: { argb: colors.text } },
-        alignment: { horizontal: 'right', vertical: 'middle' }
-      },
-      value: {
-        font: { size: 10, color: { argb: colors.text } },
-        alignment: { horizontal: 'left', vertical: 'middle' },
-        border: {
-          bottom: { style: 'thin', color: { argb: colors.border } }
-        }
-      }
-    }
-
-    // Filter completed deployments
-    const completedDeployments = allDeployments.filter(
-      deployment => deployment.status === 'completed'
-    )
-
-    // Separate regular and underloaded trips
-    const regularTrips = []
-    const underloadedTrips = []
-
-    completedDeployments.forEach(deployment => {
-      const hasReplacement = deployment?.replacement?.replacementTruckId?._id
-      const currentTruckType = hasReplacement
-        ? deployment.replacement?.replacementTruckType
-        : deployment.truckType
-      const netWeight = deployment.loadWeightKg || 0
-
-      if (isUnderloaded(currentTruckType, netWeight)) {
-        underloadedTrips.push(deployment)
-      } else {
-        regularTrips.push(deployment)
-      }
-    })
-
-    // ======================= SHEET 1: Regular Trips =======================
-    const worksheet1 = workbook.addWorksheet('Regular Trips', {
-      views: [{ showGridLines: false }],
-      pageSetup: {
-        paperSize: 9, // A4
-        orientation: 'landscape',
-        fitToPage: true,
-        fitToWidth: 1,
-        fitToHeight: 0
-      }
-    })
-
-    // Set column widths
-    worksheet1.columns = [
-      { width: 4 }, // A - Margin
-      { width: 15 }, // B - DP Code
-      { width: 18 }, // C - Billing Period
-      { width: 12 }, // D - Series No.
-      { width: 20 }, // E - From
-      { width: 20 }, // F - To
-      { width: 12 }, // G - Plate
-      { width: 12 }, // H - Truck Type
-      { width: 14 }, // I - Net Weight (kg)
-      { width: 10 }, // J - Rate/Kg
-      { width: 15 }, // K - Amount
-      { width: 4 } // L - Margin
-    ]
-
-    // Add title (row 2)
-    worksheet1.mergeCells('B2:K2')
-    const titleCell1 = worksheet1.getCell('B2')
-    titleCell1.value = 'REGULAR TRIPS'
-    titleCell1.style = styles.title
-    titleCell1.alignment = { horizontal: 'center', vertical: 'middle' }
-    worksheet1.getRow(2).height = 30
-
-    // Add empty row (row 3)
-    worksheet1.addRow([])
-
-    // Add header row (row 4)
-    const headerRow1 = worksheet1.getRow(4)
-    headerRow1.values = [
-      '',
-      'DP Code',
-      'Billing Period',
-      'Series No.',
-      'From',
-      'To',
-      'Plate',
-      'Truck Type',
-      'Net Weight (kg)',
-      'Rate/Kg',
-      'Amount (₱)',
-      ''
-    ]
-    headerRow1.height = 25
-
-    // Apply header style
-    for (let col = 2; col <= 11; col++) {
-      headerRow1.getCell(col).style = styles.header
-    }
-
-    // Add data rows for REGULAR TRIPS ONLY
-    let dataStartRow = 5
-    regularTrips.forEach((deployment, index) => {
-      const hasReplacement = deployment?.replacement?.replacementTruckId?._id
-      const replacement = deployment?.replacement
-
-      const currentPlateNo = hasReplacement
-        ? replacement.replacementTruckId?.plateNo || ''
-        : deployment.truckId?.plateNo || ''
-
-      const currentTruckType = hasReplacement
-        ? replacement.replacementTruckType
-        : deployment.truckType
-
-      const netWeight = deployment.loadWeightKg || 0
-
-      // Format billing period (dest departure)
-      const billingPeriod = deployment.destDeparture
-        ? DateTime.fromISO(deployment.destDeparture)
-            .setZone('Asia/Manila')
-            .toFormat('MMM dd, yyyy')
-        : ''
-
-      const rowNum = worksheet1.rowCount + 1
-
-      const row = worksheet1.addRow([
-        '',
-        deployment.deploymentCode || '',
-        billingPeriod,
-        '', // Series No. - blank
-        deployment.pickupSite || '',
-        deployment.destination || '',
-        currentPlateNo.toUpperCase(),
-        formatTruckType(currentTruckType),
-        netWeight,
-        ratePerKg,
-        { formula: `I${rowNum}*J${rowNum}` },
-        ''
-      ])
-
-      row.height = 20
-
-      // Apply styles
-      row.getCell(2).style = styles.data // DP Code
-      row.getCell(3).style = styles.data // Billing Period
-      row.getCell(4).style = styles.data // Series No.
-      row.getCell(5).style = styles.dataLeft // From
-      row.getCell(6).style = styles.dataLeft // To
-      row.getCell(7).style = styles.data // Plate
-      row.getCell(8).style = styles.data // Truck Type
-      row.getCell(9).style = { ...styles.data, numFmt: '#,##0.00' } // Net Weight
-      row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' } // Rate
-      row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' } // Amount
-
-      // Alternate row coloring
-      if (index % 2 === 0) {
-        for (let col = 2; col <= 11; col++) {
-          const cell = row.getCell(col)
-          cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFFAFAFA' }
-          }
-        }
-      }
-    })
-
-    // Add empty row if no data
-    if (regularTrips.length === 0) {
-      const emptyRow = worksheet1.addRow([
-        '',
-        '',
-        '',
-        '',
-        '',
-        'No regular trips',
-        '',
-        '',
-        0,
-        ratePerKg,
-        0,
-        ''
-      ])
-      emptyRow.height = 20
-      for (let col = 2; col <= 11; col++) {
-        emptyRow.getCell(col).style = styles.data
-      }
-    }
-
-    // Add subtotal row
-    const lastDataRow = worksheet1.rowCount
-    worksheet1.addRow([]) // Empty row
-
-    const subtotalRow1 = worksheet1.addRow([
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      { formula: `SUM(K${dataStartRow}:K${lastDataRow})` },
-      ''
-    ])
-
-    subtotalRow1.height = 25
-    subtotalRow1.getCell(11).style = { ...styles.total, numFmt: '₱#,##0.00' }
-
-    // Store the subtotal row number for Sheet 4 reference
-    const regularTripsSubtotalRow = worksheet1.rowCount
-
-    // ======================= SHEET 2: Underload Charges =======================
-    const worksheet2 = workbook.addWorksheet('Underload Charges', {
-      views: [{ showGridLines: false }],
-      pageSetup: {
-        paperSize: 9,
-        orientation: 'landscape',
-        fitToPage: true,
-        fitToWidth: 1,
-        fitToHeight: 0
-      }
-    })
-
-    // Set column widths
-    worksheet2.columns = [
-      { width: 4 }, // A - Margin
-      { width: 15 }, // B - DP Code
-      { width: 18 }, // C - Billing Period
-      { width: 12 }, // D - Series No.
-      { width: 20 }, // E - From
-      { width: 20 }, // F - To
-      { width: 12 }, // G - Plate
-      { width: 12 }, // H - Truck Type
-      { width: 14 }, // I - Actual Weight (kg)
-      { width: 14 }, // J - Min Load (kg)
-      { width: 10 }, // K - Rate/Kg
-      { width: 15 }, // L - Amount
-      { width: 4 } // M - Margin
-    ]
-
-    // Add title (row 2)
-    worksheet2.mergeCells('B2:L2')
-    const titleCell2 = worksheet2.getCell('B2')
-    titleCell2.value = 'UNDERLOAD CHARGES'
-    titleCell2.style = styles.title
-    titleCell2.alignment = { horizontal: 'center', vertical: 'middle' }
-    worksheet2.getRow(2).height = 30
-
-    // Add empty row (row 3)
-    worksheet2.addRow([])
-
-    // Add header row (row 4)
-    const headerRow2 = worksheet2.getRow(4)
-    headerRow2.values = [
-      '',
-      'DP Code',
-      'Billing Period',
-      'Series No.',
-      'From',
-      'To',
-      'Plate',
-      'Truck Type',
-      'Actual Weight (kg)',
-      'Min Load (kg)',
-      'Rate/Kg',
-      'Amount (₱)',
-      ''
-    ]
-    headerRow2.height = 25
-
-    // Apply header style
-    for (let col = 2; col <= 12; col++) {
-      headerRow2.getCell(col).style = styles.header
-    }
-
-    // Add data rows for UNDERLOADED TRIPS
-    const underloadDataStartRow = 5
-    underloadedTrips.forEach((deployment, index) => {
-      const hasReplacement = deployment?.replacement?.replacementTruckId?._id
-      const replacement = deployment?.replacement
-
-      const currentPlateNo = hasReplacement
-        ? replacement.replacementTruckId?.plateNo || ''
-        : deployment.truckId?.plateNo || ''
-
-      const currentTruckType = hasReplacement
-        ? replacement.replacementTruckType
-        : deployment.truckType
-
-      const actualWeight = deployment.loadWeightKg || 0
-      const minLoad = getMinimumLoad(currentTruckType)
-
-      // Format billing period (dest departure)
-      const billingPeriod = deployment.destDeparture
-        ? DateTime.fromISO(deployment.destDeparture)
-            .setZone('Asia/Manila')
-            .toFormat('MMM dd, yyyy')
-        : ''
-
-      const rowNum = worksheet2.rowCount + 1
-
-      const row = worksheet2.addRow([
-        '',
-        deployment.deploymentCode || '',
-        billingPeriod,
-        '', // Series No. - blank
-        deployment.pickupSite || '',
-        deployment.destination || '',
-        currentPlateNo.toUpperCase(),
-        formatTruckType(currentTruckType),
-        actualWeight,
-        minLoad,
-        ratePerKg,
-        { formula: `J${rowNum}*K${rowNum}` }, // Use minimum load for billing
-        ''
-      ])
-
-      row.height = 20
-
-      // Apply styles with warning color
-      row.getCell(2).style = styles.data
-      row.getCell(3).style = styles.data
-      row.getCell(4).style = styles.data
-      row.getCell(5).style = styles.dataLeft
-      row.getCell(6).style = styles.dataLeft
-      row.getCell(7).style = styles.data
-      row.getCell(8).style = styles.data
-      row.getCell(9).style = { ...styles.data, numFmt: '#,##0.00' }
-      row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' }
-      row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' }
-      row.getCell(12).style = { ...styles.data, numFmt: '#,##0.00' }
-
-      // Alternate row coloring (same as regular trips)
-      if (index % 2 === 0) {
-        for (let col = 2; col <= 12; col++) {
-          const cell = row.getCell(col)
-          cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFFAFAFA' }
-          }
-        }
-      }
-    })
-
-    // Add empty row if no data
-    if (underloadedTrips.length === 0) {
-      const emptyRow = worksheet2.addRow([
-        '',
-        '',
-        '',
-        '',
-        '',
-        'No underloaded trips',
-        '',
-        '',
-        0,
-        0,
-        ratePerKg,
-        0,
-        ''
-      ])
-      emptyRow.height = 20
-      for (let col = 2; col <= 12; col++) {
-        emptyRow.getCell(col).style = styles.data
-      }
-    }
-
-    // Add subtotal row
-    const lastUnderloadRow = worksheet2.rowCount
-    worksheet2.addRow([]) // Empty row
-
-    const subtotalRow2 = worksheet2.addRow([
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      { formula: `SUM(L${underloadDataStartRow}:L${lastUnderloadRow})` },
-      ''
-    ])
-
-    subtotalRow2.height = 25
-    subtotalRow2.getCell(12).style = { ...styles.total, numFmt: '₱#,##0.00' }
-
-    // Store the subtotal row number for Sheet 4 reference
-    const underloadChargesSubtotalRow = worksheet2.rowCount
-
-    // ======================= SHEET 3: Demurrage Fee =======================
-    const worksheet3 = workbook.addWorksheet('Demurrage Fee', {
-      views: [{ showGridLines: false }],
-      pageSetup: {
-        paperSize: 9, // A4
-        orientation: 'landscape',
-        fitToPage: true,
-        fitToWidth: 1,
-        fitToHeight: 0
-      }
-    })
-
-    // Set column widths
-    worksheet3.columns = [
-      { width: 4 }, // A - Margin
-      { width: 15 }, // B - DP Code
-      { width: 18 }, // C - Dest Arrival
-      { width: 18 }, // D - Dest Departure
-      { width: 14 }, // E - Unloading Time
-      { width: 20 }, // F - From
-      { width: 20 }, // G - To
-      { width: 12 }, // H - Plate No
-      { width: 12 }, // I - Truck Type
-      { width: 12 }, // J - Rate
-      { width: 15 }, // K - Amount
-      { width: 4 } // L - Margin
-    ]
-
-    // Add title (row 2)
-    worksheet3.mergeCells('B2:K2')
-    const titleCell3 = worksheet3.getCell('B2')
-    titleCell3.value = 'DEMURRAGE FEE'
-    titleCell3.style = styles.title
-    titleCell3.alignment = { horizontal: 'center', vertical: 'middle' }
-    worksheet3.getRow(2).height = 30
-
-    // Add empty row (row 3)
-    worksheet3.addRow([])
-
-    // Add header row (row 4)
-    const headerRow3 = worksheet3.getRow(4)
-    headerRow3.values = [
-      '',
-      'DP Code',
-      'Dest Arrival',
-      'Dest Departure',
-      'Unloading Time',
-      'From',
-      'To',
-      'Plate No',
-      'Truck Type',
-      'Rate',
-      'Amount (₱)',
-      ''
-    ]
-    headerRow3.height = 25
-
-    // Apply header style
-    for (let col = 2; col <= 11; col++) {
-      headerRow3.getCell(col).style = styles.header
-    }
-
-    // Add demurrage data (only deployments with 11:30+ unloading time)
-    const demurrageDataStartRow = 5
-
-    // Filter deployments that qualify for demurrage (11:30 hours or more)
-    const demurrageDeployments = completedDeployments.filter(deployment => {
-      if (!deployment.destArrival || !deployment.destDeparture) return false
-
-      const arrival = DateTime.fromISO(deployment.destArrival)
-      const departure = DateTime.fromISO(deployment.destDeparture)
-      const diffMinutes = departure.diff(arrival, 'minutes').minutes
-
-      return diffMinutes >= 11 * 60 + 30 // 11:30 hours or more
-    })
-
-    demurrageDeployments.forEach((deployment, index) => {
-      const hasReplacement = deployment?.replacement?.replacementTruckId?._id
-      const currentPlateNo = hasReplacement
-        ? deployment.replacement?.replacementTruckId?.plateNo || ''
-        : deployment.truckId?.plateNo || ''
-      const currentTruckType = hasReplacement
-        ? deployment.replacement?.replacementTruckType
-        : deployment.truckType
-
-      // Calculate unloading time
-      const arrival = DateTime.fromISO(deployment.destArrival)
-      const departure = DateTime.fromISO(deployment.destDeparture)
-      const { hours, minutes } = departure.diff(arrival, ['hours', 'minutes'])
-      const totalMinutes = departure.diff(arrival, 'minutes').minutes
-      const unloadingTime = `${hours}h ${Math.floor(minutes)}m`
-
-      // Calculate demurrage charges
-      const demurrageAmount = calculateDemurrageCharges(
-        currentTruckType,
-        totalMinutes
-      )
-      const demurrageRate = getDemurrageRate(currentTruckType)
-
-      const row = worksheet3.addRow([
-        '',
-        deployment.deploymentCode || '',
-        deployment.destArrival
-          ? DateTime.fromISO(deployment.destArrival)
-              .setZone('Asia/Manila')
-              .toFormat('MMM dd, yyyy hh:mm a')
-          : '',
-        deployment.destDeparture
-          ? DateTime.fromISO(deployment.destDeparture)
-              .setZone('Asia/Manila')
-              .toFormat('MMM dd, yyyy hh:mm a')
-          : '',
-        unloadingTime,
-        deployment.pickupSite || '',
-        deployment.destination || '',
-        currentPlateNo.toUpperCase(),
-        formatTruckType(currentTruckType),
-        demurrageRate,
-        demurrageAmount,
-        ''
-      ])
-
-      row.height = 20
-
-      // Apply styles
-      row.getCell(2).style = styles.data
-      row.getCell(3).style = styles.data
-      row.getCell(4).style = styles.data
-      row.getCell(5).style = styles.data
-      row.getCell(6).style = styles.dataLeft
-      row.getCell(7).style = styles.dataLeft
-      row.getCell(8).style = styles.data
-      row.getCell(9).style = styles.data
-      row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' }
-      row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' }
-
-      // Alternate row coloring
-      if (index % 2 === 0) {
-        for (let col = 2; col <= 11; col++) {
-          const cell = row.getCell(col)
-          cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFFAFAFA' }
-          }
-        }
-      }
-    })
-
-    // Add empty row if no data
-    if (demurrageDeployments.length === 0) {
-      const emptyRow = worksheet3.addRow([
-        '',
-        '',
-        '',
-        '',
-        'No demurrage fees',
-        '',
-        '',
-        '',
-        '',
-        0,
-        0,
-        ''
-      ])
-      emptyRow.height = 20
-      for (let col = 2; col <= 11; col++) {
-        emptyRow.getCell(col).style = styles.data
-      }
-    }
-
-    // Add subtotal row
-    const lastDemurrageRow = worksheet3.rowCount
-    worksheet3.addRow([]) // Empty row
-
-    const subtotalRow3 = worksheet3.addRow([
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      { formula: `SUM(K${demurrageDataStartRow}:K${lastDemurrageRow})` },
-      ''
-    ])
-
-    subtotalRow3.height = 25
-    subtotalRow3.getCell(11).style = { ...styles.total, numFmt: '₱#,##0.00' }
-
-    // Store the subtotal row number for Sheet 4 reference
-    const demurrageFeeSubtotalRow = worksheet3.rowCount
-
-    // ======================= SHEET 4: Summary =======================
-    const worksheet4 = workbook.addWorksheet('Summary', {
-      views: [{ showGridLines: false }],
-      pageSetup: {
-        paperSize: 9, // A4
-        orientation: 'landscape',
-        fitToPage: true,
-        fitToWidth: 1,
-        fitToHeight: 0
-      }
-    })
-
-    // Set column widths
-    worksheet4.columns = [
-      { width: 4 }, // A - Margin
-      { width: 25 }, // B
-      { width: 25 }, // C
-      { width: 20 }, // D
-      { width: 20 }, // E
-      { width: 20 }, // F
-      { width: 4 } // G - Margin
-    ]
-
-    // Add title (row 2)
-    worksheet4.mergeCells('B2:E2')
-    const titleCell4 = worksheet4.getCell('B2')
-    titleCell4.value = 'STATEMENT OF ACCOUNT'
-    titleCell4.style = {
-      ...styles.title,
-      font: { ...styles.title.font, size: 18 }
-    }
-    titleCell4.alignment = { horizontal: 'center', vertical: 'middle' }
-    worksheet4.getRow(2).height = 35
-
-    // Add empty row
-    worksheet4.addRow([])
-
-    // Billed To section (row 4)
-    const billedToRow = worksheet4.getRow(4)
-    billedToRow.values = ['', 'BILLED TO:', companyName, '', '', '', '']
-    billedToRow.height = 25
-    billedToRow.getCell(2).style = {
-      ...styles.label,
-      alignment: { horizontal: 'left', vertical: 'middle' }
-    }
-    billedToRow.getCell(3).style = {
-      font: { bold: true, size: 10, color: { argb: colors.text } },
-      alignment: { horizontal: 'left', vertical: 'middle' },
-      border: {
-        bottom: { style: 'thin', color: { argb: colors.border } }
-      }
-    }
-
-    // Date (row 5)
-    const dateRow = worksheet4.getRow(5)
-    dateRow.values = ['', 'DATE:', billingDate, '', '', '', '']
-    dateRow.height = 20
-    dateRow.getCell(2).style = {
-      ...styles.label,
-      alignment: { horizontal: 'left', vertical: 'middle' }
-    }
-    dateRow.getCell(3).style = {
-      font: { size: 10, color: { argb: colors.text } },
-      alignment: { horizontal: 'left', vertical: 'middle' },
-      border: {
-        bottom: { style: 'thin', color: { argb: colors.border } }
-      }
-    }
-
-    // SOA Number (row 6)
-    const soaRow = worksheet4.getRow(6)
-    soaRow.values = ['', 'SOA NUMBER:', 'EFO26001', '', '', '', '']
-    soaRow.height = 20
-    soaRow.getCell(2).style = {
-      ...styles.label,
-      alignment: { horizontal: 'left', vertical: 'middle' }
-    }
-    soaRow.getCell(3).style = {
-      font: { size: 10, color: { argb: colors.text } },
-      alignment: { horizontal: 'left', vertical: 'middle' },
-      border: {
-        bottom: { style: 'thin', color: { argb: colors.border } }
-      }
-    }
-
-    // P.O. Number (row 7)
-    const poRow = worksheet4.getRow(7)
-    poRow.values = ['', 'P.O. NUMBER:', '', '', '', '', '']
-    poRow.height = 20
-    poRow.getCell(2).style = {
-      ...styles.label,
-      alignment: { horizontal: 'left', vertical: 'middle' }
-    }
-    poRow.getCell(3).style = {
-      font: { size: 10, color: { argb: colors.text } },
-      alignment: { horizontal: 'left', vertical: 'middle' },
-      border: {
-        bottom: { style: 'thin', color: { argb: colors.border } }
-      }
-    }
-
-    // Add empty rows
-    worksheet4.addRow([])
-    worksheet4.addRow([])
-
-    // Breakdown section header (row 10)
-    worksheet4.mergeCells('B10:E10')
-    const breakdownHeader = worksheet4.getCell('B10')
-    breakdownHeader.value = 'BILLING BREAKDOWN'
-    breakdownHeader.style = styles.subtitle
-    breakdownHeader.alignment = { horizontal: 'center', vertical: 'middle' }
-    worksheet4.getRow(10).height = 25
-
-    // Regular Trips (row 11)
-    const regularRow = worksheet4.getRow(11)
-    regularRow.values = [
-      '',
-      '',
-      'Regular Trips',
-      { formula: `='Regular Trips'!K${regularTripsSubtotalRow}` },
-      '',
-      '',
-      ''
-    ]
-    regularRow.height = 22
-    regularRow.getCell(3).style = styles.dataLeft
-    regularRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
-
-    // Underload Charges (row 12)
-    const underloadRow = worksheet4.getRow(12)
-    underloadRow.values = [
-      '',
-      '',
-      'Underload Charges',
-      { formula: `='Underload Charges'!L${underloadChargesSubtotalRow}` },
-      '',
-      '',
-      ''
-    ]
-    underloadRow.height = 22
-    underloadRow.getCell(3).style = styles.dataLeft
-    underloadRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
-
-    // Demurrage Fee (row 13)
-    const demurrageRow = worksheet4.getRow(13)
-    demurrageRow.values = [
-      '',
-      '',
-      'Demurrage Fee',
-      { formula: `='Demurrage Fee'!K${demurrageFeeSubtotalRow}` },
-      '',
-      '',
-      ''
-    ]
-    demurrageRow.height = 22
-    demurrageRow.getCell(3).style = styles.dataLeft
-    demurrageRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
-
-    // Add empty rows
-    worksheet4.addRow([])
-
-    // Subtotal (row 15) - Grand Total minus 12% VAT
-    const subtotalRow4 = worksheet4.getRow(15)
-    subtotalRow4.values = [
-      '',
-      '',
-      'SUBTOTAL',
-      { formula: 'SUM(D11:D13)-(SUM(D11:D13)*0.12)' },
-      '',
-      '',
-      ''
-    ]
-    subtotalRow4.height = 25
-    subtotalRow4.getCell(3).style = {
-      ...styles.total,
-      alignment: { horizontal: 'left', vertical: 'middle' }
-    }
-    subtotalRow4.getCell(4).style = {
-      ...styles.total,
-      numFmt: '₱#,##0.00',
-      alignment: { horizontal: 'center', vertical: 'middle' }
-    }
-
-    // ADD 12% VAT (row 16) - 12% of the sum
-    const vatRow = worksheet4.getRow(16)
-    vatRow.values = [
-      '',
-      '',
-      'ADD 12% VAT',
-      { formula: 'SUM(D11:D13)*0.12' },
-      '',
-      '',
-      ''
-    ]
-    vatRow.height = 22
-    vatRow.getCell(3).style = styles.dataLeft
-    vatRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
-
-    // Grand Total (row 17) - Sum of Regular Trips + Underload Charges + Demurrage Fee
-    const grandTotalRow = worksheet4.getRow(17)
-    grandTotalRow.values = [
-      '',
-      '',
-      'GRAND TOTAL',
-      { formula: 'SUM(D11:D13)' },
-      '',
-      '',
-      ''
-    ]
-    grandTotalRow.height = 28
-    grandTotalRow.getCell(3).style = {
-      ...styles.total,
-      alignment: { horizontal: 'left', vertical: 'middle' },
-      font: { ...styles.total.font, size: 12 }
-    }
-    grandTotalRow.getCell(4).style = {
-      ...styles.total,
-      numFmt: '₱#,##0.00',
-      font: { ...styles.total.font, size: 12 },
-      alignment: { horizontal: 'center', vertical: 'middle' }
-    }
-
-    // Prepared by (row 20)
-    const preparedRow = worksheet4.getRow(20)
-    preparedRow.values = [
-      '',
-      'PREPARED BY:',
-      '',
-      '',
-      'CHECKED/APPROVED BY:',
-      '',
-      ''
-    ]
-    preparedRow.height = 20
-    preparedRow.getCell(2).style = {
-      font: { bold: true, size: 10 },
-      alignment: { horizontal: 'left' }
-    }
-    preparedRow.getCell(5).style = {
-      font: { bold: true, size: 10 },
-      alignment: { horizontal: 'left' }
-    }
-
-    // Add empty rows for signature
-    worksheet4.addRow([])
-    worksheet4.addRow([])
-
-    // Name (row 23)
-    const nameRow = worksheet4.getRow(23)
-    nameRow.values = [
-      '',
-      'JOHN ROBERT M. OCUMEN',
-      '',
-      '',
-      '_____________________',
-      '',
-      ''
-    ]
-    nameRow.height = 20
-    nameRow.getCell(2).style = {
-      font: { bold: true, size: 10 },
-      alignment: { horizontal: 'left' },
-      border: {
-        top: { style: 'thin', color: { argb: 'FF000000' } }
-      }
-    }
-    nameRow.getCell(5).style = {
-      alignment: { horizontal: 'center' },
-      border: {
-        top: { style: 'thin', color: { argb: 'FF000000' } }
-      }
-    }
-
-    // Title (row 24)
-    const titleRowSig = worksheet4.getRow(24)
-    titleRowSig.values = [
-      '',
-      'PROPRIETOR',
-      '',
-      '',
-      'AUTHORIZED SIGNATURE',
-      '',
-      ''
-    ]
-    titleRowSig.height = 18
-    titleRowSig.getCell(2).style = {
-      font: { size: 9, color: { argb: colors.textLight } },
-      alignment: { horizontal: 'left' }
-    }
-    titleRowSig.getCell(5).style = {
-      font: { size: 9, color: { argb: colors.textLight } },
-      alignment: { horizontal: 'center' }
-    }
-
-    // Generate Excel file
-    const timestamp = DateTime.now().toFormat('yyyy-MM-dd_HHmmss')
-
-    // Write to buffer and create download link
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.href = url
-    link.download = `Billing_Statement_${timestamp}.xlsx`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+  const handleExportToBillingToExcel = async () => {
+    await exportBillingToExcel(allDeployments)
   }
 
-  const handleExportToSubconBillingCSV = async () => {}
-
-  const handleExportToTMO = async () => {
-    if (!allDeployments || allDeployments.length === 0) {
-      alert('No data to export')
-      return
-    }
-
-    // Filter deployments: status='preparing' OR isTMOPrinted=false
-    const tmoDeployments = allDeployments.filter(
-      deployment =>
-        deployment.status === 'preparing' || deployment.isTMOPrinted === false
-    )
-
-    if (tmoDeployments.length === 0) {
-      alert('No deployments available for TMO export')
-      return
-    }
-
-    try {
-      // Helper function to capitalize words
-      const capitalizeWords = str => {
-        if (!str) return ''
-        return str
-          .toLowerCase()
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ')
-      }
-
-      // Helper function to format truck type
-      const formatTruckType = type => {
-        if (!type) return ''
-        const lowerType = type.toLowerCase().trim()
-        return (
-          TRUCK_TYPES[lowerType] || capitalizeWords(type.replace(/-/g, ' '))
-        )
-      }
-
-      // Generate PDFs for each deployment
-      for (let i = 0; i < tmoDeployments.length; i++) {
-        const deployment = tmoDeployments[i]
-
-        // Determine active truck and driver (considering replacement)
-        const hasReplacement = deployment?.replacement?.replacementTruckId?._id
-        const activeTruck = hasReplacement
-          ? deployment.replacement.replacementTruckId
-          : deployment.truckId
-        const activeDriver = hasReplacement
-          ? deployment.replacement.replacementDriverId
-          : deployment.driverId
-        const activeTruckType = hasReplacement
-          ? deployment.replacement.replacementTruckType
-          : deployment.truckType
-
-        // Create PDF
-        const doc = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
-        })
-
-        // Set font
-        doc.setFont('helvetica', 'bold')
-
-        // Title
-        doc.setFontSize(18)
-        doc.text('TRANSPORT MOVEMENT ORDER', 105, 20, { align: 'center' })
-
-        // Deployment Code
-        doc.setFontSize(14)
-        doc.text(`TMO No: ${deployment.deploymentCode}`, 105, 30, {
-          align: 'center'
-        })
-
-        // Add a line
-        doc.setLineWidth(0.5)
-        doc.line(20, 35, 190, 35)
-
-        // Content section
-        doc.setFontSize(11)
-        doc.setFont('helvetica', 'bold')
-        let yPos = 50
-
-        // Truck Details Section
-        doc.text('TRUCK DETAILS', 20, yPos)
-        yPos += 8
-        doc.setFont('helvetica', 'normal')
-        doc.text(
-          `Plate No: ${activeTruck?.plateNo?.toUpperCase() || 'N/A'}`,
-          25,
-          yPos
-        )
-        yPos += 6
-        doc.text(`Truck Type: ${formatTruckType(activeTruckType)}`, 25, yPos)
-        yPos += 6
-        doc.text(`Subcon: ${deployment.subcon || 'N/A'}`, 25, yPos)
-        yPos += 10
-
-        // Driver Details Section
-        doc.setFont('helvetica', 'bold')
-        doc.text('DRIVER DETAILS', 20, yPos)
-        yPos += 8
-        doc.setFont('helvetica', 'normal')
-        const driverName = activeDriver
-          ? `${capitalizeWords(activeDriver.firstname)} ${capitalizeWords(
-              activeDriver.lastname
-            )}`
-          : 'N/A'
-        doc.text(`Driver: ${driverName}`, 25, yPos)
-        yPos += 6
-        doc.text(`Helper Count: ${deployment.helperCount || 'N/A'}`, 25, yPos)
-        yPos += 10
-
-        // Pickup Details Section
-        doc.setFont('helvetica', 'bold')
-        doc.text('PICKUP DETAILS', 20, yPos)
-        yPos += 8
-        doc.setFont('helvetica', 'normal')
-        doc.text(`Pickup Site: ${deployment.pickupSite || 'N/A'}`, 25, yPos)
-        yPos += 6
-        doc.text(`Municipality: ${deployment.municipality || 'N/A'}`, 25, yPos)
-        yPos += 6
-        doc.text(
-          `Field Contact: ${deployment.fieldContactPerson || 'N/A'}`,
-          25,
-          yPos
-        )
-        yPos += 6
-        doc.text(
-          `Contact No: ${deployment.fieldContactPersonNo || 'N/A'}`,
-          25,
-          yPos
-        )
-        yPos += 6
-        doc.text(
-          `Scheduled Pickup: ${deployment.scheduledPickupTime || 'N/A'}`,
-          25,
-          yPos
-        )
-        yPos += 6
-        doc.text(
-          `Est. Quantity: ${deployment.estimatedQuantityKg || 'N/A'} kg`,
-          25,
-          yPos
-        )
-        yPos += 10
-
-        // Delivery Details Section
-        doc.setFont('helvetica', 'bold')
-        doc.text('DELIVERY DETAILS', 20, yPos)
-        yPos += 8
-        doc.setFont('helvetica', 'normal')
-        doc.text(`Destination: ${deployment.destination || 'N/A'}`, 25, yPos)
-        yPos += 6
-        doc.text(
-          `Receiving Contact: ${deployment.receivingContactPerson || 'N/A'}`,
-          25,
-          yPos
-        )
-        yPos += 6
-        doc.text(
-          `Contact No: ${deployment.receivingContactPersonNo || 'N/A'}`,
-          25,
-          yPos
-        )
-        yPos += 6
-        doc.text(`Territory: ${deployment.territory || 'N/A'}`, 25, yPos)
-        yPos += 6
-        doc.text(`Hybrid: ${deployment.hybrid || 'N/A'}`, 25, yPos)
-        yPos += 6
-        doc.text(`Flagging: ${deployment.flagging || 'N/A'}`, 25, yPos)
-        if (deployment.flaggingRemarks) {
-          yPos += 6
-          doc.text(`Remarks: ${deployment.flaggingRemarks}`, 25, yPos)
-        }
-        yPos += 15
-
-        // Status
-        doc.setFont('helvetica', 'bold')
-        doc.text(`Status: ${capitalizeWords(deployment.status)}`, 20, yPos)
-        yPos += 10
-
-        // Footer
-        doc.setFontSize(9)
-        doc.setFont('helvetica', 'italic')
-        const timestamp = DateTime.now()
-          .setZone('Asia/Manila')
-          .toFormat('MMMM dd, yyyy hh:mm a')
-        doc.text(`Generated on: ${timestamp}`, 105, 280, { align: 'center' })
-
-        // Save PDF
-        const filename = `TMO_${deployment.deploymentCode}.pdf`
-        doc.save(filename)
-
-        // Add small delay between downloads to prevent browser blocking
-        if (i < tmoDeployments.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100))
-        }
-      }
-
-      // After all PDFs are generated, call backend to update isTMOPrinted
-      const deploymentIds = tmoDeployments.map(d => d._id)
-
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/deployment/bulk-update-tmo`,
-          {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ deploymentIds })
-          }
-        )
-
-        if (!response.ok) {
-          throw new Error('Failed to update TMO print status')
-        }
-
-        const data = await response.json()
-
-        // Update local state to reflect the changes
-        setAllDeployments(prevDeployments =>
-          prevDeployments.map(deployment =>
-            deploymentIds.includes(deployment._id)
-              ? { ...deployment, isTMOPrinted: true }
-              : deployment
-          )
-        )
-
-        alert(
-          `Successfully exported ${tmoDeployments.length} TMO(s) and marked as printed`
-        )
-      } catch (error) {
-        console.error('Error updating TMO print status:', error)
-        alert(
-          `PDFs generated successfully, but failed to update print status: ${error.message}`
-        )
-      }
-    } catch (error) {
-      console.error('Error generating TMO PDFs:', error)
-      alert(`Error generating TMO PDFs: ${error.message}`)
-    }
+  const handleExportToSubconBillingToExcel = async () => {
+    await exportSubconBillingToExcel(allDeployments, userData)
   }
 
   const handleAddNewDeployment = newDeployment => {
@@ -1770,7 +137,6 @@ function Deployments () {
     console.log(data)
   }
 
-  // for updating the all deployment with the updated deployment
   const handleUpdateAllDeployments = updatedDeployment => {
     console.log(updatedDeployment)
     setAllDeployments(prevAllDeployments =>
@@ -1782,7 +148,6 @@ function Deployments () {
     )
   }
 
-  // for removing the deleted deployment
   const handleRemoveDeletedDeployment = deletedDeployment => {
     setAllDeployments(prev =>
       prev.filter(deployment => deployment._id !== deletedDeployment)
@@ -1793,7 +158,6 @@ function Deployments () {
 
   useEffect(() => {
     const handleGetAllDeployment = async () => {
-      // Pass filters to the function
       const { deployments, total, page, totalPages, error } =
         await getAllDeploymentFunction(filters)
 
@@ -1856,6 +220,7 @@ function Deployments () {
                 className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-sm ring-1 ring-gray-300'
               >
                 <div className='grid grid-cols-2 gap-4 p-4'>
+                  {/* Status */}
                   <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                     <p className='font-semibold'>Status</p>
                     <select
@@ -1873,6 +238,7 @@ function Deployments () {
                     </select>
                   </label>
 
+                  {/* Sort */}
                   <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                     <p className='font-semibold'>Sort</p>
                     <select
@@ -1888,6 +254,7 @@ function Deployments () {
 
                   {userData.data.role !== 'subcon' && (
                     <>
+                      {/* Subcon */}
                       {userData.data.role !== 'visitor' && (
                         <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                           <p className='font-semibold'>Subcon</p>
@@ -1895,18 +262,21 @@ function Deployments () {
                             name='subcon'
                             value={tempFilters.subcon}
                             onChange={handleChangeFilter}
-                            className='w-full focus:outline-none'
+                            className='w-full focus:outline-none capitalize'
                           >
                             <option value=''>All</option>
-                            {SUBCON_OPTIONS.map((item, index) => (
-                              <option key={index} value={item.value}>
-                                {item.label}
-                              </option>
-                            ))}
+                            {settings.trucksDrivers.subcon.map(
+                              (item, index) => (
+                                <option key={index} value={item}>
+                                  {item}
+                                </option>
+                              )
+                            )}
                           </select>
                         </label>
                       )}
 
+                      {/* Territory */}
                       <label
                         className={clsx(
                           'flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2',
@@ -1920,10 +290,10 @@ function Deployments () {
                           name='territory'
                           value={tempFilters.territory}
                           onChange={handleChangeFilter}
-                          className='w-full focus:outline-none'
+                          className='w-full focus:outline-none capitalize'
                         >
                           <option value=''>All</option>
-                          {TERRITORY_OPTIONS.map((item, index) => (
+                          {settings.deployments.territory.map((item, index) => (
                             <option key={index} value={item}>
                               {item}
                             </option>
@@ -1933,6 +303,7 @@ function Deployments () {
                     </>
                   )}
 
+                  {/* Assigned At */}
                   <label className='col-span-2 flex items-center justify-between text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                     <p className='font-semibold text-nowrap'>Assigned At</p>
                     <input
@@ -1944,6 +315,7 @@ function Deployments () {
                     />
                   </label>
 
+                  {/* Departed At */}
                   <label className='col-span-2 flex items-center justify-between text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                     <p className='font-semibold text-nowrap'>Departed At</p>
                     <input
@@ -1958,7 +330,7 @@ function Deployments () {
                   <button
                     onClick={handleResetFilters}
                     disabled={isDeploymentLoading}
-                    className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                    className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
                   >
                     Reset
                   </button>
@@ -1966,7 +338,7 @@ function Deployments () {
                   <button
                     onClick={handleApplyFilters}
                     disabled={isDeploymentLoading}
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
                   >
                     Apply
                   </button>
@@ -2032,7 +404,6 @@ function Deployments () {
             {/* Export dropdown */}
             {['head_admin', 'admin'].includes(userData.data.role) && (
               <div className='dropdown dropdown-center'>
-                {/* button */}
                 <div
                   tabIndex={0}
                   role='button'
@@ -2043,13 +414,12 @@ function Deployments () {
                   <p>Export</p>
                 </div>
 
-                {/* menu */}
                 <div
                   tabIndex='0'
                   className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-64 ring-1 ring-gray-300'
                 >
                   <button
-                    onClick={handleExportToCSV}
+                    onClick={handleExportToExcel}
                     disabled={
                       isDeploymentLoading || allDeployments.length === 0
                     }
@@ -2067,7 +437,7 @@ function Deployments () {
                   <div className='border-t border-gray-200 my-1'></div>
 
                   <button
-                    onClick={handleExportToBillingCSV}
+                    onClick={handleExportToBillingToExcel}
                     disabled={
                       isDeploymentLoading || allDeployments.length === 0
                     }
@@ -2085,7 +455,7 @@ function Deployments () {
                   <div className='border-t border-gray-200 my-1'></div>
 
                   <button
-                    onClick={handleExportToBillingCSV}
+                    onClick={handleExportToSubconBillingToExcel}
                     disabled={
                       isDeploymentLoading || allDeployments.length === 0
                     }
@@ -2162,11 +532,10 @@ function Deployments () {
             <div className='absolute inset-0'>
               <table className='table table-sm table-pin-rows table-pin-cols'>
                 <thead>
-                  <tr className='bg-white border-b border-gray-200  text-gray-800'>
+                  <tr className='bg-white border-b border-gray-200 text-gray-800'>
                     <td>{total}</td>
                     <td>Code</td>
                     <td>Truck Details</td>
-                    {/* <td>Destination</td> */}
                     <td>Status</td>
                     <td>Departed</td>
                     <td>Pick-up In</td>
@@ -2196,7 +565,6 @@ function Deployments () {
                               deployment.deploymentCode
                             )
 
-                            // Show feedback tooltip
                             const div = e.currentTarget
                             const tooltip = document.createElement('div')
                             tooltip.className =
@@ -2205,7 +573,6 @@ function Deployments () {
 
                             div.appendChild(tooltip)
 
-                            // Remove after 1 second
                             setTimeout(() => {
                               if (div.contains(tooltip)) {
                                 div.removeChild(tooltip)
@@ -2243,11 +610,9 @@ function Deployments () {
                               </p>
                               <p className='text-nowrap font-light'>{`${deployment.driverId.firstname} ${deployment.driverId.lastname}`}</p>
                             </>
-                          )}{' '}
+                          )}
                         </div>
                       </td>
-
-                      {/* <td className='max-w-28'>{deployment.destination}</td> */}
 
                       <td>
                         <div

@@ -17,15 +17,13 @@ import { LuUpload } from 'react-icons/lu'
 import { FaSave } from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import useCreateTruck from '../../hooks/useCreateTruck'
-import {
-  SUBCON_OPTIONS,
-  TRUCK_STATUSES,
-  TRUCK_TYPES
-} from '../../utils/generalOptions'
 import { NumericFormat } from 'react-number-format'
 import clsx from 'clsx'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 
 function CreateTruckModal ({ isOpen, onClose, onCreate }) {
+  const { settings } = useSettingsContext()
+
   const [formData, setFormData] = useState({
     plateNo: '',
     truckType: '',
@@ -39,18 +37,12 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
   const [subconQuery, setSubconQuery] = useState('')
   const { createTruckFunction, isLoading } = useCreateTruck()
 
-  // Filter SUBCON_OPTIONS based on query
-  const filteredSubcons = SUBCON_OPTIONS.filter(subcon =>
-    subcon.label.toLowerCase().includes(subconQuery.toLowerCase())
-  )
-
-  // Find the selected subcon for display
-  const selectedSubcon = SUBCON_OPTIONS.find(
-    subcon => subcon.value === formData.subcon
+  // Filter subcon options from settings based on query
+  const filteredSubcons = settings.trucksDrivers.subcon.filter(subcon =>
+    subcon.toLowerCase().includes(subconQuery.toLowerCase())
   )
 
   const handleClose = () => {
-    // Clean up preview URL
     if (previewImage) {
       URL.revokeObjectURL(previewImage)
     }
@@ -58,6 +50,7 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
     onClose()
 
     setPreviewImage(null)
+    setSubconQuery('')
     setFormData({
       plateNo: '',
       truckType: '',
@@ -70,7 +63,6 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
 
   const handleChange = e => {
     const { name, value } = e.target
-
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
@@ -106,9 +98,7 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
 
     if (result.truck) {
       toast.success(result.message)
-
       console.log(result.truck)
-
       onCreate(result.truck)
       handleClose()
     } else {
@@ -167,7 +157,7 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
                   />
                 ) : (
                   <div className='h-full flex flex-col gap-2 items-center justify-center text-gray-600'>
-                    <LuUpload className='text-4xl ' />
+                    <LuUpload className='text-4xl' />
                     Upload Image
                   </div>
                 )}
@@ -199,7 +189,7 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
                   onChange={handleChange}
                 />
 
-                {/* type */}
+                {/* Truck Type */}
                 <label className='flex flex-col gap-1'>
                   <span className='uppercase text-xs text-gray-500 font-semibold'>
                     Type
@@ -210,21 +200,22 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
                       value={formData.truckType}
                       onChange={handleChange}
                       required
-                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-2 focus:outline-gray-400 appearance-none w-full'
+                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-2 focus:outline-gray-400 appearance-none w-full capitalize'
                     >
                       <option value='' disabled>
                         Select
                       </option>
-                      {TRUCK_TYPES.map((item, index) => (
-                        <option key={index} value={item.value}>
-                          {item.label}
+                      {settings.trucksDrivers.truckType.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
                         </option>
                       ))}
                     </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                   </div>
                 </label>
 
+                {/* Subcon */}
                 <div className='flex flex-col gap-1'>
                   <span className='uppercase text-xs text-gray-500 font-semibold'>
                     Subcon
@@ -238,9 +229,7 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
                     <div className='relative'>
                       <ComboboxInput
                         className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400'
-                        displayValue={() =>
-                          selectedSubcon ? selectedSubcon.label : ''
-                        }
+                        displayValue={() => formData.subcon || ''}
                         onChange={event => setSubconQuery(event.target.value)}
                         placeholder='Search subcon'
                         required
@@ -255,25 +244,23 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
                             Nothing found.
                           </div>
                         ) : (
-                          filteredSubcons.map(subcon => (
+                          filteredSubcons.map((subcon, index) => (
                             <ComboboxOption
-                              key={subcon.value}
-                              value={subcon.value}
+                              key={index}
+                              value={subcon}
                               className={({ focus }) =>
                                 `relative cursor-default select-none py-2 px-4 text-base ${
                                   focus ? 'bg-gray-50' : 'text-gray-900'
                                 } ${
-                                  formData.subcon === subcon.value
+                                  formData.subcon === subcon
                                     ? 'bg-gray-100'
                                     : ''
                                 }`
                               }
                             >
-                              {({ selected }) => (
-                                <span className='block truncate'>
-                                  {subcon.label}
-                                </span>
-                              )}
+                              <span className='block truncate capitalize'>
+                                {subcon}
+                              </span>
                             </ComboboxOption>
                           ))
                         )}
@@ -283,7 +270,7 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
                 </div>
 
                 <div className='grid grid-cols-2 gap-x-6'>
-                  {/* status */}
+                  {/* Status */}
                   <label className='flex flex-col gap-1'>
                     <span className='uppercase text-xs text-gray-500 font-semibold'>
                       Status
@@ -294,22 +281,22 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
                         value={formData.status}
                         onChange={handleChange}
                         required
-                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-2 focus:outline-gray-400 appearance-none w-full'
+                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-2 focus:outline-gray-400 appearance-none w-full capitalize'
                       >
                         <option value='' disabled>
                           Select
                         </option>
-                        {TRUCK_STATUSES.map((item, index) => (
-                          <option key={index} value={item.value}>
-                            {item.label}
+                        {settings.trucksDrivers.status.map((item, index) => (
+                          <option key={index} value={item}>
+                            {item}
                           </option>
                         ))}
                       </select>
-                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                     </div>
                   </label>
 
-                  {/* max load */}
+                  {/* Max Load */}
                   <InputField
                     label='Max Load'
                     type='number'
@@ -362,7 +349,6 @@ const InputField = ({
   isRequired = true,
   isUppercase = false,
   isCapitalize = false,
-  // New props for number formatting
   formatNumber = false,
   thousandSeparator = true,
   decimalScale = 0,

@@ -10,12 +10,8 @@ import {
   TbUsers,
   TbUserShield,
   TbTimelineEventText,
-  TbUsersGroup,
-  TbBuilding,
   TbHeartHandshake,
-  TbBuildingCommunity,
-  TbBriefcase,
-  TbNetwork
+  TbSettings
 } from 'react-icons/tb'
 
 export const SIDEBAR_ITEMS = [
@@ -92,6 +88,12 @@ export const SIDEBAR_ITEMS = [
     icon: <TbLicense />,
     name: 'Activity Logs',
     path: '/secure/activity-logs',
+    role: ['head_admin']
+  },
+  {
+    icon: <TbSettings />,
+    name: 'System Settings',
+    path: '/secure/system-settings',
     role: ['head_admin']
   }
 ]

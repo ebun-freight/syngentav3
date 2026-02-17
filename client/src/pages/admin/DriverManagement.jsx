@@ -16,8 +16,8 @@ import CreateDriverModal from '../../components/modals/CreateDriverModal'
 import DriverDetailsModal from '../../components/modals/DriverDetailsModal'
 import useGetAllDriver from '../../hooks/useGetAllDriver'
 import DeleteDriverModal from '../../components/modals/DeleteDriverModal'
-import { SUBCON_OPTIONS } from '../../utils/generalOptions'
 import { useUserContext } from '../../contexts/UserContext'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 
 const defaultFilters = {
   status: '',
@@ -46,6 +46,7 @@ function DriverManagement () {
   const [tempFilters, setTempFilters] = useState(defaultFilters)
 
   const { userData } = useUserContext()
+  const { settings } = useSettingsContext()
 
   const handleChangeFilter = e => {
     const { name, value } = e.target
@@ -68,7 +69,6 @@ function DriverManagement () {
   }
 
   const handleResetFilters = () => {
-    // check if filters are already in default state
     const isDefault = Object.keys(defaultFilters).every(
       key => tempFilters[key] === defaultFilters[key]
     )
@@ -97,7 +97,6 @@ function DriverManagement () {
     setIsDriverDetailsModalOpen(true)
   }
 
-  // for updating the all admins with the updated driver
   const handleUpdateAllAdmins = updatedDriver => {
     setAllDrivers(prevAllDrivers =>
       prevAllDrivers.map(driver =>
@@ -106,7 +105,6 @@ function DriverManagement () {
     )
   }
 
-  // for removing the deleted driver
   const handleRemoveDeletedDriver = deletedDriver => {
     setAllDrivers(prev => prev.filter(driver => driver._id !== deletedDriver))
     setIsDeleteDriverModalOpen(false)
@@ -188,11 +186,14 @@ function DriverManagement () {
                       name='status'
                       value={tempFilters.status}
                       onChange={handleChangeFilter}
-                      className='w-full focus:outline-none'
+                      className='w-full focus:outline-none capitalize'
                     >
                       <option value=''>All</option>
-                      <option value='active'>Active</option>
-                      <option value='inactive'>Inactive</option>
+                      {settings.trucksDrivers.status.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
+                        </option>
+                      ))}
                     </select>
                   </label>
 
@@ -203,12 +204,12 @@ function DriverManagement () {
                         name='subcon'
                         value={tempFilters.subcon}
                         onChange={handleChangeFilter}
-                        className='w-full focus:outline-none'
+                        className='w-full focus:outline-none capitalize'
                       >
                         <option value=''>All</option>
-                        {SUBCON_OPTIONS.map((item, index) => (
-                          <option key={index} value={item.value}>
-                            {item.label}
+                        {settings.trucksDrivers.subcon.map((item, index) => (
+                          <option key={index} value={item}>
+                            {item}
                           </option>
                         ))}
                       </select>
@@ -218,7 +219,7 @@ function DriverManagement () {
                   <button
                     onClick={handleResetFilters}
                     disabled={isLoading}
-                    className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                    className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
                   >
                     Reset
                   </button>
@@ -226,7 +227,7 @@ function DriverManagement () {
                   <button
                     onClick={handleApplyFilters}
                     disabled={isLoading}
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
                   >
                     Apply
                   </button>
@@ -348,7 +349,7 @@ function DriverManagement () {
             <div className='absolute inset-0'>
               <table className='table table-md table-pin-rows table-pin-cols'>
                 <thead>
-                  <tr className='bg-white border-b border-gray-200  text-gray-800'>
+                  <tr className='bg-white border-b border-gray-200 text-gray-800'>
                     <td>{total}</td>
                     <td>Image</td>
                     <td>Fullname</td>

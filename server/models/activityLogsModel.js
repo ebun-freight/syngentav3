@@ -5,7 +5,15 @@ const activityLogSchema = new mongoose.Schema(
     type: {
       type: String,
       required: [true, 'Type is required'],
-      enum: ['deployment', 'driver', 'truck', 'visitor', 'admin', 'subcon']
+      enum: [
+        'deployment',
+        'driver',
+        'truck',
+        'visitor',
+        'admin',
+        'subcon',
+        'system_settings'
+      ]
     },
     performedBy: {
       type: mongoose.Schema.Types.ObjectId,

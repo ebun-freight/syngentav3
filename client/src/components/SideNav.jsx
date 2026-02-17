@@ -94,18 +94,6 @@ function SideNav () {
               )
             })}
           </div>
-
-          {/* footer */}
-          <div className='p-4 border-t border-white/10  mt-auto'>
-            <p className='text-xs text-white/60 text-center leading-relaxed uppercase text-nowrap whitespace-nowrap'>
-              © {APP_CONFIG.year} {APP_CONFIG.name}
-              <br />
-              All rights reserved
-            </p>
-            {/* <p className='text-xs text-white/40 text-center mt-1 text-nowrap whitespace-nowrap'>
-              Version {APP_CONFIG.version}
-            </p> */}
-          </div>
         </div>
       </div>
 

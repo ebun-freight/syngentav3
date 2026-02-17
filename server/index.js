@@ -31,11 +31,11 @@ app.use(express.urlencoded({ extended: false }))
 app.use('/api/user', require('./routes/userRoute'))
 app.use('/api/driver', require('./routes/driverRoute'))
 app.use('/api/truck', require('./routes/truckRoute'))
-app.use('/api/tool', require('./routes/toolRoute'))
 app.use('/api/deployment', require('./routes/deploymentRoute'))
 app.use('/api/analytics', require('./routes/dashboardRoute'))
 app.use('/api/activity-logs', require('./routes/activityLogRoute'))
 app.use('/api/timeline-logs', require('./routes/timelineRoute'))
+app.use('/api/system-settings', require('./routes/systemSettingsRoute'))
 
 // error-handling middleware
 app.use(routeNotFoundHandler)

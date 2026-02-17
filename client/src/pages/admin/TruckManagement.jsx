@@ -17,13 +17,8 @@ import TruckDetailsModal from '../../components/modals/TruckDetailsModal'
 import CreateTruckModal from '../../components/modals/CreateTruckModal'
 import useGetAllTruck from '../../hooks/useGetAllTruck'
 import DeleteTruckModal from '../../components/modals/DeleteTruckModal'
-import {
-  SUBCON_OPTIONS,
-  TRUCK_CONDITIONS,
-  TRUCK_STATUSES,
-  TRUCK_TYPES
-} from '../../utils/generalOptions'
 import { useUserContext } from '../../contexts/UserContext'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 
 const defaultFilters = {
   truckType: '',
@@ -52,6 +47,7 @@ function TruckManagement () {
   const [tempFilters, setTempFilters] = useState(defaultFilters)
 
   const { userData } = useUserContext()
+  const { settings } = useSettingsContext()
 
   const handleChangeFilter = e => {
     const { name, value } = e.target
@@ -74,7 +70,6 @@ function TruckManagement () {
   }
 
   const handleResetFilters = () => {
-    // check if filters are already in default state
     const isDefault = Object.keys(defaultFilters).every(
       key => tempFilters[key] === defaultFilters[key]
     )
@@ -104,7 +99,6 @@ function TruckManagement () {
     console.log(data)
   }
 
-  // for updating the all trucks with the updated truck
   const handleUpdateAllTrucks = updatedTrucks => {
     setAllTrucks(prevAllTrucks =>
       prevAllTrucks.map(truck =>
@@ -113,7 +107,6 @@ function TruckManagement () {
     )
   }
 
-  // for removing the deleted driver
   const handleRemoveDeletedTruck = deletedTruck => {
     setAllTrucks(prev => prev.filter(truck => truck._id !== deletedTruck))
     setIsDeleteTruckModalOpen(false)
@@ -172,6 +165,7 @@ function TruckManagement () {
                 className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-sm ring-1 ring-gray-300'
               >
                 <div className='grid grid-cols-2 gap-4 p-4'>
+                  {/* Truck Type */}
                   <label
                     className={clsx(
                       'flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2',
@@ -185,17 +179,18 @@ function TruckManagement () {
                       name='truckType'
                       value={tempFilters.truckType}
                       onChange={handleChangeFilter}
-                      className='w-full focus:outline-none'
+                      className='w-full focus:outline-none capitalize'
                     >
                       <option value=''>All</option>
-                      {TRUCK_TYPES.map((item, index) => (
-                        <option key={index} value={item.value}>
-                          {item.label}
+                      {settings.trucksDrivers.truckType.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
                         </option>
                       ))}
                     </select>
                   </label>
 
+                  {/* Subcon */}
                   {userData.data.role !== 'subcon' && (
                     <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                       <p className='font-semibold'>Subcon</p>
@@ -203,35 +198,37 @@ function TruckManagement () {
                         name='subcon'
                         value={tempFilters.subcon}
                         onChange={handleChangeFilter}
-                        className='w-full focus:outline-none'
+                        className='w-full focus:outline-none capitalize'
                       >
                         <option value=''>All</option>
-                        {SUBCON_OPTIONS.map((item, index) => (
-                          <option key={index} value={item.value}>
-                            {item.label}
+                        {settings.trucksDrivers.subcon.map((item, index) => (
+                          <option key={index} value={item}>
+                            {item}
                           </option>
                         ))}
                       </select>
                     </label>
                   )}
 
+                  {/* Status */}
                   <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                     <p className='font-semibold'>Status</p>
                     <select
                       name='status'
                       value={tempFilters.status}
                       onChange={handleChangeFilter}
-                      className='w-full focus:outline-none'
+                      className='w-full focus:outline-none capitalize'
                     >
                       <option value=''>All</option>
-                      {TRUCK_STATUSES.map((item, index) => (
-                        <option key={index} value={item.value}>
-                          {item.label}
+                      {settings.trucksDrivers.status.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
                         </option>
                       ))}
                     </select>
                   </label>
 
+                  {/* Sort */}
                   <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                     <p className='font-semibold'>Sort</p>
                     <select
@@ -254,7 +251,7 @@ function TruckManagement () {
                   <button
                     onClick={handleResetFilters}
                     disabled={isLoading}
-                    className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                    className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
                   >
                     Reset
                   </button>
@@ -262,7 +259,7 @@ function TruckManagement () {
                   <button
                     onClick={handleApplyFilters}
                     disabled={isLoading}
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
                   >
                     Apply
                   </button>
@@ -377,7 +374,7 @@ function TruckManagement () {
                   tempFilters.status ||
                   tempFilters.subcon
                     ? 'Try adjusting your search terms or filters to see more results'
-                    : 'Get started by adding your first driver to the system'}
+                    : 'Get started by adding your first truck to the system'}
                 </p>
               </div>
             </div>
@@ -387,7 +384,7 @@ function TruckManagement () {
             <div className='absolute inset-0'>
               <table className='table table-md table-pin-rows table-pin-cols'>
                 <thead>
-                  <tr className='bg-white border-b border-gray-200  text-gray-800'>
+                  <tr className='bg-white border-b border-gray-200 text-gray-800'>
                     <td>{total}</td>
                     <td>Image</td>
                     <td>Plate No.</td>

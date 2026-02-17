@@ -411,25 +411,46 @@ const updateDeployment = async (req, res, next) => {
   try {
     const { id } = req.params
     const {
+      // Pickup details
+      pickupSite,
+      municipality,
+      fieldContactPerson,
+      fieldContactPersonNo,
+      scheduledPickupTime,
+      estimatedQuantityKg,
+
+      // Truck & Driver details
       truckId,
       driverId,
       truckType,
       helperCount,
-      pickupSite,
+
+      // Delivery details
       destination,
+      receivingContactPerson,
+      receivingContactPersonNo,
+      hybrid,
+      territory,
+      flagging,
+      flaggingRemarks,
       sacksCount,
+
+      // Load details
       loadWeightKg,
-      status,
+
+      // Replacement details
+      replacement,
+
+      // Timeline details
       departed,
       pickupIn,
       pickupOut,
       destArrival,
       destDeparture,
-      replacement,
-      territory,
-      hybrid,
-      flagging,
-      flaggingRemarks,
+
+      // Other tags
+      subcon,
+      status,
       cancellationReason,
       isTMOPrinted
     } = req.body
@@ -462,9 +483,8 @@ const updateDeployment = async (req, res, next) => {
       return next(createError(404, 'Deployment not found'))
     }
 
-    // ✅ NEW: Validate TMO is printed before allowing departed updates (EARLY CATCH)
+    // ✅ Validate TMO is printed before allowing departed updates
     if (departed !== undefined && departed !== null && departed.trim() !== '') {
-      // Determine the current isTMOPrinted value
       const currentIsTMOPrinted =
         isTMOPrinted !== undefined
           ? isTMOPrinted
@@ -487,29 +507,49 @@ const updateDeployment = async (req, res, next) => {
     const extractedTruckId = truckId?._id || truckId
     const extractedDriverId = driverId?._id || driverId
 
-    // Store original values including cancellationReason
+    // Store original values
     const originalValues = {
+      // Pickup details
+      pickupSite: existingDeployment.pickupSite,
+      municipality: existingDeployment.municipality,
+      fieldContactPerson: existingDeployment.fieldContactPerson,
+      fieldContactPersonNo: existingDeployment.fieldContactPersonNo,
+      scheduledPickupTime: existingDeployment.scheduledPickupTime,
+      estimatedQuantityKg: existingDeployment.estimatedQuantityKg,
+
+      // Truck & Driver details
       truckId: existingDeployment.truckId?.toString(),
       driverId: existingDeployment.driverId?.toString(),
       truckType: existingDeployment.truckType,
       helperCount: existingDeployment.helperCount,
-      pickupSite: existingDeployment.pickupSite,
+
+      // Delivery details
       destination: existingDeployment.destination,
+      receivingContactPerson: existingDeployment.receivingContactPerson,
+      receivingContactPersonNo: existingDeployment.receivingContactPersonNo,
+      hybrid: existingDeployment.hybrid,
+      territory: existingDeployment.territory,
+      flagging: existingDeployment.flagging,
+      flaggingRemarks: existingDeployment.flaggingRemarks,
       sacksCount: existingDeployment.sacksCount,
+
+      // Load details
       loadWeightKg: existingDeployment.loadWeightKg,
-      status: existingDeployment.status,
+
+      // Timeline details
       departed: existingDeployment.departed,
       pickupIn: existingDeployment.pickupIn,
       pickupOut: existingDeployment.pickupOut,
       destArrival: existingDeployment.destArrival,
       destDeparture: existingDeployment.destDeparture,
-      territory: existingDeployment.territory,
-      hybrid: existingDeployment.hybrid,
-      flagging: existingDeployment.flagging,
-      flaggingRemarks: existingDeployment.flaggingRemarks,
-      cancellationReason: existingDeployment.cancellationReason, // NEW
+
+      // Other tags
       subcon: existingDeployment.subcon,
+      status: existingDeployment.status,
+      cancellationReason: existingDeployment.cancellationReason,
       isTMOPrinted: existingDeployment.isTMOPrinted,
+
+      // Replacement details
       replacementTruckId:
         existingDeployment.replacement?.replacementTruckId?.toString(),
       replacementDriverId:
@@ -535,7 +575,7 @@ const updateDeployment = async (req, res, next) => {
     let performedDriverReplacement = false
     let replacementTruckDetails = null
     let replacementDriverDetails = null
-    let newSubcon = existingDeployment.subcon // Track subcon updates
+    let newSubcon = existingDeployment.subcon
 
     // Helper function to create timeline log for replacement
     const createReplacementTimelineLog = async (action, timestamp) => {
@@ -559,7 +599,6 @@ const updateDeployment = async (req, res, next) => {
       if (isNewReplacement) {
         performedReplacement = true
 
-        // Get truck details for logging and subcon
         const [newTruck, oldTruck, oldReplacementTruck] = await Promise.all([
           Truck.findById(replacementTruckId),
           Truck.findById(existingDeployment.truckId),
@@ -568,7 +607,6 @@ const updateDeployment = async (req, res, next) => {
             : Promise.resolve(null)
         ])
 
-        // Get plate numbers in UPPERCASE
         const oldPlateNo = (oldTruck?.plateNo || 'Unknown').toUpperCase()
         const newPlateNo = (newTruck?.plateNo || 'Unknown').toUpperCase()
         const oldReplacementPlateNo = (
@@ -584,19 +622,16 @@ const updateDeployment = async (req, res, next) => {
           oldReplacementTruck: oldReplacementTruck
         }
 
-        // Update subcon to match replacement truck's subcon
         if (newTruck) {
           newSubcon = newTruck.subcon
         }
 
         const updatePromises = []
 
-        // Set new replacement truck to deployed
         updatePromises.push(
           Truck.findByIdAndUpdate(replacementTruckId, { status: 'deployed' })
         )
 
-        // If there was an existing replacement truck, set it back to available
         if (hasExistingReplacement && oldReplacementTruck) {
           updatePromises.push(
             Truck.findByIdAndUpdate(
@@ -606,7 +641,6 @@ const updateDeployment = async (req, res, next) => {
           )
         }
 
-        // If this is the first replacement, set original truck to available
         if (!hasExistingReplacement) {
           updatePromises.push(
             Truck.findByIdAndUpdate(existingDeployment.truckId, {
@@ -617,15 +651,12 @@ const updateDeployment = async (req, res, next) => {
 
         await Promise.all(updatePromises)
 
-        // CREATE TIMELINE LOG FOR TRUCK REPLACEMENT
         if (hasExistingReplacement) {
-          // Updating an existing replacement
           await createReplacementTimelineLog(
             `Truck ${oldReplacementPlateNo} has been replaced to ${newPlateNo}`,
             replacement?.replacedAt || new Date()
           )
         } else {
-          // First-time replacement
           await createReplacementTimelineLog(
             `Truck ${oldPlateNo} has been replaced to ${newPlateNo}`,
             replacement?.replacedAt || new Date()
@@ -653,7 +684,7 @@ const updateDeployment = async (req, res, next) => {
       }
     }
 
-    // Handle driver replacement - COPYING THE SAME LOGIC AS TRUCK
+    // Handle driver replacement
     if (replacement?.replacementDriverId) {
       const replacementDriverId =
         replacement.replacementDriverId._id || replacement.replacementDriverId
@@ -665,7 +696,6 @@ const updateDeployment = async (req, res, next) => {
       if (isNewDriverReplacement) {
         performedDriverReplacement = true
 
-        // Get driver details for logging
         const [newDriver, oldDriver, oldReplacementDriver] = await Promise.all([
           Driver.findById(replacementDriverId),
           existingDeployment.driverId
@@ -695,12 +725,10 @@ const updateDeployment = async (req, res, next) => {
 
         const updatePromises = []
 
-        // Set new replacement driver to deployed
         updatePromises.push(
           Driver.findByIdAndUpdate(replacementDriverId, { status: 'deployed' })
         )
 
-        // If there was an existing replacement driver, set it back to available
         if (hasExistingDriverReplacement && oldReplacementDriver) {
           updatePromises.push(
             Driver.findByIdAndUpdate(
@@ -710,7 +738,6 @@ const updateDeployment = async (req, res, next) => {
           )
         }
 
-        // If this is the first replacement, set original driver to available
         if (!hasExistingDriverReplacement) {
           updatePromises.push(
             Driver.findByIdAndUpdate(existingDeployment.driverId, {
@@ -721,15 +748,12 @@ const updateDeployment = async (req, res, next) => {
 
         await Promise.all(updatePromises)
 
-        // CREATE TIMELINE LOG FOR DRIVER REPLACEMENT
         if (hasExistingDriverReplacement) {
-          // Updating an existing replacement
           await createReplacementTimelineLog(
             `Driver ${replacementDriverDetails.oldReplacementDriverName} has been replaced to ${replacementDriverDetails.newDriverName}`,
             replacement?.replacedAt || new Date()
           )
         } else {
-          // First-time replacement
           await createReplacementTimelineLog(
             `Driver ${replacementDriverDetails.oldDriverName} has been replaced to ${replacementDriverDetails.newDriverName}`,
             replacement?.replacedAt || new Date()
@@ -737,7 +761,6 @@ const updateDeployment = async (req, res, next) => {
         }
       }
 
-      // Update replacement object for driver
       if (existingDeployment.replacement) {
         existingDeployment.replacement.replacementDriverId = replacementDriverId
         if (replacement.replacedAt)
@@ -759,24 +782,21 @@ const updateDeployment = async (req, res, next) => {
       }
     }
 
-    // Handle regular truck change (not replacement) - FIXED SUBCON LOGIC
+    // Handle regular truck change (not replacement)
     if (
       extractedTruckId &&
       extractedTruckId.toString() !== originalValues.truckId
     ) {
-      // Get the new truck to update subcon - ONLY if not already handled by replacement
       if (!performedReplacement) {
         const newTruck = await Truck.findById(extractedTruckId)
         const oldTruck = await Truck.findById(originalValues.truckId)
 
         if (newTruck) {
-          newSubcon = newTruck.subcon // Update subcon to new truck's subcon
+          newSubcon = newTruck.subcon
 
-          // Get plate numbers in UPPERCASE
           const oldPlateNo = (oldTruck?.plateNo || 'Unknown').toUpperCase()
           const newPlateNo = (newTruck?.plateNo || 'Unknown').toUpperCase()
 
-          // CREATE TIMELINE LOG FOR REGULAR TRUCK CHANGE (not replacement)
           await createReplacementTimelineLog(
             `Truck ${oldPlateNo} has been changed to ${newPlateNo}`
           )
@@ -799,7 +819,6 @@ const updateDeployment = async (req, res, next) => {
           : 'Unknown'
         const newDriverName = `${newDriver.firstname} ${newDriver.lastname}`
 
-        // CREATE TIMELINE LOG FOR REGULAR DRIVER CHANGE (not replacement)
         await createReplacementTimelineLog(
           `Driver ${oldDriverName} has been changed to ${newDriverName}`
         )
@@ -824,17 +843,14 @@ const updateDeployment = async (req, res, next) => {
     // Handle cancellationReason
     let finalCancellationReason = existingDeployment.cancellationReason
 
-    // Clear cancellationReason if status is changing FROM canceled TO another status
     if (originalStatus === 'canceled' && finalStatus !== 'canceled') {
       finalCancellationReason = undefined
     }
 
-    // Set cancellationReason if status is changing TO canceled
     if (finalStatus === 'canceled' && originalStatus !== 'canceled') {
       finalCancellationReason = cancellationReason
     }
 
-    // Update cancellationReason if status is already canceled and reason is provided
     if (
       originalStatus === 'canceled' &&
       finalStatus === 'canceled' &&
@@ -866,7 +882,6 @@ const updateDeployment = async (req, res, next) => {
       finalStatus === 'canceled' ||
       (isDestDepartureSet && finalStatus === 'completed')
     ) {
-      // Set current active resources to available
       if (currentActiveTruckId) {
         statusUpdates.push(
           Truck.findByIdAndUpdate(currentActiveTruckId, { status: 'available' })
@@ -880,10 +895,9 @@ const updateDeployment = async (req, res, next) => {
         )
       }
     } else if (finalStatus === 'ongoing' || finalStatus === 'preparing') {
-      // Set current active resources to deployed (only if not already done in replacement)
       if (
         currentActiveTruckId &&
-        !performedReplacement && // Don't update if replacement was just performed
+        !performedReplacement &&
         (!hasExistingReplacement ||
           currentActiveTruckId.toString() !== originalValues.truckId)
       ) {
@@ -893,7 +907,7 @@ const updateDeployment = async (req, res, next) => {
       }
       if (
         currentActiveDriverId &&
-        !performedDriverReplacement && // Don't update if driver replacement was just performed
+        !performedDriverReplacement &&
         (!hasExistingDriverReplacement ||
           currentActiveDriverId.toString() !== originalValues.driverId)
       ) {
@@ -911,7 +925,7 @@ const updateDeployment = async (req, res, next) => {
       extractedTruckId &&
       extractedTruckId.toString() !== originalValues.truckId &&
       !hasExistingReplacement &&
-      !performedReplacement // Don't run if replacement was just performed
+      !performedReplacement
     ) {
       const updates = []
       if (originalValues.truckId) {
@@ -934,7 +948,7 @@ const updateDeployment = async (req, res, next) => {
       extractedDriverId &&
       extractedDriverId.toString() !== originalValues.driverId &&
       !hasExistingDriverReplacement &&
-      !performedDriverReplacement // Don't run if driver replacement was just performed
+      !performedDriverReplacement
     ) {
       const updates = []
       if (originalValues.driverId) {
@@ -953,11 +967,9 @@ const updateDeployment = async (req, res, next) => {
     }
 
     // INCREMENT TRIP COUNTS ON COMPLETION
-    // ===================================
     if (finalStatus === 'completed' && originalStatus !== 'completed') {
       const tripUpdates = []
 
-      // 1. Increment DRIVER tripCount
       if (currentActiveDriverId) {
         tripUpdates.push(
           Driver.findByIdAndUpdate(currentActiveDriverId, {
@@ -966,7 +978,6 @@ const updateDeployment = async (req, res, next) => {
         )
       }
 
-      // 2. Increment TRUCK tripCount
       if (currentActiveTruckId) {
         tripUpdates.push(
           Truck.findByIdAndUpdate(currentActiveTruckId, {
@@ -975,34 +986,80 @@ const updateDeployment = async (req, res, next) => {
         )
       }
 
-      // 3. Execute both updates
       try {
         await Promise.all(tripUpdates)
       } catch (error) {
         console.error('Error incrementing trip counts:', error)
       }
     }
-    // ===================================
 
-    // Update deployment fields INCLUDING SUBCON, CANCELLATION REASON, AND NEW FIELDS
+    // Update deployment fields
     const updateObj = {
+      // Pickup details
+      pickupSite:
+        pickupSite !== undefined ? pickupSite : existingDeployment.pickupSite,
+      municipality:
+        municipality !== undefined
+          ? municipality
+          : existingDeployment.municipality,
+      fieldContactPerson:
+        fieldContactPerson !== undefined
+          ? fieldContactPerson
+          : existingDeployment.fieldContactPerson,
+      fieldContactPersonNo:
+        fieldContactPersonNo !== undefined
+          ? fieldContactPersonNo
+          : existingDeployment.fieldContactPersonNo,
+      scheduledPickupTime:
+        scheduledPickupTime !== undefined
+          ? scheduledPickupTime
+          : existingDeployment.scheduledPickupTime,
+      estimatedQuantityKg:
+        estimatedQuantityKg !== undefined
+          ? estimatedQuantityKg
+          : existingDeployment.estimatedQuantityKg,
+
+      // Truck & Driver details
       truckId: extractedTruckId || existingDeployment.truckId,
       driverId: extractedDriverId || existingDeployment.driverId,
-      truckType: truckType || existingDeployment.truckType,
+      truckType:
+        truckType !== undefined ? truckType : existingDeployment.truckType,
       helperCount:
         helperCount !== undefined
           ? helperCount
           : existingDeployment.helperCount,
-      pickupSite: pickupSite || existingDeployment.pickupSite,
-      destination: destination || existingDeployment.destination,
+
+      // Delivery details
+      destination:
+        destination !== undefined
+          ? destination
+          : existingDeployment.destination,
+      receivingContactPerson:
+        receivingContactPerson !== undefined
+          ? receivingContactPerson
+          : existingDeployment.receivingContactPerson,
+      receivingContactPersonNo:
+        receivingContactPersonNo !== undefined
+          ? receivingContactPersonNo
+          : existingDeployment.receivingContactPersonNo,
+      hybrid: hybrid !== undefined ? hybrid : existingDeployment.hybrid,
+      territory:
+        territory !== undefined ? territory : existingDeployment.territory,
+      flagging: flagging !== undefined ? flagging : existingDeployment.flagging,
+      flaggingRemarks:
+        flaggingRemarks !== undefined
+          ? flaggingRemarks
+          : existingDeployment.flaggingRemarks,
       sacksCount:
         sacksCount !== undefined ? sacksCount : existingDeployment.sacksCount,
+
+      // Load details
       loadWeightKg:
         loadWeightKg !== undefined
           ? loadWeightKg
           : existingDeployment.loadWeightKg,
-      status:
-        finalStatus !== undefined ? finalStatus : existingDeployment.status,
+
+      // Timeline details
       departed: departed !== undefined ? departed : existingDeployment.departed,
       pickupIn: pickupIn !== undefined ? pickupIn : existingDeployment.pickupIn,
       pickupOut:
@@ -1015,16 +1072,12 @@ const updateDeployment = async (req, res, next) => {
         destDeparture !== undefined
           ? destDeparture
           : existingDeployment.destDeparture,
-      cancellationReason: finalCancellationReason, // NEW: Handle cancellation reason
-      subcon: newSubcon, // Use the updated subcon value
-      territory:
-        territory !== undefined ? territory : existingDeployment.territory,
-      hybrid: hybrid !== undefined ? hybrid : existingDeployment.hybrid,
-      flagging: flagging !== undefined ? flagging : existingDeployment.flagging,
-      flaggingRemarks:
-        flaggingRemarks !== undefined
-          ? flaggingRemarks
-          : existingDeployment.flaggingRemarks,
+
+      // Other tags
+      subcon: newSubcon,
+      status:
+        finalStatus !== undefined ? finalStatus : existingDeployment.status,
+      cancellationReason: finalCancellationReason,
       isTMOPrinted:
         isTMOPrinted !== undefined
           ? isTMOPrinted
@@ -1049,7 +1102,6 @@ const updateDeployment = async (req, res, next) => {
       newTimestamp,
       logStatus
     ) => {
-      // Action types mapping
       const actionMap = {
         departed: 'Departed from station',
         pickupIn: 'Arrived at pickup location',
@@ -1061,26 +1113,22 @@ const updateDeployment = async (req, res, next) => {
 
       const action = actionMap[actionType]
 
-      // Validate action exists
       if (!action) {
         console.error(`Invalid action type: ${actionType}`)
         return
       }
 
-      // Try to find existing timeline log for this action type
       const existingLog = await TimelineLog.findOne({
         targetDeployment: existingDeployment._id,
-        action: { $regex: `^${action}` } // Match action starting with the text
-      }).sort({ timestamp: -1 }) // Get the most recent one
+        action: { $regex: `^${action}` }
+      }).sort({ timestamp: -1 })
 
       if (existingLog) {
-        // Update existing log with new timestamp
         existingLog.timestamp = newTimestamp
         existingLog.status = logStatus
         await existingLog.save()
         timelineLogs.push(`${action} (updated)`)
       } else {
-        // Create new log if none exists
         await TimelineLog.create({
           performedBy: req.user._id,
           action,
@@ -1092,7 +1140,7 @@ const updateDeployment = async (req, res, next) => {
       }
     }
 
-    // Helper to create activity log (with deploymentCode)
+    // Helper to create activity log
     const createActivityLog = async action => {
       await ActivityLog.create({
         type: 'deployment',
@@ -1107,7 +1155,6 @@ const updateDeployment = async (req, res, next) => {
     const now = DateTime.now().setZone('Asia/Manila').toISO()
 
     if (finalStatus === 'canceled' && originalStatus !== 'canceled') {
-      // Create a NEW timeline log for cancellation (not updating existing one)
       await TimelineLog.create({
         performedBy: req.user._id,
         action: 'Deployment has been canceled',
@@ -1117,15 +1164,12 @@ const updateDeployment = async (req, res, next) => {
       })
       timelineLogs.push('Deployment has been canceled')
     } else if (finalStatus === 'canceled' && originalStatus === 'canceled') {
-      // Already canceled - check if we should update timestamp or create new log
-      // Look for the most recent canceled log
       const latestCancelLog = await TimelineLog.findOne({
         targetDeployment: existingDeployment._id,
         action: 'Deployment has been canceled',
         status: 'canceled'
       }).sort({ timestamp: -1 })
 
-      // Look for any resumed logs after the canceled log
       let shouldCreateNewCancelLog = false
       if (latestCancelLog) {
         const resumedLogAfterCancel = await TimelineLog.findOne({
@@ -1134,14 +1178,12 @@ const updateDeployment = async (req, res, next) => {
           timestamp: { $gt: latestCancelLog.timestamp }
         })
 
-        // If there's a resumed log after the last cancel, create a new cancel log
         if (resumedLogAfterCancel) {
           shouldCreateNewCancelLog = true
         }
       }
 
       if (shouldCreateNewCancelLog || !latestCancelLog) {
-        // Create new cancel log (either no previous cancel, or canceling after resume)
         await TimelineLog.create({
           performedBy: req.user._id,
           action: 'Deployment has been canceled',
@@ -1151,7 +1193,6 @@ const updateDeployment = async (req, res, next) => {
         })
         timelineLogs.push('Deployment has been canceled')
       } else {
-        // Update timestamp of existing cancel log
         latestCancelLog.timestamp = now
         await latestCancelLog.save()
         timelineLogs.push('Deployment has been canceled (timestamp updated)')
@@ -1164,7 +1205,6 @@ const updateDeployment = async (req, res, next) => {
         ongoing: 'ongoing',
         completed: 'completed'
       }
-      // Create a new log for resume (not updating)
       await TimelineLog.create({
         performedBy: req.user._id,
         action: `Deployment resumed as ${
@@ -1177,13 +1217,12 @@ const updateDeployment = async (req, res, next) => {
       timelineLogs.push('Deployment resumed')
     }
 
-    // ✅ FIXED: Only create/update timeline logs if the field didn't have a value before
-    // This prevents creating logs when updating existing timestamps
+    // Timeline logs - only if field was empty before
     if (
       departed !== undefined &&
       departed !== originalValues.departed &&
       departed &&
-      !originalValues.departed && // ✅ Only if it was empty before
+      !originalValues.departed &&
       finalStatus !== 'canceled'
     ) {
       await createOrUpdateTimelineLog(
@@ -1198,7 +1237,7 @@ const updateDeployment = async (req, res, next) => {
       pickupIn !== undefined &&
       pickupIn !== originalValues.pickupIn &&
       pickupIn &&
-      !originalValues.pickupIn && // ✅ Only if it was empty before
+      !originalValues.pickupIn &&
       finalStatus !== 'canceled'
     ) {
       await createOrUpdateTimelineLog(
@@ -1213,7 +1252,7 @@ const updateDeployment = async (req, res, next) => {
       pickupOut !== undefined &&
       pickupOut !== originalValues.pickupOut &&
       pickupOut &&
-      !originalValues.pickupOut && // ✅ Only if it was empty before
+      !originalValues.pickupOut &&
       finalStatus !== 'canceled'
     ) {
       await createOrUpdateTimelineLog(
@@ -1228,7 +1267,7 @@ const updateDeployment = async (req, res, next) => {
       destArrival !== undefined &&
       destArrival !== originalValues.destArrival &&
       destArrival &&
-      !originalValues.destArrival && // ✅ Only if it was empty before
+      !originalValues.destArrival &&
       finalStatus !== 'canceled'
     ) {
       await createOrUpdateTimelineLog(
@@ -1243,7 +1282,7 @@ const updateDeployment = async (req, res, next) => {
       destDeparture !== undefined &&
       destDeparture !== originalValues.destDeparture &&
       destDeparture &&
-      !originalValues.destDeparture && // ✅ Only if it was empty before
+      !originalValues.destDeparture &&
       finalStatus !== 'canceled'
     ) {
       await createOrUpdateTimelineLog(
@@ -1254,15 +1293,13 @@ const updateDeployment = async (req, res, next) => {
       await createActivityLog('Departed from destination')
     }
 
-    // Activity logs for truck replacement (these are separate from timeline logs)
+    // Activity logs for truck replacement
     if (performedReplacement && replacementTruckDetails) {
       if (hasExistingReplacement) {
-        // This is updating an existing replacement
         await createActivityLog(
           `Replacement truck changed from ${replacementTruckDetails.oldReplacementPlateNo} to ${replacementTruckDetails.newPlateNo}`
         )
       } else {
-        // This is a first-time replacement
         await createActivityLog(
           `Truck replaced from ${replacementTruckDetails.oldPlateNo} to ${replacementTruckDetails.newPlateNo}`
         )
@@ -1272,19 +1309,17 @@ const updateDeployment = async (req, res, next) => {
     // Activity logs for driver replacement
     if (performedDriverReplacement && replacementDriverDetails) {
       if (hasExistingDriverReplacement) {
-        // This is updating an existing replacement
         await createActivityLog(
           `Replacement driver changed from ${replacementDriverDetails.oldReplacementDriverName} to ${replacementDriverDetails.newDriverName}`
         )
       } else {
-        // This is a first-time replacement
         await createActivityLog(
           `Driver replaced from ${replacementDriverDetails.oldDriverName} to ${replacementDriverDetails.newDriverName}`
         )
       }
     }
 
-    // Activity logs for field changes (non-replacement truck/driver changes)
+    // Activity logs for field changes
     if (
       extractedTruckId !== undefined &&
       extractedTruckId.toString() !== originalValues.truckId &&
@@ -1324,10 +1359,67 @@ const updateDeployment = async (req, res, next) => {
     }
 
     if (
+      municipality !== undefined &&
+      municipality !== originalValues.municipality
+    ) {
+      await createActivityLog(`Municipality changed to ${municipality}`)
+    }
+
+    if (
+      fieldContactPerson !== undefined &&
+      fieldContactPerson !== originalValues.fieldContactPerson
+    ) {
+      await createActivityLog(
+        `Field contact person changed to ${fieldContactPerson}`
+      )
+    }
+
+    if (
+      fieldContactPersonNo !== undefined &&
+      fieldContactPersonNo !== originalValues.fieldContactPersonNo
+    ) {
+      await createActivityLog(`Field contact person number changed`)
+    }
+
+    if (
+      scheduledPickupTime !== undefined &&
+      scheduledPickupTime !== originalValues.scheduledPickupTime
+    ) {
+      await createActivityLog(
+        `Scheduled pickup time changed to ${scheduledPickupTime}`
+      )
+    }
+
+    if (
+      estimatedQuantityKg !== undefined &&
+      estimatedQuantityKg !== originalValues.estimatedQuantityKg
+    ) {
+      await createActivityLog(
+        `Estimated quantity changed to ${estimatedQuantityKg} kg`
+      )
+    }
+
+    if (
       destination !== undefined &&
       destination !== originalValues.destination
     ) {
       await createActivityLog(`Destination changed to ${destination}`)
+    }
+
+    if (
+      receivingContactPerson !== undefined &&
+      receivingContactPerson !== originalValues.receivingContactPerson
+    ) {
+      await createActivityLog(
+        `Receiving contact person changed to ${receivingContactPerson}`
+      )
+    }
+
+    if (
+      receivingContactPersonNo !== undefined &&
+      receivingContactPersonNo !== originalValues.receivingContactPersonNo
+    ) {
+      await createActivityLog(`Receiving contact person number changed`)
     }
 
     if (sacksCount !== undefined && sacksCount !== originalValues.sacksCount) {
@@ -1345,7 +1437,6 @@ const updateDeployment = async (req, res, next) => {
       await createActivityLog(`Status changed to ${finalStatus}`)
     }
 
-    // Activity logs for new fields
     if (territory !== undefined && territory !== originalValues.territory) {
       await createActivityLog(`Territory changed to ${territory}`)
     }
@@ -1365,12 +1456,10 @@ const updateDeployment = async (req, res, next) => {
       await createActivityLog(`Flagging remarks updated`)
     }
 
-    // Activity log for subcon change
     if (newSubcon !== originalValues.subcon) {
       await createActivityLog(`Subcon changed to ${newSubcon}`)
     }
 
-    // Activity log for cancellation reason change
     if (finalCancellationReason !== originalValues.cancellationReason) {
       if (finalStatus === 'canceled' && finalCancellationReason) {
         await createActivityLog(
@@ -1385,7 +1474,6 @@ const updateDeployment = async (req, res, next) => {
       }
     }
 
-    // Activity log for isTMOPrinted change
     if (
       isTMOPrinted !== undefined &&
       isTMOPrinted !== originalValues.isTMOPrinted
@@ -1411,6 +1499,8 @@ const updateDeployment = async (req, res, next) => {
     next(error)
   }
 }
+
+module.exports = { updateDeployment }
 
 // delete deployment
 const softDeleteDeployment = async (req, res, next) => {

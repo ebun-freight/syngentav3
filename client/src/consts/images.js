@@ -12,6 +12,7 @@ import ebun_logo_light from '../assets/ebun_logo_light.png'
 import ebun_logo_dark from '../assets/ebun_logo_dark.png'
 import truck_icon from '../assets/truck_icon.png'
 import corn from '../assets/corn.png'
+import error_404_illustration from '../assets/error_404_illustration.svg'
 
 export {
   placeholder_user,
@@ -27,5 +28,6 @@ export {
   ebun_logo_light,
   ebun_logo_dark,
   truck_icon,
-  corn
+  corn,
+  error_404_illustration
 }

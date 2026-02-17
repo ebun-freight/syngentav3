@@ -16,6 +16,9 @@ import TimelineLogs from './pages/admin/TimelineLogs'
 import MyProfile from './pages/admin/MyProfile'
 import SubconManagement from './pages/admin/SubconManagement'
 import { UIProvider } from './contexts/UIContext'
+import NotFoundPage from './pages/public/NotFoundPage'
+import SystemSettingsPage from './pages/admin/SystemSettingsPage'
+import { SettingsProvider } from './contexts/SettingsContext'
 
 function App () {
   return (
@@ -42,9 +45,11 @@ function App () {
         <Route
           element={
             <UIProvider>
-              <UserProvider>
-                <UserLayout />
-              </UserProvider>
+              <SettingsProvider>
+                <UserProvider>
+                  <UserLayout />
+                </UserProvider>
+              </SettingsProvider>
             </UIProvider>
           }
         >
@@ -74,7 +79,15 @@ function App () {
             element={<SubconManagement />}
           />
           <Route path='/secure/activity-logs' element={<ActivityLogsPage />} />
+
+          <Route
+            path='/secure/system-settings'
+            element={<SystemSettingsPage />}
+          />
         </Route>
+
+        {/* 404 page */}
+        <Route path='*' element={<NotFoundPage />} />
       </Routes>
     </>
   )
