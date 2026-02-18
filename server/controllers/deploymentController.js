@@ -19,12 +19,7 @@ const getActiveSubcon = deployment => {
 const createDeployment = async (req, res, next) => {
   try {
     const {
-      pickupSite,
-      municipality,
-      fieldContactPerson,
-      fieldContactPersonNo,
-      scheduledPickupTime,
-      estimatedQuantityKg,
+      pickups,
       truckId,
       driverId,
       truckType,
@@ -39,8 +34,6 @@ const createDeployment = async (req, res, next) => {
       totalSacksCount,
       loadWeightKg,
       departed,
-      pickupIn,
-      pickupOut,
       destArrival,
       destDeparture,
       isTMOPrinted = false
@@ -51,12 +44,6 @@ const createDeployment = async (req, res, next) => {
     }
 
     validateFields({
-      pickupSite,
-      municipality,
-      fieldContactPerson,
-      fieldContactPersonNo,
-      scheduledPickupTime,
-      estimatedQuantityKg,
       truckId,
       driverId,
       truckType,
@@ -69,6 +56,22 @@ const createDeployment = async (req, res, next) => {
       flagging
     })
 
+    if (!pickups || !Array.isArray(pickups) || pickups.length === 0) {
+      return next(createError(400, 'At least one pickup is required'))
+    }
+
+    for (let i = 0; i < pickups.length; i++) {
+      const p = pickups[i]
+      validateFields({
+        [`pickups[${i}].pickupSite`]: p.pickupSite,
+        [`pickups[${i}].municipality`]: p.municipality,
+        [`pickups[${i}].fieldContactPerson`]: p.fieldContactPerson,
+        [`pickups[${i}].fieldContactPersonNo`]: p.fieldContactPersonNo,
+        [`pickups[${i}].scheduledPickupTime`]: p.scheduledPickupTime,
+        [`pickups[${i}].estimatedQuantityKg`]: p.estimatedQuantityKg
+      })
+    }
+
     const truck = await Truck.findById(truckId)
     if (!truck) return next(createError(404, 'Truck not found'))
     if (truck.status === 'deployed')
@@ -80,12 +83,17 @@ const createDeployment = async (req, res, next) => {
       return next(createError(400, 'Driver is already deployed'))
 
     const newDeployment = await Deployment.create({
-      pickupSite,
-      municipality,
-      fieldContactPerson,
-      fieldContactPersonNo,
-      scheduledPickupTime,
-      estimatedQuantityKg,
+      pickups: pickups.map(p => ({
+        pickupSite: p.pickupSite,
+        municipality: p.municipality,
+        fieldContactPerson: p.fieldContactPerson,
+        fieldContactPersonNo: p.fieldContactPersonNo,
+        scheduledPickupTime: p.scheduledPickupTime,
+        estimatedQuantityKg: p.estimatedQuantityKg,
+        pickupIn: p.pickupIn || '',
+        pickupOut: p.pickupOut || '',
+        sacksCount: p.sacksCount || 0
+      })),
       truckId,
       driverId,
       truckType,
@@ -100,8 +108,6 @@ const createDeployment = async (req, res, next) => {
       totalSacksCount: totalSacksCount || 0,
       loadWeightKg: loadWeightKg || 0,
       departed: departed || '',
-      pickupIn: pickupIn || '',
-      pickupOut: pickupOut || '',
       destArrival: destArrival || '',
       destDeparture: destDeparture || '',
       isTMOPrinted,
@@ -164,7 +170,6 @@ const getAllDeployments = async (req, res, next) => {
 
     console.log(req.query)
 
-    // Determine subcon filter target
     const subconFilter =
       req.user.role === 'subcon' && req.user.subcon
         ? req.user.subcon.toLowerCase()
@@ -172,7 +177,6 @@ const getAllDeployments = async (req, res, next) => {
         ? subcon.toLowerCase()
         : null
 
-    // Build base query (no subcon filter at DB level — handled in JS after populate)
     let baseQuery = Deployment.find()
 
     if (includeDeleted !== 'true') {
@@ -249,14 +253,12 @@ const getAllDeployments = async (req, res, next) => {
 
     let deployments = await baseQuery
 
-    // Filter by subcon in JS (based on active truck's subcon)
     if (subconFilter) {
       deployments = deployments.filter(
         deployment => getActiveSubcon(deployment).toLowerCase() === subconFilter
       )
     }
 
-    // Filter by search in JS
     if (search && search !== '') {
       const searchLower = search.toLowerCase()
       deployments = deployments.filter(deployment => {
@@ -277,27 +279,30 @@ const getAllDeployments = async (req, res, next) => {
         ).toLowerCase()
         const activeSubcon = getActiveSubcon(deployment).toLowerCase()
         const destination = (deployment.destination || '').toLowerCase()
-        const pickupSite = (deployment.pickupSite || '').toLowerCase()
         const truckType = (deployment.truckType || '').toLowerCase()
         const deploymentCode = (deployment.deploymentCode || '').toLowerCase()
         const territoryValue = (deployment.territory || '').toLowerCase()
+
+        const matchesPickup = (deployment.pickups || []).some(p =>
+          [p.pickupSite, p.municipality, p.fieldContactPerson]
+            .map(v => (v || '').toLowerCase())
+            .some(v => v.includes(searchLower))
+        )
 
         return (
           activeTruckPlate.includes(searchLower) ||
           activeDriverFirstname.includes(searchLower) ||
           activeDriverLastname.includes(searchLower) ||
           destination.includes(searchLower) ||
-          pickupSite.includes(searchLower) ||
           truckType.includes(searchLower) ||
           deploymentCode.includes(searchLower) ||
           activeSubcon.includes(searchLower) ||
-          territoryValue.includes(searchLower)
+          territoryValue.includes(searchLower) ||
+          matchesPickup
         )
       })
     }
 
-    // For total count: if subcon or search filter is active, we need a full (unpaginated) query
-    // Otherwise count at DB level for performance
     let total
 
     if (subconFilter || (search && search !== '')) {
@@ -354,18 +359,24 @@ const getAllDeployments = async (req, res, next) => {
           ).toLowerCase()
           const activeSubcon = getActiveSubcon(deployment).toLowerCase()
           const destination = (deployment.destination || '').toLowerCase()
-          const pickupSite = (deployment.pickupSite || '').toLowerCase()
           const truckType = (deployment.truckType || '').toLowerCase()
           const deploymentCode = (deployment.deploymentCode || '').toLowerCase()
           const territoryValue = (deployment.territory || '').toLowerCase()
+
+          const matchesPickup = (deployment.pickups || []).some(p =>
+            [p.pickupSite, p.municipality, p.fieldContactPerson]
+              .map(v => (v || '').toLowerCase())
+              .some(v => v.includes(searchLower))
+          )
+
           return (
             activeTruckPlate.includes(searchLower) ||
             destination.includes(searchLower) ||
-            pickupSite.includes(searchLower) ||
             truckType.includes(searchLower) ||
             deploymentCode.includes(searchLower) ||
             activeSubcon.includes(searchLower) ||
-            territoryValue.includes(searchLower)
+            territoryValue.includes(searchLower) ||
+            matchesPickup
           )
         })
       }
@@ -417,12 +428,8 @@ const updateDeployment = async (req, res, next) => {
   try {
     const { id } = req.params
     const {
-      pickupSite,
-      municipality,
-      fieldContactPerson,
-      fieldContactPersonNo,
-      scheduledPickupTime,
-      estimatedQuantityKg,
+      pickups,
+      pickupUpdates,
       truckId,
       driverId,
       truckType,
@@ -438,8 +445,6 @@ const updateDeployment = async (req, res, next) => {
       loadWeightKg,
       replacement,
       departed,
-      pickupIn,
-      pickupOut,
       destArrival,
       destDeparture,
       status,
@@ -492,12 +497,7 @@ const updateDeployment = async (req, res, next) => {
     const extractedDriverId = driverId?._id || driverId
 
     const originalValues = {
-      pickupSite: existingDeployment.pickupSite,
-      municipality: existingDeployment.municipality,
-      fieldContactPerson: existingDeployment.fieldContactPerson,
-      fieldContactPersonNo: existingDeployment.fieldContactPersonNo,
-      scheduledPickupTime: existingDeployment.scheduledPickupTime,
-      estimatedQuantityKg: existingDeployment.estimatedQuantityKg,
+      pickups: existingDeployment.pickups,
       truckId: existingDeployment.truckId?.toString(),
       driverId: existingDeployment.driverId?.toString(),
       truckType: existingDeployment.truckType,
@@ -512,8 +512,6 @@ const updateDeployment = async (req, res, next) => {
       totalSacksCount: existingDeployment.totalSacksCount,
       loadWeightKg: existingDeployment.loadWeightKg,
       departed: existingDeployment.departed,
-      pickupIn: existingDeployment.pickupIn,
-      pickupOut: existingDeployment.pickupOut,
       destArrival: existingDeployment.destArrival,
       destDeparture: existingDeployment.destDeparture,
       status: existingDeployment.status,
@@ -912,30 +910,36 @@ const updateDeployment = async (req, res, next) => {
       }
     }
 
-    // Update deployment fields (no subcon field anymore)
+    // Apply pickups update — Option A: full array replacement
+    if (pickups !== undefined) {
+      existingDeployment.pickups = pickups.map(p => ({
+        pickupSite: p.pickupSite,
+        municipality: p.municipality,
+        fieldContactPerson: p.fieldContactPerson,
+        fieldContactPersonNo: p.fieldContactPersonNo,
+        scheduledPickupTime: p.scheduledPickupTime,
+        estimatedQuantityKg: p.estimatedQuantityKg,
+        pickupIn: p.pickupIn || '',
+        pickupOut: p.pickupOut || '',
+        sacksCount: p.sacksCount || 0
+      }))
+    }
+
+    // Apply pickups update — Option B: per-stop timeline patches
+    // Body shape: pickupUpdates: [{ index: 0, pickupIn: '...', pickupOut: '...', sacksCount: 10 }]
+    if (pickupUpdates && Array.isArray(pickupUpdates)) {
+      for (const update of pickupUpdates) {
+        const stop = existingDeployment.pickups[update.index]
+        if (!stop) continue
+        if (update.pickupIn !== undefined) stop.pickupIn = update.pickupIn
+        if (update.pickupOut !== undefined) stop.pickupOut = update.pickupOut
+        if (update.sacksCount !== undefined) stop.sacksCount = update.sacksCount
+      }
+      existingDeployment.markModified('pickups')
+    }
+
+    // Update top-level fields
     const updateObj = {
-      pickupSite:
-        pickupSite !== undefined ? pickupSite : existingDeployment.pickupSite,
-      municipality:
-        municipality !== undefined
-          ? municipality
-          : existingDeployment.municipality,
-      fieldContactPerson:
-        fieldContactPerson !== undefined
-          ? fieldContactPerson
-          : existingDeployment.fieldContactPerson,
-      fieldContactPersonNo:
-        fieldContactPersonNo !== undefined
-          ? fieldContactPersonNo
-          : existingDeployment.fieldContactPersonNo,
-      scheduledPickupTime:
-        scheduledPickupTime !== undefined
-          ? scheduledPickupTime
-          : existingDeployment.scheduledPickupTime,
-      estimatedQuantityKg:
-        estimatedQuantityKg !== undefined
-          ? estimatedQuantityKg
-          : existingDeployment.estimatedQuantityKg,
       truckId: extractedTruckId || existingDeployment.truckId,
       driverId: extractedDriverId || existingDeployment.driverId,
       truckType:
@@ -973,9 +977,6 @@ const updateDeployment = async (req, res, next) => {
           ? loadWeightKg
           : existingDeployment.loadWeightKg,
       departed: departed !== undefined ? departed : existingDeployment.departed,
-      pickupIn: pickupIn !== undefined ? pickupIn : existingDeployment.pickupIn,
-      pickupOut:
-        pickupOut !== undefined ? pickupOut : existingDeployment.pickupOut,
       destArrival:
         destArrival !== undefined
           ? destArrival
@@ -996,7 +997,7 @@ const updateDeployment = async (req, res, next) => {
     Object.assign(existingDeployment, updateObj)
     await existingDeployment.save()
 
-    // Logging helpers
+    // Logging
     const timelineLogs = []
     const activityLogs = []
 
@@ -1007,8 +1008,6 @@ const updateDeployment = async (req, res, next) => {
     ) => {
       const actionMap = {
         departed: 'Departed from station',
-        pickupIn: 'Arrived at pickup location',
-        pickupOut: 'Departed from pickup location',
         destArrival: 'Arrived at destination',
         destDeparture: 'Departed from destination',
         canceled: 'Deployment has been canceled'
@@ -1050,6 +1049,48 @@ const updateDeployment = async (req, res, next) => {
     }
 
     const now = DateTime.now().setZone('Asia/Manila').toISO()
+
+    // Per-pickup timeline logs for pickupIn / pickupOut per stop
+    if (pickupUpdates && Array.isArray(pickupUpdates)) {
+      for (const update of pickupUpdates) {
+        const stopLabel = `Stop #${update.index + 1}`
+        const originalStop = originalValues.pickups[update.index]
+
+        if (
+          update.pickupIn &&
+          update.pickupIn !== (originalStop?.pickupIn || '') &&
+          !originalStop?.pickupIn
+        ) {
+          await TimelineLog.create({
+            performedBy: req.user._id,
+            action: `Arrived at pickup location (${stopLabel})`,
+            status: finalStatus || 'ongoing',
+            timestamp: update.pickupIn,
+            targetDeployment: existingDeployment._id
+          })
+          timelineLogs.push(`pickupIn ${stopLabel}`)
+          await createActivityLog(`Arrived at pickup location (${stopLabel})`)
+        }
+
+        if (
+          update.pickupOut &&
+          update.pickupOut !== (originalStop?.pickupOut || '') &&
+          !originalStop?.pickupOut
+        ) {
+          await TimelineLog.create({
+            performedBy: req.user._id,
+            action: `Departed from pickup location (${stopLabel})`,
+            status: finalStatus || 'ongoing',
+            timestamp: update.pickupOut,
+            targetDeployment: existingDeployment._id
+          })
+          timelineLogs.push(`pickupOut ${stopLabel}`)
+          await createActivityLog(
+            `Departed from pickup location (${stopLabel})`
+          )
+        }
+      }
+    }
 
     if (finalStatus === 'canceled' && originalStatus !== 'canceled') {
       await TimelineLog.create({
@@ -1124,36 +1165,6 @@ const updateDeployment = async (req, res, next) => {
         finalStatus || 'ongoing'
       )
       await createActivityLog('Departed from station')
-    }
-
-    if (
-      pickupIn !== undefined &&
-      pickupIn !== originalValues.pickupIn &&
-      pickupIn &&
-      !originalValues.pickupIn &&
-      finalStatus !== 'canceled'
-    ) {
-      await createOrUpdateTimelineLog(
-        'pickupIn',
-        pickupIn,
-        finalStatus || 'ongoing'
-      )
-      await createActivityLog('Arrived at pickup location')
-    }
-
-    if (
-      pickupOut !== undefined &&
-      pickupOut !== originalValues.pickupOut &&
-      pickupOut &&
-      !originalValues.pickupOut &&
-      finalStatus !== 'canceled'
-    ) {
-      await createOrUpdateTimelineLog(
-        'pickupOut',
-        pickupOut,
-        finalStatus || 'ongoing'
-      )
-      await createActivityLog('Departed from pickup location')
     }
 
     if (
@@ -1236,39 +1247,6 @@ const updateDeployment = async (req, res, next) => {
       await createActivityLog(`Truck type changed to ${truckType}`)
     if (helperCount !== undefined && helperCount !== originalValues.helperCount)
       await createActivityLog(`Helper count changed to ${helperCount}`)
-    if (pickupSite !== undefined && pickupSite !== originalValues.pickupSite)
-      await createActivityLog(`Pickup site changed to ${pickupSite}`)
-    if (
-      municipality !== undefined &&
-      municipality !== originalValues.municipality
-    )
-      await createActivityLog(`Municipality changed to ${municipality}`)
-    if (
-      fieldContactPerson !== undefined &&
-      fieldContactPerson !== originalValues.fieldContactPerson
-    )
-      await createActivityLog(
-        `Field contact person changed to ${fieldContactPerson}`
-      )
-    if (
-      fieldContactPersonNo !== undefined &&
-      fieldContactPersonNo !== originalValues.fieldContactPersonNo
-    )
-      await createActivityLog(`Field contact person number changed`)
-    if (
-      scheduledPickupTime !== undefined &&
-      scheduledPickupTime !== originalValues.scheduledPickupTime
-    )
-      await createActivityLog(
-        `Scheduled pickup time changed to ${scheduledPickupTime}`
-      )
-    if (
-      estimatedQuantityKg !== undefined &&
-      estimatedQuantityKg !== originalValues.estimatedQuantityKg
-    )
-      await createActivityLog(
-        `Estimated quantity changed to ${estimatedQuantityKg} kg`
-      )
     if (destination !== undefined && destination !== originalValues.destination)
       await createActivityLog(`Destination changed to ${destination}`)
     if (
@@ -1328,6 +1306,23 @@ const updateDeployment = async (req, res, next) => {
       await createActivityLog(
         `TMO ${isTMOPrinted ? 'exported and printed' : 'not exported'}`
       )
+    }
+
+    // Log pickup array structural changes
+    if (pickups !== undefined) {
+      const oldCount = originalValues.pickups?.length || 0
+      const newCount = pickups.length
+      if (newCount > oldCount) {
+        await createActivityLog(
+          `Added ${newCount - oldCount} pickup stop(s) (total: ${newCount})`
+        )
+      } else if (newCount < oldCount) {
+        await createActivityLog(
+          `Removed ${oldCount - newCount} pickup stop(s) (total: ${newCount})`
+        )
+      } else {
+        await createActivityLog(`Pickup stops updated`)
+      }
     }
 
     const populatedDeployment = await Deployment.findById(id)

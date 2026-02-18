@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Dialog,
   DialogBackdrop,
@@ -11,23 +11,26 @@ import {
   ComboboxButton
 } from '@headlessui/react'
 import { IoClose } from 'react-icons/io5'
-import { useState } from 'react'
 import { MdKeyboardArrowDown } from 'react-icons/md'
 import { toast } from 'react-toastify'
 import clsx from 'clsx'
 import { PiMapPinAreaFill } from 'react-icons/pi'
+import { FiPlus, FiTrash2 } from 'react-icons/fi'
 import useCreateDeployment from '../../hooks/useCreateDeployment'
 import { NumericFormat } from 'react-number-format'
 import { useSettingsContext } from '../../contexts/SettingsContext'
 
-const defaultValue = {
-  // pickup details
+const defaultPickup = {
   pickupSite: '',
   municipality: '',
   fieldContactPerson: '',
   fieldContactPersonNo: '',
   scheduledPickupTime: '',
-  estimatedQuantityKg: '',
+  estimatedQuantityKg: ''
+}
+
+const defaultValue = {
+  pickups: [{ ...defaultPickup }],
 
   // truck & driver details
   truckId: '',
@@ -50,26 +53,20 @@ const defaultValue = {
 
   // timeline details
   departed: '',
-  pickupIn: '',
-  pickupOut: '',
   destArrival: '',
-  destDeparture: '',
-
-  // other tags
-  subcon: ''
+  destDeparture: ''
 }
+
+const MAX_PICKUPS = 10
 
 function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) {
   const { settings } = useSettingsContext()
-
   const [formData, setFormData] = useState(defaultValue)
   const { createDeploymentFunction, isLoading } = useCreateDeployment()
 
-  // Search states
   const [truckQuery, setTruckQuery] = useState('')
   const [driverQuery, setDriverQuery] = useState('')
 
-  // Prepare options with filtering and sorting
   const truckOptions =
     trucks
       ?.filter(truck => truck.status === 'available')
@@ -94,7 +91,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
         tripCount: driver.tripCount || 0
       })) || []
 
-  // Filter options based on search
   const filteredTrucks =
     truckQuery === ''
       ? truckOptions
@@ -109,12 +105,8 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
           driver.label.toLowerCase().includes(driverQuery.toLowerCase())
         )
 
-  const selectedTruck = truckOptions.find(
-    truck => truck.value === formData.truckId
-  )
-  const selectedDriver = driverOptions.find(
-    driver => driver.value === formData.driverId
-  )
+  const selectedTruck = truckOptions.find(t => t.value === formData.truckId)
+  const selectedDriver = driverOptions.find(d => d.value === formData.driverId)
 
   const handleClose = () => {
     onClose()
@@ -128,19 +120,45 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  // create deployment
+  // Pickup array handlers
+  const handlePickupChange = (index, e) => {
+    const { name, value } = e.target
+    setFormData(prev => {
+      const updated = [...prev.pickups]
+      updated[index] = { ...updated[index], [name]: value }
+      return { ...prev, pickups: updated }
+    })
+  }
+
+  const handlePickupNumericChange = (index, name, floatValue) => {
+    setFormData(prev => {
+      const updated = [...prev.pickups]
+      updated[index] = { ...updated[index], [name]: floatValue || '' }
+      return { ...prev, pickups: updated }
+    })
+  }
+
+  const addPickup = () => {
+    if (formData.pickups.length >= MAX_PICKUPS) return
+    setFormData(prev => ({
+      ...prev,
+      pickups: [...prev.pickups, { ...defaultPickup }]
+    }))
+  }
+
+  const removePickup = index => {
+    if (formData.pickups.length <= 1) return
+    setFormData(prev => ({
+      ...prev,
+      pickups: prev.pickups.filter((_, i) => i !== index)
+    }))
+  }
+
   const handleSubmit = async e => {
     e.preventDefault()
-
-    console.log(e.target.name)
-
-    console.log('FROM MODAL', formData)
-
     const result = await createDeploymentFunction(formData)
-
     if (result.deployment) {
       toast.success(result.message)
-      console.log(result.truck)
       onCreate(result.deployment)
       handleClose()
     } else {
@@ -150,7 +168,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
 
   return (
     <Dialog open={isOpen} onClose={handleClose} className='relative z-50'>
-      {/* Backdrop */}
       <TransitionChild
         enter='ease-out duration-300'
         enterFrom='opacity-0'
@@ -162,7 +179,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
         <DialogBackdrop className='fixed inset-0 bg-black/30 backdrop-blur-sm' />
       </TransitionChild>
 
-      {/* Modal container */}
       <div className='fixed inset-0 flex items-center justify-center p-4'>
         <TransitionChild
           enter='ease-out duration-300'
@@ -173,7 +189,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
           leaveTo='opacity-0 -translate-y-8'
         >
           <DialogPanel className='font-poppins text-gray-900 w-full max-w-4xl rounded-2xl bg-white shadow-xl overflow-hidden relative max-h-[90vh] overflow-y-auto scrollbar-thin'>
-            {/* close button */}
             <button
               onClick={handleClose}
               className='absolute top-4 right-4 hover:bg-gray-100 p-1 rounded-full text-2xl text-gray-600 cursor-pointer transition-all z-10'
@@ -186,70 +201,124 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 Create a Deployment
               </h2>
 
-              {/* PICKUP DETAILS SECTION */}
+              {/* PICKUP STOPS SECTION */}
               <div className='mb-6'>
-                <h3 className='text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide'>
-                  Pickup Details
-                </h3>
-                <div className='grid grid-cols-3 gap-x-6 gap-y-4'>
-                  <InputField
-                    label='Pick-up Site'
-                    type='text'
-                    name='pickupSite'
-                    placeholder='Pick-up Site'
-                    value={formData.pickupSite}
-                    onChange={handleChange}
-                  />
-
-                  <InputField
-                    label='Field Contact Person'
-                    type='text'
-                    name='fieldContactPerson'
-                    placeholder='Field Contact Person'
-                    value={formData.fieldContactPerson}
-                    onChange={handleChange}
-                  />
-
-                  <InputField
-                    label='Scheduled Pickup Time'
-                    type='datetime-local'
-                    name='scheduledPickupTime'
-                    placeholder='Scheduled Pickup Time'
-                    value={formData.scheduledPickupTime}
-                    onChange={handleChange}
-                  />
-
-                  <InputField
-                    label='Municipality'
-                    type='text'
-                    name='municipality'
-                    placeholder='Municipality'
-                    value={formData.municipality}
-                    onChange={handleChange}
-                  />
-
-                  <InputField
-                    label='Field Contact Person No.'
-                    type='phone'
-                    name='fieldContactPersonNo'
-                    placeholder='Contact Number'
-                    value={formData.fieldContactPersonNo}
-                    onChange={handleChange}
-                    plateNoMaxLength={11}
-                  />
-
-                  <InputField
-                    label='Estimated Quantity (Kg)'
-                    type='number'
-                    name='estimatedQuantityKg'
-                    placeholder='Estimated Quantity'
-                    value={formData.estimatedQuantityKg}
-                    onChange={handleChange}
-                    formatNumber={true}
-                    thousandSeparator={true}
-                    decimalScale={2}
-                  />
+                <div className='flex items-center justify-between mb-3'>
+                  <h3 className='text-sm font-semibold text-gray-700 uppercase tracking-wide'>
+                    Pickup Details
+                    <span className='ml-2 text-xs font-normal text-gray-400 normal-case tracking-normal'>
+                      ({formData.pickups.length}/{MAX_PICKUPS} stops)
+                    </span>
+                  </h3>
+                  <button
+                    type='button'
+                    onClick={addPickup}
+                    disabled={formData.pickups.length >= MAX_PICKUPS}
+                    className='flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors'
+                  >
+                    <FiPlus className='text-sm' />
+                    Add Stop
+                  </button>
                 </div>
+
+                <div className='flex flex-col gap-4'>
+                  {formData.pickups.map((pickup, index) => (
+                    <div
+                      key={index}
+                      className='border border-gray-200 rounded-xl p-4 relative bg-gray-50/50'
+                    >
+                      {/* Stop header */}
+                      <div className='flex items-center justify-between mb-3'>
+                        <span className='text-xs font-semibold text-emerald-600 uppercase tracking-wide'>
+                          Stop #{index + 1}
+                        </span>
+                        {formData.pickups.length > 1 && (
+                          <button
+                            type='button'
+                            onClick={() => removePickup(index)}
+                            className='text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-colors'
+                            title='Remove stop'
+                          >
+                            <FiTrash2 className='text-sm' />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className='grid grid-cols-3 gap-x-6 gap-y-4'>
+                        <InputField
+                          label='Pick-up Site'
+                          type='text'
+                          name='pickupSite'
+                          placeholder='Pick-up Site'
+                          value={pickup.pickupSite}
+                          onChange={e => handlePickupChange(index, e)}
+                        />
+                        <InputField
+                          label='Field Contact Person'
+                          type='text'
+                          name='fieldContactPerson'
+                          placeholder='Field Contact Person'
+                          value={pickup.fieldContactPerson}
+                          onChange={e => handlePickupChange(index, e)}
+                        />
+                        <InputField
+                          label='Scheduled Pickup Time'
+                          type='datetime-local'
+                          name='scheduledPickupTime'
+                          placeholder='Scheduled Pickup Time'
+                          value={pickup.scheduledPickupTime}
+                          onChange={e => handlePickupChange(index, e)}
+                        />
+                        <InputField
+                          label='Municipality'
+                          type='text'
+                          name='municipality'
+                          placeholder='Municipality'
+                          value={pickup.municipality}
+                          onChange={e => handlePickupChange(index, e)}
+                        />
+                        <InputField
+                          label='Field Contact Person No.'
+                          type='tel'
+                          name='fieldContactPersonNo'
+                          placeholder='Contact Number'
+                          value={pickup.fieldContactPersonNo}
+                          onChange={e => handlePickupChange(index, e)}
+                          plateNoMaxLength={11}
+                        />
+                        {/* Estimated Quantity numeric field */}
+                        <label className='flex flex-col gap-1'>
+                          <span className='uppercase text-xs text-gray-500 font-semibold text-nowrap'>
+                            Estimated Quantity (Kg)
+                          </span>
+                          <NumericFormat
+                            thousandSeparator
+                            decimalScale={2}
+                            allowNegative={false}
+                            value={pickup.estimatedQuantityKg}
+                            onValueChange={values =>
+                              handlePickupNumericChange(
+                                index,
+                                'estimatedQuantityKg',
+                                values.floatValue
+                              )
+                            }
+                            placeholder='Estimated Quantity'
+                            required
+                            className='outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400 bg-white'
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add stop hint when at max */}
+                {formData.pickups.length >= MAX_PICKUPS && (
+                  <p className='text-xs text-gray-400 mt-2 text-center'>
+                    Maximum of {MAX_PICKUPS} pickup stops reached.
+                  </p>
+                )}
               </div>
 
               {/* TRUCK & DRIVER DETAILS SECTION */}
@@ -272,10 +341,8 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                       <div className='relative'>
                         <ComboboxInput
                           className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
-                          displayValue={truck =>
-                            selectedTruck ? selectedTruck.label : ''
-                          }
-                          onChange={event => setTruckQuery(event.target.value)}
+                          displayValue={() => selectedTruck?.label || ''}
+                          onChange={e => setTruckQuery(e.target.value)}
                           placeholder='Search plate no.'
                           required
                           autoComplete='off'
@@ -303,11 +370,9 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                                   }`
                                 }
                               >
-                                {({ selected }) => (
-                                  <span className='block truncate capitalize'>
-                                    {truck.label}
-                                  </span>
-                                )}
+                                <span className='block truncate capitalize'>
+                                  {truck.label}
+                                </span>
                               </ComboboxOption>
                             ))
                           )}
@@ -330,10 +395,8 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                       <div className='relative'>
                         <ComboboxInput
                           className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
-                          displayValue={driver =>
-                            selectedDriver ? selectedDriver.label : ''
-                          }
-                          onChange={event => setDriverQuery(event.target.value)}
+                          displayValue={() => selectedDriver?.label || ''}
+                          onChange={e => setDriverQuery(e.target.value)}
                           placeholder='Search driver name'
                           required
                           autoComplete='off'
@@ -361,11 +424,9 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                                   }`
                                 }
                               >
-                                {({ selected }) => (
-                                  <span className='block truncate capitalize'>
-                                    {driver.label}
-                                  </span>
-                                )}
+                                <span className='block truncate capitalize'>
+                                  {driver.label}
+                                </span>
                               </ComboboxOption>
                             ))
                           )}
@@ -613,10 +674,7 @@ const InputField = ({
           value={value}
           onValueChange={values => {
             const syntheticEvent = {
-              target: {
-                name: name,
-                value: values.floatValue || ''
-              }
+              target: { name, value: values.floatValue || '' }
             }
             onChange(syntheticEvent)
           }}
@@ -647,9 +705,7 @@ const InputField = ({
         placeholder={placeholder}
         className={clsx(
           'outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400',
-          {
-            capitalize: type !== 'datetime-local'
-          }
+          { capitalize: type !== 'datetime-local' }
         )}
       />
     </label>

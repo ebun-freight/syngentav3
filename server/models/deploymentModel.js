@@ -9,30 +9,47 @@ const deploymentSchema = new mongoose.Schema(
     },
 
     // ------------- pickup details ------------- //
-    pickupSite: {
-      type: String,
-      required: [true, 'Pick-up site is required']
-    },
-    municipality: {
-      type: String,
-      required: [true, 'Municipality is required']
-    },
-    fieldContactPerson: {
-      type: String,
-      required: [true, 'Field Contact Person is required']
-    },
-    fieldContactPersonNo: {
-      type: String,
-      required: [true, "Field Contact Person's No. is required"]
-    },
-    scheduledPickupTime: {
-      type: String,
-      required: [true, 'Scheduled Pickup Time is required']
-    },
-    estimatedQuantityKg: {
-      type: String,
-      required: [true, 'Estimated Quantity is required']
-    },
+    pickups: [
+      {
+        pickupSite: {
+          type: String,
+          required: [true, 'Pick-up site is required']
+        },
+        municipality: {
+          type: String,
+          required: [true, 'Municipality is required']
+        },
+        fieldContactPerson: {
+          type: String,
+          required: [true, 'Field Contact Person is required']
+        },
+        fieldContactPersonNo: {
+          type: String,
+          required: [true, "Field Contact Person's No. is required"]
+        },
+        scheduledPickupTime: {
+          type: String,
+          required: [true, 'Scheduled Pickup Time is required']
+        },
+        estimatedQuantityKg: {
+          type: String,
+          required: [true, 'Estimated Quantity is required']
+        },
+        sacksCount: {
+          type: Number,
+          default: 0
+        },
+        // per-pickup timeline
+        pickupIn: {
+          type: String,
+          default: ''
+        },
+        pickupOut: {
+          type: String,
+          default: ''
+        }
+      }
+    ],
 
     // ------------- truck & driver details ------------- //
     truckId: {

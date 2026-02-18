@@ -28,10 +28,26 @@ import {
   TbPrinter,
   TbTrash
 } from 'react-icons/tb'
+import { FiPlus, FiTrash2 } from 'react-icons/fi'
 import jsPDF from 'jspdf'
 import { API_DEPLOYMENT } from '../../utils/APIRoutes'
 import axios from 'axios'
 import { SMC_HEADER_IMAGE, TMO_HEADER } from '../../consts/base_64_images'
+import { useRef } from 'react'
+
+const MAX_PICKUPS = 10
+
+const defaultPickup = {
+  pickupSite: '',
+  municipality: '',
+  fieldContactPerson: '',
+  fieldContactPersonNo: '',
+  scheduledPickupTime: '',
+  estimatedQuantityKg: '',
+  pickupIn: '',
+  pickupOut: '',
+  sacksCount: 0
+}
 
 function DeploymentDetailsModal ({
   isOpen,
@@ -47,15 +63,12 @@ function DeploymentDetailsModal ({
 }) {
   const { userData } = useUserContext()
   const { settings } = useSettingsContext()
-  console.log(userData.data.role)
-  console.log(deployment)
 
   const [isEditMode, setIsEditMode] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [isReplacementShow, setIsReplacementShow] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('info')
 
-  // Search states
   const [truckQuery, setTruckQuery] = useState('')
   const [driverQuery, setDriverQuery] = useState('')
   const [replacementTruckQuery, setReplacementTruckQuery] = useState('')
@@ -65,34 +78,56 @@ function DeploymentDetailsModal ({
 
   const handleChange = e => {
     const { name, value } = e.target
-
-    // check if the name contains dots (nested property)
     if (name.includes('.')) {
       const [parent, child] = name.split('.')
-
       setEditForm(prev => ({
         ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
+        [parent]: { ...prev[parent], [child]: value }
       }))
     } else {
-      // handle regular flat properties
       setEditForm(prev => ({ ...prev, [name]: value }))
     }
   }
 
-  // Handle combobox changes
+  const handlePickupChange = (index, e) => {
+    const { name, value } = e.target
+    setEditForm(prev => {
+      const updated = [...(prev.pickups || [])]
+      updated[index] = { ...updated[index], [name]: value }
+      return { ...prev, pickups: updated }
+    })
+  }
+
+  const handlePickupNumericChange = (index, name, floatValue) => {
+    setEditForm(prev => {
+      const updated = [...(prev.pickups || [])]
+      updated[index] = { ...updated[index], [name]: floatValue || '' }
+      return { ...prev, pickups: updated }
+    })
+  }
+
+  const addPickupStop = () => {
+    if ((editForm.pickups?.length || 0) >= MAX_PICKUPS) return
+    setEditForm(prev => ({
+      ...prev,
+      pickups: [...(prev.pickups || []), { ...defaultPickup }]
+    }))
+  }
+
+  const removePickupStop = index => {
+    if ((editForm.pickups?.length || 0) <= 1) return
+    setEditForm(prev => ({
+      ...prev,
+      pickups: prev.pickups.filter((_, i) => i !== index)
+    }))
+  }
+
   const handleComboboxChange = (name, value) => {
     if (name.includes('.')) {
       const [parent, child] = name.split('.')
       setEditForm(prev => ({
         ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
+        [parent]: { ...prev[parent], [child]: value }
       }))
     } else {
       setEditForm(prev => ({ ...prev, [name]: value }))
@@ -101,17 +136,12 @@ function DeploymentDetailsModal ({
 
   const handleUpdateDeployment = async e => {
     e.preventDefault()
-
-    console.log(editForm)
-
     const result = await updateDeploymentFunction(deployment._id, editForm)
-
     if (result.success) {
       onUpdate(result.data.deployment)
       toast.success(result.data.message)
       onClose()
     } else {
-      console.log(result.error)
       toast.error(result.error)
     }
   }
@@ -123,14 +153,12 @@ function DeploymentDetailsModal ({
     }
 
     try {
-      // Helper function to capitalize words
       const capitalizeWords = str => {
         if (!str) return ''
         return str
           .toLowerCase()
           .split(' ')
           .map(word => {
-            // Handle words with parentheses
             if (word.includes('(') || word.includes(')')) {
               return word.replace(/\b\w/g, char => char.toUpperCase())
             }
@@ -139,13 +167,11 @@ function DeploymentDetailsModal ({
           .join(' ')
       }
 
-      // Helper function to format truck type
       const formatTruckType = type => {
         if (!type) return ''
         return capitalizeWords(type.replace(/-/g, ' '))
       }
 
-      // Helper function to format numbers with commas
       const formatNumber = value => {
         if (!value || value === '' || isNaN(value)) return ''
         const num = parseFloat(value)
@@ -155,7 +181,6 @@ function DeploymentDetailsModal ({
         })
       }
 
-      // Determine active truck and driver (considering replacement)
       const hasReplacement = deployment?.replacement?.replacementTruckId?._id
       const activeTruck = hasReplacement
         ? deployment.replacement.replacementTruckId
@@ -167,32 +192,25 @@ function DeploymentDetailsModal ({
         ? deployment.replacement.replacementTruckType
         : deployment.truckType
 
-      // Create PDF
+      const pickups = deployment.pickups || []
+
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       })
-
-      // Set font
       doc.setFont('helvetica')
 
-      // Colors
-      const darkGray = [55, 65, 81]
       const borderColor = [200, 200, 200]
-
-      // Page margins
       const margin = 15
       const pageWidth = 210
       const contentWidth = pageWidth - margin * 2
 
       let yPos = 12
 
-      // Add image - left side (smaller)
       try {
         const logoWidth = 28
         const logoHeight = 10.5
-
         doc.addImage(
           SMC_HEADER_IMAGE,
           'PNG',
@@ -201,125 +219,89 @@ function DeploymentDetailsModal ({
           logoWidth,
           logoHeight
         )
-
-        // Text below the image on the left side
         doc.setFontSize(10)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(0, 0, 160) // ← Muted navy blue - professional, not too dark/bright
+        doc.setTextColor(0, 0, 160)
         doc.text('A Glocal Company', margin, yPos + logoHeight + 4)
-
-        // Text on the right side
         doc.setFontSize(10)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(0, 0, 160) // ← Same muted navy blue
+        doc.setTextColor(0, 0, 160)
         doc.text(
           '"Global Expertise, Grown Locally"',
           pageWidth - margin,
           yPos + logoHeight + 4,
-          {
-            align: 'right'
-          }
+          { align: 'right' }
         )
-
         yPos += logoHeight + 18
       } catch (error) {
-        console.warn('Could not load logo, continuing without it')
-        // Continue without logo if there's an error
+        console.warn('Could not load logo')
       }
 
-      // HEADER SECTION - Clean and Professional
       doc.setTextColor(0, 0, 0)
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
       doc.text('TRANSPORT MOVEMENT ORDER', pageWidth / 2, yPos, {
         align: 'center'
       })
-
       yPos += 6
-
-      // Horizontal line under title
       doc.setLineWidth(0.5)
       doc.setDrawColor(...borderColor)
       doc.line(margin, yPos, pageWidth - margin, yPos)
-
       yPos += 10
 
-      // Date and TMO No on the right side with underlines and gap
       doc.setFontSize(10)
       const currentDate = DateTime.now()
         .setZone('Asia/Manila')
         .toFormat('MMMM dd, yyyy')
-
       const rightAlignX = pageWidth - margin
-      const headerGap = 3 // Gap between label and value for date/TMO
+      const headerGap = 3
 
-      // Date with underline and gap
       doc.setFont('helvetica', 'bold')
       doc.text('Date:', rightAlignX - 60, yPos)
       doc.setFont('helvetica', 'normal')
       const dateLabelWidth = doc.getTextWidth('Date: ')
       const dateValueStartX = rightAlignX - 60 + dateLabelWidth + headerGap
       doc.text(currentDate, dateValueStartX, yPos)
-
-      // Draw underline for date
       doc.setLineWidth(0.2)
       doc.setDrawColor(...borderColor)
       doc.line(dateValueStartX, yPos + 1, rightAlignX, yPos + 1)
-
       yPos += 5
 
-      // TMO No with underline and gap
       doc.setFont('helvetica', 'bold')
       doc.text('TMO No:', rightAlignX - 60, yPos)
       doc.setFont('helvetica', 'normal')
       const tmoLabelWidth = doc.getTextWidth('TMO No: ')
       const tmoValueStartX = rightAlignX - 60 + tmoLabelWidth + headerGap
-      const tmoNumber = deployment.deploymentCode.toUpperCase()
-      doc.text(tmoNumber, tmoValueStartX, yPos)
-
-      // Draw underline for TMO No
+      doc.text(deployment.deploymentCode.toUpperCase(), tmoValueStartX, yPos)
       doc.setLineWidth(0.2)
       doc.line(tmoValueStartX, yPos + 1, rightAlignX, yPos + 1)
-
       yPos += 8
 
-      // Helper function to draw section header
       const drawSectionHeader = (title, startY) => {
         doc.setFillColor(240, 240, 240)
         doc.rect(margin, startY, contentWidth, 6, 'F')
         doc.setDrawColor(...borderColor)
         doc.rect(margin, startY, contentWidth, 6)
-
         doc.setTextColor(0, 0, 0)
         doc.setFontSize(10)
         doc.setFont('helvetica', 'bold')
         doc.text(title, margin + 2, startY + 4.5)
-
         return startY + 6
       }
 
-      // Helper function to draw a field with underline and centered value
       const drawField = (label, value, x, y, maxWidth = 80) => {
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(9)
         doc.text(label + ':', x, y)
-
         const labelWidth = doc.getTextWidth(label + ': ')
         const gap = 3
-
-        doc.setFont('helvetica', 'normal')
-
         const displayValue = value || ''
-
         const underlineWidth = maxWidth - labelWidth - gap - 2
         const underlineStartX = x + labelWidth + gap
-
         if (displayValue) {
-          // Center the text on the underline
           const centerX = underlineStartX + underlineWidth / 2
           doc.text(displayValue, centerX, y, { align: 'center' })
         }
-
         doc.setLineWidth(0.2)
         doc.line(
           underlineStartX,
@@ -327,77 +309,93 @@ function DeploymentDetailsModal ({
           underlineStartX + underlineWidth,
           y + 1
         )
-
         return y + 6
       }
-
-      // 1. PICKUP DETAILS
-      yPos = drawSectionHeader('1. PICKUP DETAILS', yPos)
 
       const leftColX = margin + 2
       const rightColX = pageWidth / 2 + 2
       const fieldWidth = contentWidth / 2 - 4
 
-      let leftY = yPos + 7
-      let rightY = yPos + 7
+      // 1. PICKUP DETAILS
+      yPos = drawSectionHeader('1. PICKUP DETAILS', yPos)
 
-      // Left side
-      leftY = drawField(
-        'Farm / Collection Point',
-        capitalizeWords(deployment.pickupSite),
-        leftColX,
-        leftY,
-        fieldWidth
-      )
-      leftY = drawField(
-        'Municipality',
-        capitalizeWords(deployment.municipality),
-        leftColX,
-        leftY,
-        fieldWidth
-      )
-      leftY = drawField(
-        'Scheduled Pickup Time',
-        deployment.scheduledPickupTime
-          ? DateTime.fromISO(deployment.scheduledPickupTime)
-              .setZone('Asia/Manila')
-              .toFormat('MMMM dd, yyyy hh:mm a')
-          : '',
-        leftColX,
-        leftY,
-        fieldWidth
-      )
+      pickups.forEach((pickup, i) => {
+        if (pickups.length > 1) {
+          yPos += 4
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(80, 80, 80)
+          doc.text(`Stop #${i + 1}`, margin + 2, yPos)
+          doc.setTextColor(0, 0, 0)
+          yPos += 3
+        }
 
-      // Right side
-      rightY = drawField(
-        'Field Contact Person',
-        capitalizeWords(deployment.fieldContactPerson),
-        rightColX,
-        rightY,
-        fieldWidth
-      )
-      rightY = drawField(
-        'Contact No',
-        deployment.fieldContactPersonNo,
-        rightColX,
-        rightY,
-        fieldWidth
-      )
-      rightY = drawField(
-        'Estimated Quantity (kg)',
-        formatNumber(deployment.estimatedQuantityKg),
-        rightColX,
-        rightY,
-        fieldWidth
-      )
+        let leftY = yPos + 5
+        let rightY = yPos + 5
 
-      yPos = Math.max(leftY, rightY) + 3
+        leftY = drawField(
+          'Farm / Collection Point',
+          capitalizeWords(pickup.pickupSite),
+          leftColX,
+          leftY,
+          fieldWidth
+        )
+        leftY = drawField(
+          'Municipality',
+          capitalizeWords(pickup.municipality),
+          leftColX,
+          leftY,
+          fieldWidth
+        )
+        leftY = drawField(
+          'Scheduled Pickup Time',
+          pickup.scheduledPickupTime
+            ? DateTime.fromISO(pickup.scheduledPickupTime)
+                .setZone('Asia/Manila')
+                .toFormat('MMMM dd, yyyy hh:mm a')
+            : '',
+          leftColX,
+          leftY,
+          fieldWidth
+        )
+
+        rightY = drawField(
+          'Field Contact Person',
+          capitalizeWords(pickup.fieldContactPerson),
+          rightColX,
+          rightY,
+          fieldWidth
+        )
+        rightY = drawField(
+          'Contact No',
+          pickup.fieldContactPersonNo,
+          rightColX,
+          rightY,
+          fieldWidth
+        )
+        rightY = drawField(
+          'Estimated Quantity (kg)',
+          formatNumber(pickup.estimatedQuantityKg),
+          rightColX,
+          rightY,
+          fieldWidth
+        )
+
+        yPos = Math.max(leftY, rightY) + 3
+
+        if (i < pickups.length - 1) {
+          doc.setDrawColor(220, 220, 220)
+          doc.setLineWidth(0.2)
+          doc.line(margin + 4, yPos, pageWidth - margin - 4, yPos)
+          yPos += 2
+        }
+      })
 
       // 2. TRUCK & DRIVER DETAILS
       yPos = drawSectionHeader('2. TRUCK & DRIVER DETAILS', yPos)
 
-      leftY = yPos + 7
-      rightY = yPos + 7
+      let leftY = yPos + 7
+      let rightY = yPos + 7
 
       const driverName = activeDriver
         ? `${capitalizeWords(activeDriver.firstname)} ${capitalizeWords(
@@ -405,7 +403,6 @@ function DeploymentDetailsModal ({
           )}`
         : ''
 
-      // Left side - Truck Plate Number (full width)
       leftY = drawField(
         'Truck Plate Number',
         activeTruck?.plateNo?.toUpperCase(),
@@ -414,15 +411,12 @@ function DeploymentDetailsModal ({
         fieldWidth
       )
 
-      // Left side - Truck Type and Helper Count on same line
       const halfFieldWidth = fieldWidth / 2 - 2
-      const truckTypeX = leftColX
       const helperCountX = leftColX + fieldWidth / 2 + 2
-
       drawField(
         'Truck Type',
         formatTruckType(activeTruckType),
-        truckTypeX,
+        leftColX,
         leftY,
         halfFieldWidth
       )
@@ -433,10 +427,8 @@ function DeploymentDetailsModal ({
         leftY,
         halfFieldWidth
       )
-
       leftY += 6
 
-      // Right side
       rightY = drawField(
         "Driver's Name",
         driverName,
@@ -456,11 +448,9 @@ function DeploymentDetailsModal ({
 
       // 3. DELIVERY DETAILS
       yPos = drawSectionHeader('3. DELIVERY DETAILS', yPos)
-
       leftY = yPos + 7
       rightY = yPos + 7
 
-      // Left side
       leftY = drawField(
         'Delivery / Tolling Facility',
         capitalizeWords(deployment.destination),
@@ -490,7 +480,6 @@ function DeploymentDetailsModal ({
         fieldWidth
       )
 
-      // Right side
       rightY = drawField(
         'Territory',
         capitalizeWords(deployment.territory),
@@ -522,21 +511,16 @@ function DeploymentDetailsModal ({
 
       yPos = Math.max(leftY, rightY) + 3
 
-      // 4. LOAD DETAILS - 3 columns in one line
+      // 4. LOAD DETAILS
       yPos = drawSectionHeader(
         '4. LOAD DETAILS (To be completed on-site)',
         yPos
       )
-
       const loadDetailY = yPos + 7
-
-      // Calculate 3 column positions
       const threeColWidth = contentWidth / 3 - 2
       const firstColX = margin + 2
       const secondColX = margin + contentWidth / 3 + 1
       const thirdColX = margin + (contentWidth / 3) * 2 + 1
-
-      // Draw all three fields on the same line
       drawField('Gross Weight', '', firstColX, loadDetailY, threeColWidth)
       drawField('Tare Weight', '', secondColX, loadDetailY, threeColWidth)
       drawField(
@@ -546,26 +530,21 @@ function DeploymentDetailsModal ({
         loadDetailY,
         threeColWidth
       )
-
       yPos = loadDetailY + 9
 
       // 5. CONFIRMATION
       yPos = drawSectionHeader('5. CONFIRMATION', yPos)
       yPos += 7
 
-      // Two columns for signatures
       const signatureBoxWidth = contentWidth / 2 - 2
       const signatureBoxHeight = 25
 
-      // Left column - Loaded by
       doc.setDrawColor(...borderColor)
       doc.setLineWidth(0.3)
       doc.rect(margin, yPos, signatureBoxWidth, signatureBoxHeight)
-
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.text('Loaded by (Field Personnel)', margin + 2, yPos + 4)
-
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
       doc.text('Name:', margin + 2, yPos + 10)
@@ -575,7 +554,6 @@ function DeploymentDetailsModal ({
         margin + signatureBoxWidth - 2,
         yPos + 10.5
       )
-
       doc.text('Signature:', margin + 2, yPos + 18)
       doc.line(
         margin + 17,
@@ -584,14 +562,11 @@ function DeploymentDetailsModal ({
         yPos + 18.5
       )
 
-      // Right column - Received by
       const rightBoxX = pageWidth / 2 + 1
       doc.rect(rightBoxX, yPos, signatureBoxWidth, signatureBoxHeight)
-
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.text('Received by (Plant Personnel)', rightBoxX + 2, yPos + 4)
-
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
       doc.text('Name:', rightBoxX + 2, yPos + 10)
@@ -601,7 +576,6 @@ function DeploymentDetailsModal ({
         rightBoxX + signatureBoxWidth - 2,
         yPos + 10.5
       )
-
       doc.text('Signature:', rightBoxX + 2, yPos + 18)
       doc.line(
         rightBoxX + 17,
@@ -612,38 +586,26 @@ function DeploymentDetailsModal ({
 
       yPos += signatureBoxHeight + 8
 
-      // Unloading Date and Time
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.text('Unloading Date:', margin, yPos)
       doc.setFont('helvetica', 'normal')
       doc.line(margin + 30, yPos + 0.5, margin + 80, yPos + 0.5)
-
       doc.setFont('helvetica', 'bold')
       doc.text('Unloading Time:', pageWidth / 2 + 10, yPos)
       doc.setFont('helvetica', 'normal')
       doc.line(pageWidth / 2 + 40, yPos + 0.5, pageWidth / 2 + 90, yPos + 0.5)
-
       yPos += 8
 
       // 6. REMARKS
       yPos = drawSectionHeader('6. REMARKS', yPos)
       yPos += 5
-
-      // Remark box
       const remarkBoxHeight = 20
       doc.setDrawColor(...borderColor)
       doc.setLineWidth(0.3)
       doc.rect(margin, yPos, contentWidth, remarkBoxHeight)
-
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8)
-      doc.setTextColor(150, 150, 150)
-      doc.text('', margin + 2, yPos + 4)
-
       yPos += remarkBoxHeight + 6
 
-      // Footer
       doc.setFontSize(7)
       doc.setFont('helvetica', 'italic')
       doc.setTextColor(100, 100, 100)
@@ -654,15 +616,10 @@ function DeploymentDetailsModal ({
         align: 'center'
       })
 
-      // Save PDF
-      const filename = `TMO_${deployment.deploymentCode}.pdf`
-      doc.save(filename)
-
-      // Small delay to ensure download initiated
+      doc.save(`TMO_${deployment.deploymentCode}.pdf`)
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       if (!deployment.isTMOPrinted) {
-        // After PDF is generated, call backend to update isTMOPrinted
         try {
           const response = await axios.patch(
             `${API_DEPLOYMENT}/${deployment._id}`,
@@ -673,22 +630,14 @@ function DeploymentDetailsModal ({
               }
             }
           )
-
-          // Update local state
           onUpdate(response.data.deployment)
-
-          setEditForm(prev => ({
-            ...prev,
-            isTMOPrinted: true
-          }))
-
+          setEditForm(prev => ({ ...prev, isTMOPrinted: true }))
           toast.success(
             `TMO exported successfully for ${deployment.deploymentCode}`
           )
         } catch (error) {
-          console.error('Error updating TMO print status:', error)
           toast.warning(
-            `PDF generated successfully, but failed to update print status: ${
+            `PDF generated but failed to update print status: ${
               error.response?.data?.message || error.message
             }`
           )
@@ -699,7 +648,6 @@ function DeploymentDetailsModal ({
         )
       }
     } catch (error) {
-      console.error('Error generating TMO PDF:', error)
       toast.error(`Error generating TMO PDF: ${error.message}`)
     }
   }
@@ -707,7 +655,7 @@ function DeploymentDetailsModal ({
   const handleCloseModal = () => {
     setEditForm(deployment)
     setIsReplacementShow(false)
-    setActiveTab('overview')
+    setActiveTab('info')
     setTruckQuery('')
     setDriverQuery('')
     setReplacementTruckQuery('')
@@ -725,27 +673,21 @@ function DeploymentDetailsModal ({
   }
 
   useEffect(() => {
-    console.log(deployment)
     if (isOpen && deployment) {
       setIsEditMode(false)
       setEditForm(deployment)
-      setActiveTab('overview')
+      setActiveTab('info')
     }
   }, [isOpen, deployment])
 
   useEffect(() => {
-    console.log(deployment)
-
     if (deployment?.replacement?.replacementTruckId?._id) {
-      console.log('HAS REPLACEMENT')
       setIsReplacementShow(true)
     } else {
-      console.log('NO REPLACEMENT')
       setIsReplacementShow(false)
     }
   }, [deployment, isOpen])
 
-  // Filter trucks and drivers based on search
   const filteredTrucks =
     trucks?.filter(
       truck =>
@@ -784,21 +726,20 @@ function DeploymentDetailsModal ({
           .includes(replacementDriverQuery.toLowerCase())
     ) || []
 
-  // Get current values for display
   const currentTruckId = isReplacementShow
     ? editForm?.replacement?.replacementTruckId?._id
     : editForm?.truckId?._id
-
   const currentDriverId = isReplacementShow
     ? editForm?.replacement?.replacementDriverId?._id
     : editForm?.driverId?._id
-
   const currentTruck = trucks?.find(truck => truck._id === currentTruckId)
   const currentDriver = drivers?.find(driver => driver._id === currentDriverId)
 
+  const pickups = editForm?.pickups || []
+  const lastPickupOut = pickups[pickups.length - 1]?.pickupOut
+
   return (
     <Dialog open={isOpen} onClose={handleCloseModal} className='relative z-50'>
-      {/* Backdrop */}
       <TransitionChild
         enter='ease-out duration-300'
         enterFrom='opacity-0'
@@ -810,7 +751,6 @@ function DeploymentDetailsModal ({
         <DialogBackdrop className='fixed inset-0 bg-black/30 backdrop-blur-sm' />
       </TransitionChild>
 
-      {/* Modal container */}
       <div className='fixed inset-0 flex items-center justify-center p-4'>
         <TransitionChild
           enter='ease-out duration-300'
@@ -820,15 +760,12 @@ function DeploymentDetailsModal ({
           leaveFrom='opacity-100 translate-y-0'
           leaveTo='opacity-0 -translate-y-8'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-xl overflow-hidden relative max-h-[90vh] overflow-y-auto scrollbar-thin'>
+          <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-xl overflow-hidden relative h-[80vh] overflow-y-auto scrollbar-thin'>
             {/* edit mode warning */}
             <p
               className={clsx(
-                'bg-orange-500 text-white px-4 right-26 font-medium py-3 text-sm flex items-center gap-2  transition-all absolute rounded-b-md shadow-warning tracking-wider z-10',
-                {
-                  '-translate-y-12': !isEditMode,
-                  'translate-y-0': isEditMode
-                }
+                'bg-orange-500 text-white px-4 right-26 font-medium py-3 text-sm flex items-center gap-2 transition-all absolute rounded-b-md shadow-warning tracking-wider z-10',
+                { '-translate-y-12': !isEditMode, 'translate-y-0': isEditMode }
               )}
             >
               <IoWarning className='text-xl' />
@@ -837,7 +774,6 @@ function DeploymentDetailsModal ({
 
             {/* top right buttons */}
             <div className='absolute top-4 right-4 flex items-center gap-2 z-10'>
-              {/* replacement history button */}
               <div className='dropdown dropdown-bottom dropdown-end'>
                 <div
                   tabIndex={0}
@@ -860,8 +796,6 @@ function DeploymentDetailsModal ({
                   </li>
                 </ul>
               </div>
-
-              {/* close button */}
               <button
                 onClick={handleCloseModal}
                 className='hover:bg-gray-100 p-1 rounded-full text-2xl text-gray-600 cursor-pointer transition-all'
@@ -870,374 +804,211 @@ function DeploymentDetailsModal ({
               </button>
             </div>
 
-            <form onSubmit={handleUpdateDeployment} className='flex'>
-              {/* timeline */}
-              <div className='bg-gray-100 min-w-60 px-6 py-8 border-r border-gray-200'>
-                <h2 className='text-lg font-semibold mb-4 -ml-2'>
+            <form onSubmit={handleUpdateDeployment} className='flex h-full'>
+              {/* left side */}
+              {/* ── TIMELINE SIDEBAR ── */}
+              <div className='bg-gray-100 min-w-60 border-r border-gray-200 flex flex-col pb-8'>
+                <h2 className='text-lg font-semibold mb-4 -ml-2  px-6 pt-8'>
                   Transport Log
                 </h2>
-                <div className='flex flex-col'>
-                  {/* departed */}
-                  <div className='flex gap-5'>
-                    <div className='relative'>
-                      <div
-                        className={clsx(
-                          'w-4 aspect-square rounded-full absolute z-10 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500 shadow-warning': isEditMode
-                              ? editForm.departed?.trim()
-                              : deployment.departed?.trim(),
-                            'bg-gray-200 shadow-[inset_0_2px_4px_0_rgb(0,0,0,0.2)]':
-                              isEditMode
-                                ? !editForm.departed?.trim()
-                                : !deployment.departed?.trim()
-                          }
-                        )}
-                      ></div>
-                      <div
-                        className={clsx(
-                          'w-0.5 h-full absolute top-0 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500': isEditMode
-                              ? editForm.departed?.trim()
-                              : deployment.departed?.trim(),
-                            'bg-gray-300': isEditMode
-                              ? !editForm.departed?.trim()
-                              : !deployment.departed?.trim()
-                          }
-                        )}
-                      ></div>
-                    </div>
-                    <div className='pb-6 flex-1 w-56'>
+
+                <div className='relative flex-1 overflow-y-auto scrollbar-thin  px-6'>
+                  <div className='flex flex-col'>
+                    {/* DEPARTED */}
+                    <TimelineStop
+                      isActive={
+                        isEditMode
+                          ? !!editForm.departed?.trim()
+                          : !!deployment.departed?.trim()
+                      }
+                      isLast={false}
+                    >
                       {isEditMode ? (
                         <InputField
                           label='Departed'
                           type='datetime-local'
                           name='departed'
-                          placeholder='Departed'
                           isCapitalize={false}
                           isRequired={false}
                           isFullWidth={false}
                           value={editForm?.departed}
-                          disabled={!isEditMode}
                           onChange={handleChange}
                           isDarkerOutline={true}
                         />
                       ) : (
-                        <label className='flex flex-col gap-1'>
-                          <p className='text-xs font-semibold uppercase text-gray-500'>
-                            Departed
-                          </p>
-                          {deployment.departed ? (
-                            <p className='outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400'>
-                              {DateTime.fromISO(deployment.departed)
-                                .setZone('Asia/Manila')
-                                .toFormat('MMM d, yyyy - hh:mm a')}
-                            </p>
-                          ) : (
-                            <p className='italic text-gray-400 text-sm font-light outline outline-gray-300 px-3 py-2.5 rounded break-all focus:outline-gray-400'>
-                              Pending
-                            </p>
-                          )}
-                        </label>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* pickup in */}
-                  <div className='flex gap-5'>
-                    <div className='relative'>
-                      <div
-                        className={clsx(
-                          'w-4 aspect-square rounded-full absolute z-10 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500 shadow-warning': isEditMode
-                              ? editForm.pickupIn?.trim()
-                              : deployment.pickupIn?.trim(),
-                            'bg-gray-200 shadow-[inset_0_2px_4px_0_rgb(0,0,0,0.2)]':
-                              isEditMode
-                                ? !editForm.pickupIn?.trim()
-                                : !deployment.pickupIn?.trim()
-                          }
-                        )}
-                      ></div>
-                      <div
-                        className={clsx(
-                          'w-0.5 h-full absolute top-0 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500': isEditMode
-                              ? editForm.pickupIn?.trim()
-                              : deployment.pickupIn?.trim(),
-                            'bg-gray-300': isEditMode
-                              ? !editForm.pickupIn?.trim()
-                              : !deployment.pickupIn?.trim()
-                          }
-                        )}
-                      ></div>
-                    </div>
-                    <div className='pb-6 flex-1 w-56'>
-                      {isEditMode ? (
-                        <InputField
-                          label='Pick-up In'
-                          type='datetime-local'
-                          name='pickupIn'
-                          placeholder='Pick-up In'
-                          isCapitalize={false}
-                          isRequired={false}
-                          isFullWidth={false}
-                          value={editForm?.pickupIn}
-                          disabled={!isEditMode || !editForm?.departed}
-                          onChange={handleChange}
-                          isDarkerOutline={true}
+                        <TimelineDisplay
+                          label='Departed'
+                          value={deployment.departed}
                         />
-                      ) : (
-                        <label className='flex flex-col gap-1'>
-                          <p className='text-xs font-semibold uppercase text-gray-500'>
-                            Pick-up In
-                          </p>
-                          {deployment.pickupIn ? (
-                            <p className='outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400'>
-                              {DateTime.fromISO(deployment.pickupIn)
-                                .setZone('Asia/Manila')
-                                .toFormat('MMM d, yyyy - hh:mm a')}
-                            </p>
-                          ) : (
-                            <p className='italic text-gray-400 text-sm font-light outline outline-gray-300 px-3 py-2.5 rounded break-all focus:outline-gray-400'>
-                              Pending
-                            </p>
-                          )}
-                        </label>
                       )}
-                    </div>
-                  </div>
+                    </TimelineStop>
 
-                  {/* pickup out */}
-                  <div className='flex gap-5'>
-                    <div className='relative'>
-                      <div
-                        className={clsx(
-                          'w-4 aspect-square rounded-full absolute z-10 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500 shadow-warning': isEditMode
-                              ? editForm.pickupOut?.trim()
-                              : deployment.pickupOut?.trim(),
-                            'bg-gray-200 shadow-[inset_0_2px_4px_0_rgb(0,0,0,0.2)]':
-                              isEditMode
-                                ? !editForm.pickupOut?.trim()
-                                : !deployment.pickupOut?.trim()
-                          }
-                        )}
-                      ></div>
-                      <div
-                        className={clsx(
-                          'w-0.5 h-full absolute top-0 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500': isEditMode
-                              ? editForm.pickupOut?.trim()
-                              : deployment.pickupOut?.trim(),
-                            'bg-gray-300': isEditMode
-                              ? !editForm.pickupOut?.trim()
-                              : !deployment.pickupOut?.trim()
-                          }
-                        )}
-                      ></div>
-                    </div>
-                    <div className='pb-6 flex-1 w-56'>
-                      {isEditMode ? (
-                        <InputField
-                          label='Pick-up Out'
-                          type='datetime-local'
-                          name='pickupOut'
-                          placeholder='Pick-up Out'
-                          isCapitalize={false}
-                          isRequired={false}
-                          isFullWidth={false}
-                          value={editForm?.pickupOut}
-                          disabled={!isEditMode || !editForm?.pickupIn}
-                          onChange={handleChange}
-                          isDarkerOutline={true}
-                        />
-                      ) : (
-                        <label className='flex flex-col gap-1'>
-                          <p className='text-xs font-semibold uppercase text-gray-500'>
-                            Pick-up Out
-                          </p>
-                          {deployment.pickupOut ? (
-                            <p className='outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400'>
-                              {DateTime.fromISO(deployment.pickupOut)
-                                .setZone('Asia/Manila')
-                                .toFormat('MMM d, yyyy - hh:mm a')}
-                            </p>
-                          ) : (
-                            <p className='italic text-gray-400 text-sm font-light outline outline-gray-300 px-3 py-2.5 rounded break-all focus:outline-gray-400'>
-                              Pending
-                            </p>
+                    {/* PER-STOP PICKUP IN / PICKUP OUT */}
+                    {(isEditMode
+                      ? editForm.pickups
+                      : deployment.pickups || []
+                    ).map((pickup, index) => {
+                      const stopLabel = `Stop #${index + 1}`
+                      const prevPickupOut =
+                        index === 0
+                          ? isEditMode
+                            ? editForm.departed
+                            : deployment.departed
+                          : isEditMode
+                          ? editForm.pickups?.[index - 1]?.pickupOut
+                          : deployment.pickups?.[index - 1]?.pickupOut
+                      const multiStop =
+                        (isEditMode
+                          ? editForm.pickups?.length
+                          : deployment.pickups?.length) > 1
+
+                      return (
+                        <div key={index}>
+                          {multiStop && (
+                            <div className='ml-9 mb-1'>
+                              <span className='text-xs font-semibold text-emerald-600 uppercase tracking-wide'>
+                                {stopLabel}
+                              </span>
+                            </div>
                           )}
-                        </label>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* dest arrival */}
-                  <div className='flex gap-5'>
-                    <div className='relative'>
-                      <div
-                        className={clsx(
-                          'w-4 aspect-square rounded-full absolute z-10 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500 shadow-warning': isEditMode
-                              ? editForm.destArrival?.trim()
-                              : deployment.destArrival?.trim(),
-                            'bg-gray-200 shadow-[inset_0_2px_4px_0_rgb(0,0,0,0.2)]':
-                              isEditMode
-                                ? !editForm.destArrival?.trim()
-                                : !deployment.destArrival?.trim()
-                          }
-                        )}
-                      ></div>
-                      <div
-                        className={clsx(
-                          'w-0.5 h-full absolute top-0 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500': isEditMode
-                              ? editForm.destArrival?.trim()
-                              : deployment.destArrival?.trim(),
-                            'bg-gray-300 shadow-inner': isEditMode
-                              ? !editForm.destArrival?.trim()
-                              : !deployment.destArrival?.trim()
-                          }
-                        )}
-                      ></div>
-                    </div>
-                    <div className='pb-6 flex-1 w-56'>
+                          <TimelineStop
+                            isActive={!!pickup.pickupIn?.trim()}
+                            isLast={false}
+                          >
+                            {isEditMode ? (
+                              <InputField
+                                label={`Pick-up In${
+                                  multiStop ? ` (${stopLabel})` : ''
+                                }`}
+                                type='datetime-local'
+                                name='pickupIn'
+                                isCapitalize={false}
+                                isRequired={false}
+                                isFullWidth={false}
+                                value={pickup.pickupIn}
+                                disabled={!prevPickupOut}
+                                onChange={e => handlePickupChange(index, e)}
+                                isDarkerOutline={true}
+                              />
+                            ) : (
+                              <TimelineDisplay
+                                label={`Pick-up In${
+                                  multiStop ? ` (${stopLabel})` : ''
+                                }`}
+                                value={pickup.pickupIn}
+                              />
+                            )}
+                          </TimelineStop>
+
+                          <TimelineStop
+                            isActive={!!pickup.pickupOut?.trim()}
+                            isLast={false}
+                          >
+                            {isEditMode ? (
+                              <InputField
+                                label={`Pick-up Out${
+                                  multiStop ? ` (${stopLabel})` : ''
+                                }`}
+                                type='datetime-local'
+                                name='pickupOut'
+                                isCapitalize={false}
+                                isRequired={false}
+                                isFullWidth={false}
+                                value={pickup.pickupOut}
+                                disabled={!pickup.pickupIn}
+                                onChange={e => handlePickupChange(index, e)}
+                                isDarkerOutline={true}
+                              />
+                            ) : (
+                              <TimelineDisplay
+                                label={`Pick-up Out${
+                                  multiStop ? ` (${stopLabel})` : ''
+                                }`}
+                                value={pickup.pickupOut}
+                              />
+                            )}
+                          </TimelineStop>
+                        </div>
+                      )
+                    })}
+
+                    {/* DEST ARRIVAL */}
+                    <TimelineStop
+                      isActive={
+                        isEditMode
+                          ? !!editForm.destArrival?.trim()
+                          : !!deployment.destArrival?.trim()
+                      }
+                      isLast={false}
+                    >
                       {isEditMode ? (
                         <InputField
                           label='Dest Arrival'
                           type='datetime-local'
                           name='destArrival'
-                          placeholder='Dest Arrival'
                           isCapitalize={false}
                           isRequired={false}
                           isFullWidth={false}
                           value={editForm?.destArrival}
-                          disabled={!isEditMode || !editForm?.pickupOut}
+                          disabled={!lastPickupOut}
                           onChange={handleChange}
                           isDarkerOutline={true}
                         />
                       ) : (
-                        <label className='flex flex-col gap-1'>
-                          <p className='text-xs font-semibold uppercase text-gray-500'>
-                            Dest Arrival
-                          </p>
-                          {deployment.destArrival ? (
-                            <p className='outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400'>
-                              {DateTime.fromISO(deployment.destArrival)
-                                .setZone('Asia/Manila')
-                                .toFormat('MMM d, yyyy - hh:mm a')}
-                            </p>
-                          ) : (
-                            <p className='italic text-gray-400 text-sm font-light outline outline-gray-300 px-3 py-2.5 rounded break-all focus:outline-gray-400'>
-                              Pending
-                            </p>
-                          )}
-                        </label>
+                        <TimelineDisplay
+                          label='Dest Arrival'
+                          value={deployment.destArrival}
+                        />
                       )}
-                    </div>
-                  </div>
+                    </TimelineStop>
 
-                  {/* dest departure */}
-                  <div className='flex gap-5'>
-                    <div className='relative'>
-                      <div
-                        className={clsx(
-                          'w-4 aspect-square rounded-full absolute z-10 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500 shadow-warning': isEditMode
-                              ? editForm.destDeparture?.trim()
-                              : deployment.destDeparture?.trim(),
-                            'bg-gray-200 shadow-[inset_0_2px_4px_0_rgb(0,0,0,0.2)]':
-                              isEditMode
-                                ? !editForm.destDeparture?.trim()
-                                : !deployment.destDeparture?.trim()
-                          }
-                        )}
-                      ></div>
-                      <div
-                        className={clsx(
-                          'w-0.5 h-full absolute top-0 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500': isEditMode
-                              ? editForm.destDeparture?.trim()
-                              : deployment.destDeparture?.trim(),
-                            'bg-gray-300 shadow-inner': isEditMode
-                              ? !editForm.destDeparture?.trim()
-                              : !deployment.destDeparture?.trim()
-                          }
-                        )}
-                      ></div>
-                    </div>
-                    <div className='pb-6 flex-1 w-56'>
+                    {/* DEST DEPARTURE */}
+                    <TimelineStop
+                      isActive={
+                        isEditMode
+                          ? !!editForm.destDeparture?.trim()
+                          : !!deployment.destDeparture?.trim()
+                      }
+                      isLast={false}
+                    >
                       {isEditMode ? (
                         <InputField
                           label='Dest Departure'
                           type='datetime-local'
                           name='destDeparture'
-                          placeholder='Dest Departure'
                           isCapitalize={false}
                           isRequired={false}
                           isFullWidth={false}
                           value={editForm?.destDeparture}
-                          disabled={!isEditMode || !editForm?.destArrival}
+                          disabled={!editForm?.destArrival}
                           onChange={handleChange}
                           isDarkerOutline={true}
                         />
                       ) : (
-                        <label className='flex flex-col gap-1'>
-                          <p className='text-xs font-semibold uppercase text-gray-500'>
-                            Dest Departure
-                          </p>
-                          {deployment.destDeparture ? (
-                            <p className='outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400'>
-                              {DateTime.fromISO(deployment.destDeparture)
-                                .setZone('Asia/Manila')
-                                .toFormat('MMM d, yyyy - hh:mm a')}
-                            </p>
-                          ) : (
-                            <p className='italic text-gray-400 text-sm font-light outline outline-gray-300 px-3 py-2.5 rounded break-all focus:outline-gray-400'>
-                              Pending
-                            </p>
-                          )}
-                        </label>
+                        <TimelineDisplay
+                          label='Dest Departure'
+                          value={deployment.destDeparture}
+                        />
                       )}
-                    </div>
-                  </div>
+                    </TimelineStop>
 
-                  {/* unloading time */}
-                  <div className='flex gap-5'>
-                    <div className='relative'>
-                      <div
-                        className={clsx(
-                          'w-4 aspect-square rounded-full absolute z-10 left-1/2 -translate-x-1/2',
-                          {
-                            'bg-emerald-500 shadow-warning': isEditMode
-                              ? editForm.destDeparture?.trim()
-                              : deployment.destDeparture?.trim(),
-                            'bg-gray-200 shadow-[inset_0_2px_4px_0_rgb(0,0,0,0.2)]':
-                              isEditMode
-                                ? !editForm.destDeparture?.trim()
-                                : !deployment.destDeparture?.trim()
-                          }
-                        )}
-                      ></div>
-                    </div>
-                    <div className='flex-1 w-56'>
+                    {/* UNLOADING TIME */}
+                    <TimelineStop
+                      isActive={
+                        isEditMode
+                          ? !!editForm.destDeparture?.trim()
+                          : !!deployment.destDeparture?.trim()
+                      }
+                      isLast={true}
+                    >
                       <label className='flex flex-col gap-1'>
                         <p className='text-xs font-semibold uppercase text-gray-500'>
                           Unloading Time
                         </p>
                         {deployment?.destDeparture ||
                         deployment?.destArrival ? (
-                          <div className='outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400 flex items-center gap-2'>
+                          <div className='outline outline-gray-300 px-3 py-2 rounded break-all'>
                             {(() => {
                               const { days, hours, minutes } = DateTime.fromISO(
                                 editForm.destDeparture
@@ -1246,9 +1017,7 @@ function DeploymentDetailsModal ({
                                 'hours',
                                 'minutes'
                               ])
-
                               const totalHours = days * 24 + hours
-
                               const formatDays = () => {
                                 const parts = []
                                 if (days > 0) parts.push(`${days}d`)
@@ -1259,40 +1028,36 @@ function DeploymentDetailsModal ({
                                   parts.join(' ') || `${Math.floor(minutes)}m`
                                 )
                               }
-
                               const formatTotalHours = () => {
-                                if (totalHours > 0) {
+                                if (totalHours > 0)
                                   return `${totalHours}h${
                                     minutes > 0
                                       ? ` ${Math.floor(minutes)}m`
                                       : ''
                                   }`
-                                }
                                 return `${Math.floor(minutes)}m`
                               }
-
-                              if (totalHours >= 24) {
+                              if (totalHours >= 24)
                                 return `${formatDays()} (${formatTotalHours()})`
-                              } else if (hours > 0) {
+                              else if (hours > 0)
                                 return `${hours}h ${Math.floor(minutes)}m`
-                              } else {
-                                return `${Math.floor(minutes)}m`
-                              }
+                              else return `${Math.floor(minutes)}m`
                             })()}
                           </div>
                         ) : (
-                          <p className='italic text-gray-400 text-sm font-light outline outline-gray-300 px-3 py-2.5 rounded break-all focus:outline-gray-400'>
+                          <p className='italic text-gray-400 text-sm font-light outline outline-gray-300 px-3 py-2.5 rounded'>
                             Pending
                           </p>
                         )}
                       </label>
-                    </div>
+                    </TimelineStop>
                   </div>
                 </div>
               </div>
 
-              {/* deployment details */}
-              <div className='px-6 py-8 flex-1 flex flex-col'>
+              {/* right side */}
+              {/* ── MAIN PANEL ── */}
+              <div className='pl-6 py-8 flex-1 flex flex-col'>
                 <div className='flex items-center gap-3 mb-4'>
                   <h2 className='text-lg font-semibold'>Deployment Details</h2>
                   <div
@@ -1300,19 +1065,14 @@ function DeploymentDetailsModal ({
                     onClick={e => {
                       e.stopPropagation()
                       navigator.clipboard.writeText(deployment.deploymentCode)
-
                       const div = e.currentTarget
                       const tooltip = document.createElement('div')
                       tooltip.className =
                         'absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50'
                       tooltip.textContent = 'Copied'
-
                       div.appendChild(tooltip)
-
                       setTimeout(() => {
-                        if (div.contains(tooltip)) {
-                          div.removeChild(tooltip)
-                        }
+                        if (div.contains(tooltip)) div.removeChild(tooltip)
                       }, 1000)
                     }}
                     title='Click to copy'
@@ -1322,62 +1082,46 @@ function DeploymentDetailsModal ({
                 </div>
 
                 {/* TABS */}
-                <div className='flex gap-2 border-b border-gray-200 mb-4'>
-                  <button
-                    type='button'
-                    onClick={() => setActiveTab('overview')}
-                    className={clsx(
-                      'px-4 py-2 text-sm font-medium transition-colors relative',
-                      {
-                        'text-emerald-600': activeTab === 'overview',
-                        'text-gray-500 hover:text-gray-700':
-                          activeTab !== 'overview'
-                      }
-                    )}
-                  >
-                    Overview
-                    {activeTab === 'overview' && (
-                      <div className='absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600'></div>
-                    )}
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => setActiveTab('details')}
-                    className={clsx(
-                      'px-4 py-2 text-sm font-medium transition-colors relative',
-                      {
-                        'text-emerald-600': activeTab === 'details',
-                        'text-gray-500 hover:text-gray-700':
-                          activeTab !== 'details'
-                      }
-                    )}
-                  >
-                    Additional Details
-                    {activeTab === 'details' && (
-                      <div className='absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600'></div>
-                    )}
-                  </button>
+                <div className='flex gap-2 border-b border-gray-200 mb-4 mr-6'>
+                  <TabButton
+                    label='Deployment Info'
+                    tab='info'
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                  />
+                  <TabButton
+                    label='Pickup Sites'
+                    tab='pickups'
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                  />
 
-                  <div
-                    className={clsx(
-                      'ml-auto px-4 py-2 text-sm font-medium text-gray-500 rounded-t-lg outline outline-gray-200 flex items-center justify-center gap-2 '
-                    )}
-                  >
-                    {editForm?.isTMOPrinted ? 'TMO PRINTED' : 'TMO NOT PRINTED'}
+                  <div className='ml-auto rounded-t-lg outline outline-gray-200 flex '>
+                    <p className='px-3 py-2 text-sm text-gray-500'>
+                      {/* Assigned at:{' '} */}
+                      {DateTime.fromISO(editForm?.createdAt)
+                        .setZone('Asia/Manila')
+                        .toFormat('MMM d, yyyy - hh:mm a')}
+                    </p>
 
-                    <div
-                      className={clsx('w-2 aspect-square rounded-full', {
-                        'bg-green-500': editForm?.isTMOPrinted,
-                        'bg-red-500': !editForm?.isTMOPrinted
-                      })}
-                    ></div>
+                    <div className='px-4 py-2 text-sm font-medium text-gray-500  flex items-center justify-center gap-2 border-l border-gray-200'>
+                      {editForm?.isTMOPrinted
+                        ? 'TMO PRINTED'
+                        : 'TMO NOT PRINTED'}
+                      <div
+                        className={clsx('w-2 aspect-square rounded-full', {
+                          'bg-green-500': editForm?.isTMOPrinted,
+                          'bg-red-500': !editForm?.isTMOPrinted
+                        })}
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* TAB CONTENT */}
-                <div className='flex-1 overflow-y-auto'>
-                  {activeTab === 'overview' && (
-                    <OverviewTab
+                <div className='flex-1 overflow-y-auto scrollbar-thin pr-6'>
+                  {activeTab === 'info' && (
+                    <DeploymentInfoTab
                       isEditMode={isEditMode}
                       editForm={editForm}
                       deployment={deployment}
@@ -1402,27 +1146,28 @@ function DeploymentDetailsModal ({
                       handleComboboxChange={handleComboboxChange}
                     />
                   )}
-
-                  {activeTab === 'details' && (
-                    <AdditionalDetailsTab
+                  {activeTab === 'pickups' && (
+                    <PickupSitesTab
                       isEditMode={isEditMode}
                       editForm={editForm}
-                      handleChange={handleChange}
-                      isReplacementShow={isReplacementShow}
+                      handlePickupChange={handlePickupChange}
+                      handlePickupNumericChange={handlePickupNumericChange}
+                      addPickupStop={addPickupStop}
+                      removePickupStop={removePickupStop}
                     />
                   )}
                 </div>
 
                 {/* ACTION BUTTONS */}
                 {updatable && (
-                  <div className='flex gap-4 col-span-full mt-6 pt-4 border-t border-gray-200'>
+                  <div className='flex gap-4 col-span-full mt-6 mr-6'>
                     {isEditMode ? (
                       <>
                         <button
                           type='button'
                           onClick={handleCancelEditMode}
                           disabled={isLoading}
-                          className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600  px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
+                          className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
                         >
                           Cancel
                         </button>
@@ -1455,7 +1200,6 @@ function DeploymentDetailsModal ({
                           <TbPencilMinus className='text-lg -mt-0.5' />
                           Update
                         </button>
-
                         <button
                           type='button'
                           onClick={handlePrintTMO}
@@ -1465,7 +1209,6 @@ function DeploymentDetailsModal ({
                           <TbPrinter className='text-lg -mt-0.5' />
                           Print TMO
                         </button>
-
                         {!isReplacementShow && (
                           <button
                             type='button'
@@ -1477,12 +1220,11 @@ function DeploymentDetailsModal ({
                             Replace Truck
                           </button>
                         )}
-
                         <button
                           type='button'
                           onClick={openDeleteModal}
                           disabled={isLoading}
-                          className='bg-linear-to-b from-red-500 to-red-600 text-white px-6 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95  ml-auto'
+                          className='bg-linear-to-b from-red-500 to-red-600 text-white px-6 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95 ml-auto'
                         >
                           <TbTrash className='text-lg -mt-0.5' />
                           Delete
@@ -1500,8 +1242,74 @@ function DeploymentDetailsModal ({
   )
 }
 
-// OVERVIEW TAB COMPONENT
-const OverviewTab = ({
+// ── TIMELINE HELPERS ──
+
+const TimelineStop = ({ isActive, isLast, children }) => (
+  <div className='flex gap-5'>
+    <div className='relative'>
+      <div
+        className={clsx(
+          'w-4 aspect-square rounded-full absolute z-10 left-1/2 -translate-x-1/2',
+          {
+            'bg-emerald-500 shadow-warning': isActive,
+            'bg-gray-200 shadow-[inset_0_2px_4px_0_rgb(0,0,0,0.2)]': !isActive
+          }
+        )}
+      />
+      {!isLast && (
+        <div
+          className={clsx(
+            'w-0.5 h-full absolute top-0 left-1/2 -translate-x-1/2',
+            {
+              'bg-emerald-500': isActive,
+              'bg-gray-300': !isActive
+            }
+          )}
+        />
+      )}
+    </div>
+    <div className='pb-6 flex-1 w-56'>{children}</div>
+  </div>
+)
+
+const TimelineDisplay = ({ label, value }) => (
+  <label className='flex flex-col gap-1'>
+    <p className='text-xs font-semibold uppercase text-gray-500'>{label}</p>
+    {value ? (
+      <p className='outline outline-gray-300 px-3 py-2 rounded break-all'>
+        {DateTime.fromISO(value)
+          .setZone('Asia/Manila')
+          .toFormat('MMM d, yyyy - hh:mm a')}
+      </p>
+    ) : (
+      <p className='italic text-gray-400 text-sm font-light outline outline-gray-300 px-3 py-2.5 rounded'>
+        Pending
+      </p>
+    )}
+  </label>
+)
+
+const TabButton = ({ label, tab, activeTab, setActiveTab }) => (
+  <button
+    type='button'
+    onClick={() => setActiveTab(tab)}
+    className={clsx(
+      'px-4 py-2 text-sm font-medium transition-colors relative',
+      {
+        'text-emerald-600': activeTab === tab,
+        'text-gray-500 hover:text-gray-700': activeTab !== tab
+      }
+    )}
+  >
+    {label}
+    {activeTab === tab && (
+      <div className='absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600' />
+    )}
+  </button>
+)
+
+// ── DEPLOYMENT INFO TAB — all data except pickups ──
+const DeploymentInfoTab = ({
   isEditMode,
   editForm,
   deployment,
@@ -1527,491 +1335,304 @@ const OverviewTab = ({
 }) => {
   const { settings } = useSettingsContext()
 
+  const activeTruckId = isReplacementShow
+    ? typeof editForm?.replacement?.replacementTruckId === 'object'
+      ? editForm?.replacement?.replacementTruckId?._id
+      : editForm?.replacement?.replacementTruckId
+    : typeof editForm?.truckId === 'object'
+    ? editForm?.truckId?._id
+    : editForm?.truckId
+
+  const activeDriverId = isReplacementShow
+    ? typeof editForm?.replacement?.replacementDriverId === 'object'
+      ? editForm?.replacement?.replacementDriverId?._id
+      : editForm?.replacement?.replacementDriverId
+    : typeof editForm?.driverId === 'object'
+    ? editForm?.driverId?._id
+    : editForm?.driverId
+
   return (
     <div className='space-y-4'>
-      {!isReplacementShow ? (
-        // Original truck details
-        <div className='space-y-2'>
-          <h3 className='text-xs uppercase font-semibold text-gray-500'>
-            Truck Details
-          </h3>
-          <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
-            {/* plate no. */}
-            <label className='flex flex-col gap-1'>
-              <span className='uppercase text-xs text-gray-500 font-semibold'>
-                Plate No.
-              </span>
-              {isEditMode ? (
-                <Combobox
-                  value={
-                    typeof editForm?.truckId === 'object'
-                      ? editForm?.truckId?._id
-                      : editForm?.truckId
-                  }
-                  onChange={value => handleComboboxChange('truckId', value)}
-                >
-                  <div className='relative'>
-                    <ComboboxInput
-                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 uppercase'
-                      displayValue={truckId => {
-                        const actualId =
-                          typeof truckId === 'object' ? truckId?._id : truckId
-                        const truck = trucks?.find(t => t._id === actualId)
-                        return truck ? truck.plateNo : ''
-                      }}
-                      onChange={event => setTruckQuery(event.target.value)}
-                      required
-                    />
-                    <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                      <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                    </ComboboxButton>
-                    <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                      {filteredTrucks.length === 0 && truckQuery !== '' ? (
-                        <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                          Nothing found.
-                        </div>
-                      ) : (
-                        filteredTrucks.map(truck => (
-                          <ComboboxOption
-                            key={truck._id}
-                            value={truck._id}
-                            className={({ focus }) =>
-                              `relative cursor-default select-none py-2 px-4 text-base ${
-                                focus ? 'bg-gray-50' : 'text-gray-900'
-                              } ${
-                                (typeof editForm?.truckId === 'object'
-                                  ? editForm?.truckId?._id
-                                  : editForm?.truckId) === truck._id
-                                  ? 'bg-gray-100'
-                                  : ''
-                              }`
-                            }
-                          >
-                            {({ selected }) => (
-                              <span className='block truncate uppercase'>
-                                {truck.plateNo}
-                              </span>
-                            )}
-                          </ComboboxOption>
-                        ))
-                      )}
-                    </ComboboxOptions>
-                  </div>
-                </Combobox>
-              ) : (
-                <p className='outline outline-gray-200 px-3 py-2 rounded break-all uppercase'>
-                  {currentTruck?.plateNo}
-                </p>
-              )}
-            </label>
-
-            <div className='grid grid-cols-2 gap-x-6'>
-              {/* type */}
-              <label className='flex flex-col gap-1'>
-                <span className='uppercase text-xs text-gray-500 font-semibold'>
-                  Truck Type
-                </span>
-                {isEditMode ? (
-                  <div className='relative'>
-                    <select
-                      name='truckType'
-                      value={editForm?.truckType}
-                      onChange={handleChange}
-                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
-                    >
-                      {settings.trucksDrivers.truckType.map((item, index) => (
-                        <option key={index} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
-                  </div>
-                ) : (
-                  <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
-                    {editForm?.truckType}
-                  </p>
-                )}
-              </label>
-
-              {/* helper count */}
-              <InputField
-                label='Helper Count'
-                type='number'
-                name='helperCount'
-                placeholder='Helper Count'
-                value={editForm?.helperCount}
-                disabled={!isEditMode}
-                onChange={handleChange}
-                formatNumber={true}
-              />
-            </div>
-
-            {/* driver */}
-            <label className='flex flex-col gap-1'>
-              <span className='uppercase text-xs text-gray-500 font-semibold'>
-                Driver
-              </span>
-              {isEditMode ? (
-                <Combobox
-                  value={
-                    typeof editForm?.driverId === 'object'
-                      ? editForm?.driverId?._id
-                      : editForm?.driverId
-                  }
-                  onChange={value => handleComboboxChange('driverId', value)}
-                >
-                  <div className='relative'>
-                    <ComboboxInput
-                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
-                      displayValue={driverId => {
-                        const actualId =
-                          typeof driverId === 'object'
-                            ? driverId?._id
-                            : driverId
-                        const driver = drivers?.find(d => d._id === actualId)
-                        return driver
-                          ? `${driver.firstname} ${driver.lastname}`
-                          : ''
-                      }}
-                      onChange={event => setDriverQuery(event.target.value)}
-                      required
-                    />
-                    <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                      <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                    </ComboboxButton>
-                    <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                      {filteredDrivers.length === 0 && driverQuery !== '' ? (
-                        <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                          Nothing found.
-                        </div>
-                      ) : (
-                        filteredDrivers.map(driver => (
-                          <ComboboxOption
-                            key={driver._id}
-                            value={driver._id}
-                            className={({ focus }) =>
-                              `relative cursor-default select-none py-2 px-4 text-base ${
-                                focus ? 'bg-gray-50' : 'text-gray-900'
-                              } ${
-                                (typeof editForm?.driverId === 'object'
-                                  ? editForm?.driverId?._id
-                                  : editForm?.driverId) === driver._id
-                                  ? 'bg-gray-100'
-                                  : ''
-                              }`
-                            }
-                          >
-                            {({ selected }) => (
-                              <span className='block truncate capitalize'>
-                                {`${driver.firstname} ${driver.lastname}`}
-                              </span>
-                            )}
-                          </ComboboxOption>
-                        ))
-                      )}
-                    </ComboboxOptions>
-                  </div>
-                </Combobox>
-              ) : (
-                <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
-                  {editForm?.driverId?._id
-                    ? `${editForm.driverId.firstname} ${editForm.driverId.lastname}`
-                    : 'N/A'}
-                </p>
-              )}
-            </label>
-
-            <div className='grid grid-cols-2 gap-x-6'>
-              <InputField
-                label='Sacks Count'
-                type='number'
-                name='totalSacksCount'
-                value={editForm?.totalSacksCount}
-                disabled={!isEditMode}
-                onChange={handleChange}
-                formatNumber={true}
-                thousandSeparator={true}
-                decimalScale={0}
-                isRequired={false}
-              />
-
-              <InputField
-                label='Load Weight (kg)'
-                type='number'
-                name='loadWeightKg'
-                value={editForm?.loadWeightKg}
-                disabled={!isEditMode}
-                onChange={handleChange}
-                formatNumber={true}
-                thousandSeparator={true}
-                decimalScale={2}
-                isRequired={false}
-              />
-            </div>
-          </div>
-        </div>
-      ) : (
-        // Replacement truck details
-        <div className='space-y-2'>
-          <div className='flex justify-between'>
-            <h3 className='text-xs uppercase font-semibold text-gray-500'>
-              Truck Details
-            </h3>
-            <p className='text-xs text-red-500'>*This is a replacement truck</p>
-          </div>
-          <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
-            {/* plate no. */}
-            <label className='flex flex-col gap-1'>
-              <span className='uppercase text-xs text-gray-500 font-semibold'>
-                Plate No.
-              </span>
-              {isEditMode ? (
-                <Combobox
-                  value={
-                    typeof editForm?.replacement?.replacementTruckId ===
-                    'object'
-                      ? editForm?.replacement?.replacementTruckId?._id
-                      : editForm?.replacement?.replacementTruckId
-                  }
-                  onChange={value =>
-                    handleComboboxChange(
-                      'replacement.replacementTruckId',
-                      value
-                    )
-                  }
-                >
-                  <div className='relative'>
-                    <ComboboxInput
-                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 uppercase'
-                      displayValue={truckId => {
-                        const actualId =
-                          typeof truckId === 'object' ? truckId?._id : truckId
-                        const truck = trucks?.find(t => t._id === actualId)
-                        return truck ? truck.plateNo : ''
-                      }}
-                      onChange={event =>
-                        setReplacementTruckQuery(event.target.value)
-                      }
-                      placeholder='Search plate no.'
-                      required
-                    />
-                    <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                      <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                    </ComboboxButton>
-                    <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                      {filteredReplacementTrucks.length === 0 &&
-                      replacementTruckQuery !== '' ? (
-                        <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                          Nothing found.
-                        </div>
-                      ) : (
-                        filteredReplacementTrucks.map(truck => (
-                          <ComboboxOption
-                            key={truck._id}
-                            value={truck._id}
-                            className={({ focus }) =>
-                              `relative cursor-default select-none py-2 px-4 text-base ${
-                                focus ? 'bg-gray-50' : 'text-gray-900'
-                              } ${
-                                (typeof editForm?.replacement
-                                  ?.replacementTruckId === 'object'
-                                  ? editForm?.replacement?.replacementTruckId
-                                      ?._id
-                                  : editForm?.replacement
-                                      ?.replacementTruckId) === truck._id
-                                  ? 'bg-gray-100'
-                                  : ''
-                              }`
-                            }
-                          >
-                            {({ selected }) => (
-                              <span className='block truncate uppercase'>
-                                {truck.plateNo}
-                              </span>
-                            )}
-                          </ComboboxOption>
-                        ))
-                      )}
-                    </ComboboxOptions>
-                  </div>
-                </Combobox>
-              ) : (
-                <p className='outline outline-gray-200 px-3 py-2 rounded break-all uppercase'>
-                  {editForm?.replacement?.replacementTruckId?.plateNo}
-                </p>
-              )}
-            </label>
-
-            <div className='grid grid-cols-2 gap-x-6'>
-              {/* type */}
-              <label className='flex flex-col gap-1'>
-                <span className='uppercase text-xs text-gray-500 font-semibold'>
-                  Truck Type
-                </span>
-                {isEditMode ? (
-                  <div className='relative'>
-                    <select
-                      name='replacement.replacementTruckType'
-                      value={editForm?.replacement?.replacementTruckType}
-                      onChange={handleChange}
-                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
-                    >
-                      {settings.trucksDrivers.truckType.map((item, index) => (
-                        <option key={index} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
-                  </div>
-                ) : (
-                  <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
-                    {editForm?.replacement?.replacementTruckType}
-                  </p>
-                )}
-              </label>
-
-              {/* helper count */}
-              <InputField
-                label='Helper Count'
-                type='number'
-                name='helperCount'
-                placeholder='Helper Count'
-                value={editForm?.helperCount}
-                disabled={!isEditMode}
-                onChange={handleChange}
-                formatNumber={true}
-              />
-            </div>
-
-            {/* driver */}
-            <label className='flex flex-col gap-1'>
-              <span className='uppercase text-xs text-gray-500 font-semibold'>
-                Driver
-              </span>
-              {isEditMode ? (
-                <Combobox
-                  value={
-                    typeof editForm?.replacement?.replacementDriverId ===
-                    'object'
-                      ? editForm?.replacement?.replacementDriverId?._id
-                      : editForm?.replacement?.replacementDriverId
-                  }
-                  onChange={value =>
-                    handleComboboxChange(
-                      'replacement.replacementDriverId',
-                      value
-                    )
-                  }
-                >
-                  <div className='relative'>
-                    <ComboboxInput
-                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
-                      displayValue={driverId => {
-                        const actualId =
-                          typeof driverId === 'object'
-                            ? driverId?._id
-                            : driverId
-                        const driver = drivers?.find(d => d._id === actualId)
-                        return driver
-                          ? `${driver.firstname} ${driver.lastname}`
-                          : ''
-                      }}
-                      onChange={event =>
-                        setReplacementDriverQuery(event.target.value)
-                      }
-                      placeholder='Search driver name'
-                      required
-                    />
-                    <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                      <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                    </ComboboxButton>
-                    <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                      {filteredReplacementDrivers.length === 0 &&
-                      replacementDriverQuery !== '' ? (
-                        <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                          Nothing found.
-                        </div>
-                      ) : (
-                        filteredReplacementDrivers.map(driver => (
-                          <ComboboxOption
-                            key={driver._id}
-                            value={driver._id}
-                            className={({ focus }) =>
-                              `relative cursor-default select-none py-2 px-4 text-base ${
-                                focus ? 'bg-gray-50' : 'text-gray-900'
-                              } ${
-                                (typeof editForm?.replacement
-                                  ?.replacementDriverId === 'object'
-                                  ? editForm?.replacement?.replacementDriverId
-                                      ?._id
-                                  : editForm?.replacement
-                                      ?.replacementDriverId) === driver._id
-                                  ? 'bg-gray-100'
-                                  : ''
-                              }`
-                            }
-                          >
-                            {({ selected }) => (
-                              <span className='block truncate capitalize'>
-                                {`${driver.firstname} ${driver.lastname}`}
-                              </span>
-                            )}
-                          </ComboboxOption>
-                        ))
-                      )}
-                    </ComboboxOptions>
-                  </div>
-                </Combobox>
-              ) : (
-                <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
-                  {editForm?.replacement?.replacementDriverId
-                    ? `${editForm.replacement.replacementDriverId.firstname} ${editForm.replacement.replacementDriverId.lastname}`
-                    : ''}{' '}
-                </p>
-              )}
-            </label>
-
-            <div className='grid grid-cols-2 gap-x-6'>
-              <InputField
-                label='Sacks Count'
-                type='number'
-                name='totalSacksCount'
-                value={editForm?.totalSacksCount}
-                disabled={!isEditMode}
-                onChange={handleChange}
-                formatNumber={true}
-                thousandSeparator={true}
-                decimalScale={0}
-                isRequired={false}
-              />
-
-              <InputField
-                label='Load Weight (kg)'
-                type='number'
-                name='loadWeightKg'
-                value={editForm?.loadWeightKg}
-                disabled={!isEditMode}
-                onChange={handleChange}
-                formatNumber={true}
-                thousandSeparator={true}
-                decimalScale={2}
-                isRequired={false}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* other details */}
+      {/* TRUCK & DRIVER */}
       <div className='space-y-2'>
-        <h3 className='col-span-full text-xs uppercase font-semibold text-gray-500'>
-          Other Details
+        <div className='flex justify-between items-center'>
+          <h3 className='text-xs uppercase font-semibold text-gray-500'>
+            Truck & Driver Details
+          </h3>
+          {isReplacementShow && (
+            <p className='text-xs text-red-500'>*Replacement truck active</p>
+          )}
+        </div>
+        <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
+          {/* Plate No */}
+          <label className='flex flex-col gap-1'>
+            <span className='uppercase text-xs text-gray-500 font-semibold'>
+              Plate No.
+            </span>
+            {isEditMode ? (
+              <Combobox
+                value={activeTruckId}
+                onChange={value =>
+                  handleComboboxChange(
+                    isReplacementShow
+                      ? 'replacement.replacementTruckId'
+                      : 'truckId',
+                    value
+                  )
+                }
+              >
+                <div className='relative'>
+                  <ComboboxInput
+                    className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 uppercase'
+                    displayValue={id => {
+                      const truck = trucks?.find(t => t._id === id)
+                      return truck ? truck.plateNo : ''
+                    }}
+                    onChange={e =>
+                      isReplacementShow
+                        ? setReplacementTruckQuery(e.target.value)
+                        : setTruckQuery(e.target.value)
+                    }
+                    required
+                  />
+                  <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
+                    <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
+                  </ComboboxButton>
+                  <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm'>
+                    {(isReplacementShow
+                      ? filteredReplacementTrucks
+                      : filteredTrucks
+                    ).map(truck => (
+                      <ComboboxOption
+                        key={truck._id}
+                        value={truck._id}
+                        className={({ focus }) =>
+                          `cursor-default select-none py-2 px-4 text-base ${
+                            focus ? 'bg-gray-50' : 'text-gray-900'
+                          }`
+                        }
+                      >
+                        <span className='block truncate uppercase'>
+                          {truck.plateNo}
+                        </span>
+                      </ComboboxOption>
+                    ))}
+                  </ComboboxOptions>
+                </div>
+              </Combobox>
+            ) : (
+              <p className='outline outline-gray-200 px-3 py-2 rounded uppercase'>
+                {isReplacementShow
+                  ? editForm?.replacement?.replacementTruckId?.plateNo
+                  : currentTruck?.plateNo}
+              </p>
+            )}
+          </label>
+
+          <div className='grid grid-cols-2 gap-x-6'>
+            {/* Truck Type */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Truck Type
+              </span>
+              {isEditMode ? (
+                <div className='relative'>
+                  <select
+                    name={
+                      isReplacementShow
+                        ? 'replacement.replacementTruckType'
+                        : 'truckType'
+                    }
+                    value={
+                      isReplacementShow
+                        ? editForm?.replacement?.replacementTruckType
+                        : editForm?.truckType
+                    }
+                    onChange={handleChange}
+                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
+                  >
+                    {settings.trucksDrivers.truckType.map((item, index) => (
+                      <option key={index} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
+                </div>
+              ) : (
+                <p className='outline outline-gray-200 px-3 py-2 rounded capitalize'>
+                  {isReplacementShow
+                    ? editForm?.replacement?.replacementTruckType
+                    : editForm?.truckType}
+                </p>
+              )}
+            </label>
+            <InputField
+              label='Helper Count'
+              type='number'
+              name='helperCount'
+              value={editForm?.helperCount}
+              disabled={!isEditMode}
+              onChange={handleChange}
+              formatNumber={true}
+            />
+          </div>
+
+          {/* Driver */}
+          <label className='flex flex-col gap-1'>
+            <span className='uppercase text-xs text-gray-500 font-semibold'>
+              Driver
+            </span>
+            {isEditMode ? (
+              <Combobox
+                value={activeDriverId}
+                onChange={value =>
+                  handleComboboxChange(
+                    isReplacementShow
+                      ? 'replacement.replacementDriverId'
+                      : 'driverId',
+                    value
+                  )
+                }
+              >
+                <div className='relative'>
+                  <ComboboxInput
+                    className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
+                    displayValue={id => {
+                      const driver = drivers?.find(d => d._id === id)
+                      return driver
+                        ? `${driver.firstname} ${driver.lastname}`
+                        : ''
+                    }}
+                    onChange={e =>
+                      isReplacementShow
+                        ? setReplacementDriverQuery(e.target.value)
+                        : setDriverQuery(e.target.value)
+                    }
+                    required
+                  />
+                  <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
+                    <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
+                  </ComboboxButton>
+                  <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm'>
+                    {(isReplacementShow
+                      ? filteredReplacementDrivers
+                      : filteredDrivers
+                    ).map(driver => (
+                      <ComboboxOption
+                        key={driver._id}
+                        value={driver._id}
+                        className={({ focus }) =>
+                          `cursor-default select-none py-2 px-4 text-base ${
+                            focus ? 'bg-gray-50' : 'text-gray-900'
+                          }`
+                        }
+                      >
+                        <span className='block truncate capitalize'>
+                          {driver.firstname} {driver.lastname}
+                        </span>
+                      </ComboboxOption>
+                    ))}
+                  </ComboboxOptions>
+                </div>
+              </Combobox>
+            ) : (
+              <p className='outline outline-gray-200 px-3 py-2 rounded capitalize'>
+                {isReplacementShow
+                  ? editForm?.replacement?.replacementDriverId
+                    ? `${editForm.replacement.replacementDriverId.firstname} ${editForm.replacement.replacementDriverId.lastname}`
+                    : 'N/A'
+                  : editForm?.driverId?._id
+                  ? `${editForm.driverId.firstname} ${editForm.driverId.lastname}`
+                  : 'N/A'}
+              </p>
+            )}
+          </label>
+
+          <div className='grid grid-cols-2 gap-x-6'>
+            <InputField
+              label='Sacks Count'
+              type='number'
+              name='totalSacksCount'
+              value={editForm?.totalSacksCount}
+              disabled={!isEditMode}
+              onChange={handleChange}
+              formatNumber={true}
+              thousandSeparator={true}
+              decimalScale={0}
+              isRequired={false}
+            />
+            <InputField
+              label='Load Weight (kg)'
+              type='number'
+              name='loadWeightKg'
+              value={editForm?.loadWeightKg}
+              disabled={!isEditMode}
+              onChange={handleChange}
+              formatNumber={true}
+              thousandSeparator={true}
+              decimalScale={2}
+              isRequired={false}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* DELIVERY DETAILS */}
+      <div className='space-y-2'>
+        <h3 className='text-xs uppercase font-semibold text-gray-500'>
+          Delivery Details
         </h3>
         <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
+          <InputField
+            label='Receiving Contact Person'
+            type='text'
+            name='receivingContactPerson'
+            placeholder='Contact Person'
+            value={editForm?.receivingContactPerson}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+          <InputField
+            label='Receiving Contact No.'
+            type='text'
+            name='receivingContactPersonNo'
+            placeholder='Contact Number'
+            value={editForm?.receivingContactPersonNo}
+            disabled={!isEditMode}
+            onChange={handleChange}
+          />
+
+          {/* Destination */}
+          <label className='flex flex-col gap-1'>
+            <span className='uppercase text-xs text-gray-500 font-semibold'>
+              Destination
+            </span>
+            {isEditMode ? (
+              <div className='relative'>
+                <select
+                  name='destination'
+                  value={editForm?.destination}
+                  onChange={handleChange}
+                  className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
+                >
+                  {settings.deployments.destination.map((item, index) => (
+                    <option key={index} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+                <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
+              </div>
+            ) : (
+              <p className='outline outline-gray-200 px-3 py-2 rounded capitalize'>
+                {editForm?.destination}
+              </p>
+            )}
+          </label>
+
           <div className='grid grid-cols-2 gap-x-6'>
-            {/* territory */}
+            {/* Territory */}
             <label className='flex flex-col gap-1'>
               <span className='uppercase text-xs text-gray-500 font-semibold'>
                 Territory
@@ -2033,13 +1654,13 @@ const OverviewTab = ({
                   <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                 </div>
               ) : (
-                <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
+                <p className='outline outline-gray-200 px-3 py-2 rounded capitalize'>
                   {editForm?.territory}
                 </p>
               )}
             </label>
 
-            {/* hybrid */}
+            {/* Hybrid */}
             <label className='flex flex-col gap-1'>
               <span className='uppercase text-xs text-gray-500 font-semibold'>
                 Hybrid
@@ -2061,7 +1682,7 @@ const OverviewTab = ({
                   <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                 </div>
               ) : (
-                <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
+                <p className='outline outline-gray-200 px-3 py-2 rounded capitalize'>
                   {editForm?.hybrid}
                 </p>
               )}
@@ -2069,51 +1690,7 @@ const OverviewTab = ({
           </div>
 
           <div className='grid grid-cols-2 gap-x-6'>
-            {/* status */}
-            <label className='flex flex-col gap-1'>
-              <span className='uppercase text-xs text-gray-500 font-semibold'>
-                Status
-              </span>
-              {isEditMode ? (
-                <div className='relative'>
-                  <select
-                    name='status'
-                    value={editForm?.status}
-                    onChange={handleChange}
-                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
-                  >
-                    {DEPLOYMENT_STATUS.map((item, index) => (
-                      <option key={index} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
-                </div>
-              ) : (
-                <div className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
-                  <p
-                    className={clsx(
-                      'capitalize w-fit px-2 py-0.5 rounded-full text-sm',
-                      {
-                        'bg-orange-500/10 text-orange-500':
-                          editForm?.status === 'preparing',
-                        'bg-emerald-500/10 text-emerald-500':
-                          editForm?.status === 'ongoing',
-                        'bg-blue-500/10 text-blue-500':
-                          editForm?.status === 'completed',
-                        'bg-red-500/10 text-red-500':
-                          editForm?.status === 'canceled'
-                      }
-                    )}
-                  >
-                    {editForm?.status}
-                  </p>
-                </div>
-              )}
-            </label>
-
-            {/* flagging */}
+            {/* Flagging */}
             <label className='flex flex-col gap-1'>
               <span className='uppercase text-xs text-gray-500 font-semibold'>
                 Flagging
@@ -2135,19 +1712,19 @@ const OverviewTab = ({
                   <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                 </div>
               ) : (
-                <div className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
+                <div className='outline outline-gray-200 px-3 py-2 rounded'>
                   <p
                     className={clsx(
                       'capitalize w-fit px-2 py-0.5 rounded-full text-sm',
                       {
                         'bg-emerald-500/10 text-emerald-500':
-                          editForm?.flagging === 'Green',
+                          editForm?.flagging === 'green',
                         'bg-orange-500/10 text-orange-500':
-                          editForm?.flagging === 'Orange',
+                          editForm?.flagging === 'orange',
                         'bg-yellow-500/10 text-yellow-500':
-                          editForm?.flagging === 'Yellow',
+                          editForm?.flagging === 'yellow',
                         'bg-red-500/10 text-red-500':
-                          editForm?.flagging === 'Red'
+                          editForm?.flagging === 'red'
                       }
                     )}
                   >
@@ -2156,195 +1733,234 @@ const OverviewTab = ({
                 </div>
               )}
             </label>
+
+            <InputField
+              label='Flagging Remarks'
+              type='text'
+              name='flaggingRemarks'
+              placeholder=''
+              maxLength={50}
+              value={editForm?.flaggingRemarks}
+              disabled={!isEditMode}
+              onChange={handleChange}
+              isRequired={false}
+            />
           </div>
 
-          <label className='flex flex-col gap-1'>
-            <span className='uppercase text-xs text-gray-500 font-semibold'>
-              Assigned At
-            </span>
-            <p className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
-              {DateTime.fromISO(editForm?.createdAt)
-                .setZone('Asia/Manila')
-                .toFormat('MMM d, yyyy - hh:mm a')}
-            </p>
-          </label>
+          <div className='grid grid-cols-2 gap-x-6'>
+            {/* Status */}
+            <label className='flex flex-col gap-1'>
+              <span className='uppercase text-xs text-gray-500 font-semibold'>
+                Status
+              </span>
+              {isEditMode ? (
+                <div className='relative'>
+                  <select
+                    name='status'
+                    value={editForm?.status}
+                    onChange={handleChange}
+                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
+                  >
+                    {DEPLOYMENT_STATUS.map((item, index) => (
+                      <option key={index} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
+                </div>
+              ) : (
+                <div className='outline outline-gray-200 px-3 py-2 rounded'>
+                  <p
+                    className={clsx(
+                      'capitalize w-fit px-2 py-0.5 rounded-full text-sm',
+                      {
+                        'bg-orange-500/10 text-orange-500':
+                          editForm?.status === 'preparing',
+                        'bg-emerald-500/10 text-emerald-500':
+                          editForm?.status === 'ongoing',
+                        'bg-blue-500/10 text-blue-500':
+                          editForm?.status === 'completed',
+                        'bg-red-500/10 text-red-500':
+                          editForm?.status === 'canceled'
+                      }
+                    )}
+                  >
+                    {editForm?.status}
+                  </p>
+                </div>
+              )}
+            </label>
 
-          <InputField
-            label='Flagging Remarks'
-            type='text'
-            name='flaggingRemarks'
-            placeholder=''
-            maxLength={50}
-            value={editForm?.flaggingRemarks}
-            disabled={!isEditMode}
-            onChange={handleChange}
-            isRequired={false}
-          />
-
-          <InputField
-            label='Pick-up Location'
-            type='text'
-            name='pickupSite'
-            placeholder='Pick-up Location'
-            maxLength={50}
-            value={editForm?.pickupSite}
-            disabled={!isEditMode}
-            onChange={handleChange}
-          />
-
-          <InputField
-            label='Cancellation Reason'
-            type='text'
-            name='cancellationReason'
-            placeholder=''
-            maxLength={50}
-            value={editForm?.cancellationReason}
-            disabled={!isEditMode || editForm?.status !== 'canceled'}
-            onChange={handleChange}
-            isRequired={false}
-            isCapitalize={false}
-          />
+            <InputField
+              label='Cancellation Reason'
+              type='text'
+              name='cancellationReason'
+              placeholder=''
+              maxLength={50}
+              value={editForm?.cancellationReason}
+              disabled={!isEditMode || editForm?.status !== 'canceled'}
+              onChange={handleChange}
+              isRequired={false}
+              isCapitalize={false}
+            />
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-// ADDITIONAL DETAILS TAB COMPONENT
-const AdditionalDetailsTab = ({
+// ── PICKUP SITES TAB — only pickups ──
+const PickupSitesTab = ({
   isEditMode,
   editForm,
-  handleChange,
-  isReplacementShow
+  handlePickupChange,
+  handlePickupNumericChange,
+  addPickupStop,
+  removePickupStop
 }) => {
+  const pickups = editForm?.pickups || []
+  const lastStopRef = useRef(null)
+  const prevLengthRef = useRef(pickups.length)
+
+  useEffect(() => {
+    // Only scroll when a stop was added (length increased), not on initial render
+    if (pickups.length > prevLengthRef.current && lastStopRef.current) {
+      lastStopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    prevLengthRef.current = pickups.length
+  }, [pickups.length])
+
   return (
-    <div className='space-y-4'>
-      {/* PICKUP DETAILS SECTION */}
-      <div className='space-y-2'>
-        <div className='flex justify-between'>
+    <div className=''>
+      {/* header */}
+      <div className='flex items-center justify-between sticky top-0 bg-white z-10 pb-2'>
+        <div className='flex items-center gap-2'>
           <h3 className='text-xs uppercase font-semibold text-gray-500'>
-            Pickup Details
+            Pickup Stops
           </h3>
-          {isReplacementShow && (
-            <p className='text-xs text-red-500'>*This is a replacement truck</p>
-          )}
+          <span className='text-xs text-gray-400'>
+            ({pickups.length}/{MAX_PICKUPS})
+          </span>
         </div>
-        <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
-          <InputField
-            label='Pick-up Site'
-            type='text'
-            name='pickupSite'
-            placeholder='Pick-up Site'
-            value={editForm?.pickupSite}
-            disabled={!isEditMode}
-            onChange={handleChange}
-          />
-
-          <InputField
-            label='Municipality'
-            type='text'
-            name='municipality'
-            placeholder='Municipality'
-            value={editForm?.municipality}
-            disabled={!isEditMode}
-            onChange={handleChange}
-          />
-
-          <InputField
-            label='Field Contact Person'
-            type='text'
-            name='fieldContactPerson'
-            placeholder='Contact Person'
-            value={editForm?.fieldContactPerson}
-            disabled={!isEditMode}
-            onChange={handleChange}
-          />
-
-          <InputField
-            label='Field Contact No.'
-            type='text'
-            name='fieldContactPersonNo'
-            placeholder='Contact Number'
-            value={editForm?.fieldContactPersonNo}
-            disabled={!isEditMode}
-            onChange={handleChange}
-          />
-
-          <InputField
-            label='Scheduled Pickup Time'
-            type='datetime-local'
-            name='scheduledPickupTime'
-            placeholder='Scheduled Pickup Time'
-            value={editForm?.scheduledPickupTime}
-            disabled={!isEditMode}
-            onChange={handleChange}
-            isCapitalize={false}
-          />
-
-          <InputField
-            label='Estimated Quantity (Kg)'
-            type='number'
-            name='estimatedQuantityKg'
-            placeholder='Estimated Quantity'
-            value={editForm?.estimatedQuantityKg}
-            disabled={!isEditMode}
-            onChange={handleChange}
-            formatNumber={true}
-            thousandSeparator={true}
-            decimalScale={2}
-          />
-        </div>
+        {isEditMode && (
+          <button
+            type='button'
+            onClick={addPickupStop}
+            disabled={pickups.length >= MAX_PICKUPS}
+            className='flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors px-2 cursor-pointer'
+          >
+            <FiPlus className='text-sm' />
+            Add Stop
+          </button>
+        )}
       </div>
 
-      {/* DELIVERY DETAILS SECTION */}
-      <div className='space-y-2'>
-        <h3 className='text-xs uppercase font-semibold text-gray-500'>
-          Delivery Details
-        </h3>
-        <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
-          <InputField
-            label='Receiving Contact Person'
-            type='text'
-            name='receivingContactPerson'
-            placeholder='Contact Person'
-            value={editForm?.receivingContactPerson}
-            disabled={!isEditMode}
-            onChange={handleChange}
-          />
+      <div className='flex flex-col gap-3'>
+        {pickups.map((pickup, index) => (
+          <div
+            key={index}
+            ref={index === pickups.length - 1 ? lastStopRef : null}
+            className='border border-gray-200 rounded-xl p-4 bg-gray-50/50 relative'
+          >
+            <p className='text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2'>
+              Stop #{index + 1}
+            </p>
 
-          <InputField
-            label='Receiving Contact No.'
-            type='text'
-            name='receivingContactPersonNo'
-            placeholder='Contact Number'
-            value={editForm?.receivingContactPersonNo}
-            disabled={!isEditMode}
-            onChange={handleChange}
-          />
+            {isEditMode && pickups.length > 1 && (
+              <button
+                type='button'
+                onClick={() => removePickupStop(index)}
+                className='text-red-400 hover:text-red-600 hover:bg-red-50 p-2 flex items-center justify-center aspect-square rounded-full transition-colors absolute top-2 right-2 cursor-pointer'
+                title='Remove stop'
+              >
+                <FiTrash2 className='text-lg' />
+              </button>
+            )}
 
-          <InputField
-            label='Territory'
-            type='text'
-            name='territory'
-            value={editForm?.territory}
-            disabled={!isEditMode}
-            onChange={handleChange}
-          />
-
-          <InputField
-            label='Hybrid'
-            type='text'
-            name='hybrid'
-            value={editForm?.hybrid}
-            disabled={!isEditMode}
-            onChange={handleChange}
-          />
-        </div>
+            <div className='grid grid-cols-2 gap-x-6 gap-y-4'>
+              <InputField
+                label='Pick-up Site'
+                type='text'
+                name='pickupSite'
+                placeholder='Pick-up Site'
+                value={pickup.pickupSite}
+                disabled={!isEditMode}
+                onChange={e => handlePickupChange(index, e)}
+              />
+              <InputField
+                label='Municipality'
+                type='text'
+                name='municipality'
+                placeholder='Municipality'
+                value={pickup.municipality}
+                disabled={!isEditMode}
+                onChange={e => handlePickupChange(index, e)}
+              />
+              <InputField
+                label='Field Contact Person'
+                type='text'
+                name='fieldContactPerson'
+                placeholder='Contact Person'
+                value={pickup.fieldContactPerson}
+                disabled={!isEditMode}
+                onChange={e => handlePickupChange(index, e)}
+              />
+              <InputField
+                label='Field Contact No.'
+                type='text'
+                name='fieldContactPersonNo'
+                placeholder='Contact Number'
+                value={pickup.fieldContactPersonNo}
+                disabled={!isEditMode}
+                onChange={e => handlePickupChange(index, e)}
+              />
+              <InputField
+                label='Scheduled Pickup Time'
+                type='datetime-local'
+                name='scheduledPickupTime'
+                value={pickup.scheduledPickupTime}
+                disabled={!isEditMode}
+                onChange={e => handlePickupChange(index, e)}
+                isCapitalize={false}
+              />
+              <label className='flex flex-col gap-1'>
+                <span className='uppercase text-xs text-gray-500 font-semibold'>
+                  Estimated Quantity (Kg)
+                </span>
+                <NumericFormat
+                  thousandSeparator
+                  decimalScale={2}
+                  allowNegative={false}
+                  value={pickup.estimatedQuantityKg}
+                  onValueChange={values =>
+                    handlePickupNumericChange(
+                      index,
+                      'estimatedQuantityKg',
+                      values.floatValue
+                    )
+                  }
+                  disabled={!isEditMode}
+                  required
+                  className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 w-full'
+                />
+              </label>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {isEditMode && pickups.length >= MAX_PICKUPS && (
+        <p className='text-xs text-gray-400 text-center mt-2'>
+          Maximum of {MAX_PICKUPS} pickup stops reached.
+        </p>
+      )}
     </div>
   )
 }
 
+// ── INPUT FIELD ──
 const InputField = ({
   colSpan = 1,
   rowSpan = 1,
@@ -2379,10 +1995,7 @@ const InputField = ({
           value={value}
           onValueChange={values => {
             const syntheticEvent = {
-              target: {
-                name: name,
-                value: values.floatValue || ''
-              }
+              target: { name, value: values.floatValue || '' }
             }
             onChange(syntheticEvent)
           }}
@@ -2390,7 +2003,7 @@ const InputField = ({
           disabled={disabled}
           required={isRequired}
           className={clsx(
-            'outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 ',
+            'outline px-3 py-2 rounded break-all focus:outline-gray-400',
             {
               capitalize: isCapitalize,
               uppercase: isUpperCase,
@@ -2421,7 +2034,7 @@ const InputField = ({
         disabled={disabled}
         required={isRequired}
         className={clsx(
-          'outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400',
+          'outline px-3 py-2 rounded break-all focus:outline-gray-400',
           {
             capitalize: isCapitalize,
             uppercase: isUpperCase,
