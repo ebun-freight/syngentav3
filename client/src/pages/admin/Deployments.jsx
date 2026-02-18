@@ -157,6 +157,8 @@ function Deployments () {
   }
 
   useEffect(() => {
+    console.log(filters)
+
     const handleGetAllDeployment = async () => {
       const { deployments, total, page, totalPages, error } =
         await getAllDeploymentFunction(filters)

@@ -10,30 +10,38 @@ const getDashboardAnalytics = async (req, res) => {
     const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     const last12Weeks = new Date(now.getTime() - 12 * 7 * 24 * 60 * 60 * 1000)
 
-    // Start of current month and year
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const currentYearStart = new Date(now.getFullYear(), 0, 1)
 
-    // Initialize base filters
-    const baseFilter = {
-      isSoftDeleted: { $ne: true }
-    }
-
+    // Base deployment filter (no subcon field anymore)
+    const baseFilter = { isSoftDeleted: { $ne: true } }
     const truckAndDriverFilter = { isSoftDeleted: { $ne: true } }
 
-    // Add subcon filter for truck and driver if user is subcon
+    // For subcon users: filter trucks/drivers by subcon, deployments by truck lookup
     if (req.user.role === 'subcon' && req.user.subcon) {
       truckAndDriverFilter.subcon = req.user.subcon
-      baseFilter.subcon = req.user.subcon
     }
 
-    // Create all promises
+    // Helper: get truck IDs belonging to this subcon (for deployment filters)
+    let subconTruckIds = null
+    if (req.user.role === 'subcon' && req.user.subcon) {
+      const subconTrucks = await Truck.find({ subcon: req.user.subcon })
+        .select('_id')
+        .lean()
+      subconTruckIds = subconTrucks.map(t => t._id)
+    }
+
+    // Deployment filter for subcon users — filter by truckId in subcon's truck list
+    const deploymentFilter = subconTruckIds
+      ? { ...baseFilter, truckId: { $in: subconTruckIds } }
+      : { ...baseFilter }
+
     const promises = {
       // Basic counts
       totalTrucks: Truck.countDocuments(truckAndDriverFilter),
       totalDrivers: Driver.countDocuments(truckAndDriverFilter),
       activeDeployments: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         status: { $in: ['ongoing', 'in-progress'] }
       }),
       availableTrucks: Truck.countDocuments({
@@ -45,7 +53,6 @@ const getDashboardAnalytics = async (req, res) => {
         status: 'available'
       }),
 
-      // Status counts
       trucksInMaintenance: Truck.countDocuments({
         ...truckAndDriverFilter,
         status: 'unavailable'
@@ -55,33 +62,28 @@ const getDashboardAnalytics = async (req, res) => {
         status: 'unavailable'
       }),
       completedDeployments: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         status: 'completed'
       }),
       cancelledDeployments: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         status: 'canceled'
       }),
 
-      // Recent deployments
       recentDeployments: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         createdAt: { $gte: last7Days }
       }),
       deploymentsLast30Days: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         createdAt: { $gte: last30Days }
       }),
-
-      // Monthly deployments (current month)
       monthlyDeployments: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         createdAt: { $gte: currentMonthStart }
       }),
-
-      // Yearly deployments
       yearlyDeployments: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         createdAt: { $gte: currentYearStart }
       }),
 
@@ -119,11 +121,11 @@ const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
-      // Deployment analytics
+      // Deployment status analytics
       deploymentStatusAnalytics: Deployment.aggregate([
         {
           $match: {
-            ...baseFilter,
+            ...deploymentFilter,
             status: {
               $in: [
                 'completed',
@@ -139,16 +141,9 @@ const getDashboardAnalytics = async (req, res) => {
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]),
 
-      // WEEKLY trends (last 12 weeks) - UPDATED
+      // Weekly trends (last 12 weeks)
       weeklyDeploymentAnalytics: Deployment.aggregate([
-        {
-          $match: {
-            ...baseFilter,
-            createdAt: {
-              $gte: last12Weeks
-            }
-          }
-        },
+        { $match: { ...deploymentFilter, createdAt: { $gte: last12Weeks } } },
         {
           $group: {
             _id: {
@@ -164,16 +159,8 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
       ]),
 
-      // Weekly deployment status analytics
       weeklyDeploymentStatusAnalytics: Deployment.aggregate([
-        {
-          $match: {
-            ...baseFilter,
-            createdAt: {
-              $gte: last12Weeks
-            }
-          }
-        },
+        { $match: { ...deploymentFilter, createdAt: { $gte: last12Weeks } } },
         {
           $group: {
             _id: {
@@ -188,15 +175,12 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
       ]),
 
-      // Weekly Sacks Analytics
       weeklySacksAnalytics: Deployment.aggregate([
         {
           $match: {
-            ...baseFilter,
+            ...deploymentFilter,
             status: { $ne: 'canceled' },
-            createdAt: {
-              $gte: last12Weeks
-            }
+            createdAt: { $gte: last12Weeks }
           }
         },
         {
@@ -214,15 +198,12 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
       ]),
 
-      // Weekly Weight Analytics
       weeklyWeightAnalytics: Deployment.aggregate([
         {
           $match: {
-            ...baseFilter,
+            ...deploymentFilter,
             status: { $ne: 'canceled' },
-            createdAt: {
-              $gte: last12Weeks
-            }
+            createdAt: { $gte: last12Weeks }
           }
         },
         {
@@ -240,11 +221,10 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
       ]),
 
-      // Top Pickup Sites
       topPickupSites: Deployment.aggregate([
         {
           $match: {
-            ...baseFilter,
+            ...deploymentFilter,
             pickupSite: { $exists: true, $ne: '' }
           }
         },
@@ -260,14 +240,8 @@ const getDashboardAnalytics = async (req, res) => {
         { $limit: 10 }
       ]),
 
-      // Deployment efficiency (avg sacks & weight per deployment)
       deploymentEfficiency: Deployment.aggregate([
-        {
-          $match: {
-            ...baseFilter,
-            status: { $ne: 'canceled' }
-          }
-        },
+        { $match: { ...deploymentFilter, status: { $ne: 'canceled' } } },
         {
           $group: {
             _id: null,
@@ -279,14 +253,8 @@ const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
-      // NEW: Completed deployments cargo metrics
       completedCargoMetrics: Deployment.aggregate([
-        {
-          $match: {
-            ...baseFilter,
-            status: 'completed'
-          }
-        },
+        { $match: { ...deploymentFilter, status: 'completed' } },
         {
           $group: {
             _id: null,
@@ -300,31 +268,27 @@ const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
-      // Additional deployment status counts
       pendingDeployments: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         status: 'pending'
       }),
       preparingDeployments: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         status: 'preparing'
       }),
       inProgressDeployments: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         status: 'in-progress'
       }),
       ongoingDeployments: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         status: 'ongoing'
       }),
 
-      // Truck utilization (active vs total)
       activeTrucks: Truck.countDocuments({
         ...truckAndDriverFilter,
         status: { $in: ['available', 'deployed'] }
       }),
-
-      // Deployed trucks and drivers
       deployedTrucks: Truck.countDocuments({
         ...truckAndDriverFilter,
         status: 'deployed'
@@ -334,13 +298,12 @@ const getDashboardAnalytics = async (req, res) => {
         status: 'deployed'
       }),
 
-      // Recent activity (last 24 hours)
       recentActivity: Deployment.countDocuments({
-        ...baseFilter,
+        ...deploymentFilter,
         createdAt: { $gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) }
       }),
 
-      // USER ANALYTICS
+      // User analytics
       totalUsers: User.countDocuments({ isSoftDeleted: { $ne: true } }),
       activeUsers: User.countDocuments({
         isSoftDeleted: { $ne: true },
@@ -351,19 +314,16 @@ const getDashboardAnalytics = async (req, res) => {
         status: 'pending'
       }),
 
-      // User role distribution
       userRoleAnalytics: User.aggregate([
         { $match: { isSoftDeleted: { $ne: true } } },
         { $group: { _id: '$role', count: { $sum: 1 } } }
       ]),
 
-      // User status distribution
       userStatusAnalytics: User.aggregate([
         { $match: { isSoftDeleted: { $ne: true } } },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]),
 
-      // Subcon analytics
       subconAnalytics: User.aggregate([
         {
           $match: {
@@ -376,13 +336,11 @@ const getDashboardAnalytics = async (req, res) => {
         { $limit: 10 }
       ]),
 
-      // Recent user registrations (last 30 days)
       recentRegistrations: User.countDocuments({
         isSoftDeleted: { $ne: true },
         createdAt: { $gte: last30Days }
       }),
 
-      // User login analytics
       userLoginAnalytics: User.aggregate([
         { $match: { isSoftDeleted: { $ne: true } } },
         {
@@ -395,20 +353,40 @@ const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
-      // Subcon performance analytics
+      // Subcon performance — now derived from truck's subcon via $lookup
       subconPerformance: Deployment.aggregate([
+        { $match: deploymentFilter },
         {
-          $match: {
-            ...baseFilter,
-            subcon: { $exists: true, $ne: '' }
+          $lookup: {
+            from: 'trucks',
+            localField: 'truckId',
+            foreignField: '_id',
+            as: 'truck'
+          }
+        },
+        { $unwind: '$truck' },
+        {
+          $lookup: {
+            from: 'trucks',
+            localField: 'replacement.replacementTruckId',
+            foreignField: '_id',
+            as: 'replacementTruck'
+          }
+        },
+        {
+          $addFields: {
+            activeSubcon: {
+              $cond: [
+                { $gt: [{ $size: '$replacementTruck' }, 0] },
+                { $arrayElemAt: ['$replacementTruck.subcon', 0] },
+                '$truck.subcon'
+              ]
+            }
           }
         },
         {
           $group: {
-            _id: {
-              subcon: '$subcon',
-              status: '$status'
-            },
+            _id: { subcon: '$activeSubcon', status: '$status' },
             count: { $sum: 1 },
             totalSacks: { $sum: '$sacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
@@ -417,14 +395,9 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.subcon': 1 } }
       ]),
 
-      // Subcon Driver Performance - Only for subcon users
       subconDriverPerformance: Driver.aggregate([
-        {
-          $match: truckAndDriverFilter
-        },
-        {
-          $sort: { tripCount: -1 }
-        },
+        { $match: truckAndDriverFilter },
+        { $sort: { tripCount: -1 } },
         {
           $project: {
             name: { $concat: ['$firstname', ' ', '$lastname'] },
@@ -437,14 +410,9 @@ const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
-      // Subcon Truck Performance - Only for subcon users
       subconTruckPerformance: Truck.aggregate([
-        {
-          $match: truckAndDriverFilter
-        },
-        {
-          $sort: { tripCount: -1 }
-        },
+        { $match: truckAndDriverFilter },
+        { $sort: { tripCount: -1 } },
         {
           $project: {
             plateNo: 1,
@@ -457,50 +425,42 @@ const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
-      // Subcon driver status distribution
       subconDriverStatusAnalytics: Driver.aggregate([
         { $match: truckAndDriverFilter },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]),
 
-      // Subcon truck status distribution
       subconTruckStatusAnalytics: Truck.aggregate([
         { $match: truckAndDriverFilter },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]),
 
-      // Subcon truck type distribution
       subconTruckTypeAnalytics: Truck.aggregate([
         { $match: truckAndDriverFilter },
         { $group: { _id: '$truckType', count: { $sum: 1 } } }
       ]),
 
-      // Territory Analytics
+      // Territory / Hybrid / Flagging analytics
       territoryAnalytics: Deployment.aggregate([
-        { $match: baseFilter },
+        { $match: deploymentFilter },
         { $group: { _id: '$territory', count: { $sum: 1 } } },
         { $sort: { count: -1 } }
       ]),
 
-      // Hybrid Analytics
       hybridAnalytics: Deployment.aggregate([
-        { $match: baseFilter },
+        { $match: deploymentFilter },
         { $group: { _id: '$hybrid', count: { $sum: 1 } } },
         { $sort: { count: -1 } }
       ]),
 
-      // Flagging Analytics
       flaggingAnalytics: Deployment.aggregate([
-        { $match: baseFilter },
+        { $match: deploymentFilter },
         { $group: { _id: '$flagging', count: { $sum: 1 } } },
         { $sort: { count: -1 } }
       ]),
 
-      // Territory Performance Metrics with completion rate
       territoryPerformance: Deployment.aggregate([
-        {
-          $match: baseFilter
-        },
+        { $match: deploymentFilter },
         {
           $group: {
             _id: '$territory',
@@ -510,9 +470,7 @@ const getDashboardAnalytics = async (req, res) => {
             avgSacks: { $avg: '$sacksCount' },
             avgWeight: { $avg: '$loadWeightKg' },
             completed: {
-              $sum: {
-                $cond: [{ $eq: ['$status', 'completed'] }, 1, 0]
-              }
+              $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
             },
             completedSacks: {
               $sum: {
@@ -550,14 +508,8 @@ const getDashboardAnalytics = async (req, res) => {
         { $limit: 15 }
       ]),
 
-      // Hybrid Performance Metrics
       hybridPerformance: Deployment.aggregate([
-        {
-          $match: {
-            ...baseFilter,
-            status: { $ne: 'canceled' }
-          }
-        },
+        { $match: { ...deploymentFilter, status: { $ne: 'canceled' } } },
         {
           $group: {
             _id: '$hybrid',
@@ -571,14 +523,8 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { count: -1 } }
       ]),
 
-      // Flagging Performance Metrics
       flaggingPerformance: Deployment.aggregate([
-        {
-          $match: {
-            ...baseFilter,
-            status: { $ne: 'canceled' }
-          }
-        },
+        { $match: { ...deploymentFilter, status: { $ne: 'canceled' } } },
         {
           $group: {
             _id: '$flagging',
@@ -592,17 +538,11 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { count: -1 } }
       ]),
 
-      // Territory Status Breakdown
       territoryStatusAnalytics: Deployment.aggregate([
-        {
-          $match: baseFilter
-        },
+        { $match: deploymentFilter },
         {
           $group: {
-            _id: {
-              territory: '$territory',
-              status: '$status'
-            },
+            _id: { territory: '$territory', status: '$status' },
             count: { $sum: 1 },
             totalSacks: { $sum: '$sacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
@@ -611,17 +551,11 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.territory': 1 } }
       ]),
 
-      // Hybrid Status Breakdown
       hybridStatusAnalytics: Deployment.aggregate([
-        {
-          $match: baseFilter
-        },
+        { $match: deploymentFilter },
         {
           $group: {
-            _id: {
-              hybrid: '$hybrid',
-              status: '$status'
-            },
+            _id: { hybrid: '$hybrid', status: '$status' },
             count: { $sum: 1 },
             totalSacks: { $sum: '$sacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
@@ -630,17 +564,11 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.hybrid': 1 } }
       ]),
 
-      // Flagging Status Breakdown
       flaggingStatusAnalytics: Deployment.aggregate([
-        {
-          $match: baseFilter
-        },
+        { $match: deploymentFilter },
         {
           $group: {
-            _id: {
-              flagging: '$flagging',
-              status: '$status'
-            },
+            _id: { flagging: '$flagging', status: '$status' },
             count: { $sum: 1 },
             totalSacks: { $sum: '$sacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
@@ -649,11 +577,10 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.flagging': 1 } }
       ]),
 
-      // Monthly Territory Analytics
       monthlyTerritoryAnalytics: Deployment.aggregate([
         {
           $match: {
-            ...baseFilter,
+            ...deploymentFilter,
             status: { $ne: 'canceled' },
             createdAt: {
               $gte: new Date(now.getFullYear() - 1, now.getMonth(), 1)
@@ -675,15 +602,12 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.territory': 1 } }
       ]),
 
-      // Weekly Territory Analytics - NEW
       weeklyTerritoryAnalytics: Deployment.aggregate([
         {
           $match: {
-            ...baseFilter,
+            ...deploymentFilter,
             status: { $ne: 'canceled' },
-            createdAt: {
-              $gte: last12Weeks
-            }
+            createdAt: { $gte: last12Weeks }
           }
         },
         {
@@ -710,11 +634,12 @@ const getDashboardAnalytics = async (req, res) => {
       return acc
     }, {})
 
-    // Process subcon performance data into a more usable format
+    // Process subcon performance data
     const processedSubconPerformance = {}
     data.subconPerformance.forEach(item => {
       const subcon = item._id.subcon
       const status = item._id.status
+      if (!subcon) return
 
       if (!processedSubconPerformance[subcon]) {
         processedSubconPerformance[subcon] = {
@@ -737,7 +662,6 @@ const getDashboardAnalytics = async (req, res) => {
       processedSubconPerformance[subcon].totalSacks += item.totalSacks || 0
       processedSubconPerformance[subcon].totalWeight += item.totalWeight || 0
 
-      // Count by status
       if (
         status &&
         processedSubconPerformance[subcon].statusBreakdown[status] !== undefined
@@ -858,7 +782,6 @@ const getDashboardAnalytics = async (req, res) => {
       }
     })
 
-    // Convert to array and calculate completion rate
     const formattedSubconPerformance = Object.values(processedSubconPerformance)
       .map(subcon => ({
         ...subcon,
@@ -875,7 +798,6 @@ const getDashboardAnalytics = async (req, res) => {
       .sort((a, b) => b.totalDeployments - a.totalDeployments)
       .slice(0, 10)
 
-    // Format territory performance
     const formattedTerritoryPerformance = Object.values(
       processedTerritoryPerformance
     )
@@ -894,7 +816,6 @@ const getDashboardAnalytics = async (req, res) => {
       .sort((a, b) => b.totalDeployments - a.totalDeployments)
       .slice(0, 10)
 
-    // Format hybrid performance
     const formattedHybridPerformance = Object.values(processedHybridPerformance)
       .map(hybrid => ({
         ...hybrid,
@@ -911,7 +832,6 @@ const getDashboardAnalytics = async (req, res) => {
       .sort((a, b) => b.totalDeployments - a.totalDeployments)
       .slice(0, 10)
 
-    // Format flagging performance
     const formattedFlaggingPerformance = Object.values(
       processedFlaggingPerformance
     )
@@ -930,19 +850,16 @@ const getDashboardAnalytics = async (req, res) => {
       .sort((a, b) => b.totalDeployments - a.totalDeployments)
       .slice(0, 10)
 
-    // Calculate additional metrics
-    const totalDeployments = await Deployment.countDocuments(baseFilter)
+    // Additional metrics
+    const totalDeployments = await Deployment.countDocuments(deploymentFilter)
     const completionRate =
       totalDeployments > 0
         ? ((data.completedDeployments / totalDeployments) * 100).toFixed(1)
         : 0
-
     const cancellationRate =
       totalDeployments > 0
         ? ((data.cancelledDeployments / totalDeployments) * 100).toFixed(1)
         : 0
-
-    // Calculate success rate (only count finalized deployments)
     const finalizedDeployments =
       data.completedDeployments + data.cancelledDeployments
     const successRate =
@@ -950,14 +867,8 @@ const getDashboardAnalytics = async (req, res) => {
         ? ((data.completedDeployments / finalizedDeployments) * 100).toFixed(1)
         : 0
 
-    // Calculate total sacks and weight (excluding canceled)
     const totalSacksResult = await Deployment.aggregate([
-      {
-        $match: {
-          ...baseFilter,
-          status: { $ne: 'canceled' }
-        }
-      },
+      { $match: { ...deploymentFilter, status: { $ne: 'canceled' } } },
       {
         $group: {
           _id: null,
@@ -970,14 +881,12 @@ const getDashboardAnalytics = async (req, res) => {
     const totalSacks = totalSacksResult[0]?.totalSacks || 0
     const totalWeight = totalSacksResult[0]?.totalWeight || 0
 
-    // Calculate average sacks and weight per deployment (excluding canceled)
     const efficiencyData = data.deploymentEfficiency[0] || {}
     const avgSacks = efficiencyData.avgSacks || 0
     const avgWeight = efficiencyData.avgWeight || 0
     const maxSacks = efficiencyData.maxSacks || 0
     const maxWeight = efficiencyData.maxWeight || 0
 
-    // Extract completed cargo metrics
     const completedCargoData = data.completedCargoMetrics[0] || {}
     const totalCompletedSacks = completedCargoData.totalCompletedSacks || 0
     const totalCompletedWeight = completedCargoData.totalCompletedWeight || 0
@@ -986,37 +895,29 @@ const getDashboardAnalytics = async (req, res) => {
     const maxCompletedSacks = completedCargoData.maxCompletedSacks || 0
     const maxCompletedWeight = completedCargoData.maxCompletedWeight || 0
 
-    // Calculate truck utilization rate
     const utilizationRate =
       data.totalTrucks > 0
         ? ((data.deployedTrucks / data.totalTrucks) * 100).toFixed(1)
         : 0
-
-    // Calculate driver utilization rate
     const driverUtilizationRate =
       data.totalDrivers > 0
         ? ((data.deployedDrivers / data.totalDrivers) * 100).toFixed(1)
         : 0
 
-    // User analytics data
     const userLoginData = data.userLoginAnalytics[0] || {}
     const totalLogins = userLoginData.totalLogins || 0
     const avgLoginCount = userLoginData.avgLoginCount || 0
     const maxLoginCount = userLoginData.maxLoginCount || 0
 
-    // Safe data formatting with fallbacks
-    const formatArrayData = (array, fallback = []) => {
-      return Array.isArray(array) && array.length > 0 ? array : fallback
-    }
+    const formatArrayData = (array, fallback = []) =>
+      Array.isArray(array) && array.length > 0 ? array : fallback
 
-    // Weekly trends - Process completed vs canceled data
     const weeklyTrendsData = formatArrayData(
       data.weeklyDeploymentStatusAnalytics
     )
     const weeklySacksData = formatArrayData(data.weeklySacksAnalytics)
     const weeklyWeightData = formatArrayData(data.weeklyWeightAnalytics)
 
-    // Format deployment status with proper labels and ordering
     const deploymentStatusData = formatArrayData(data.deploymentStatusAnalytics)
     const deploymentStatusMap = {
       completed: 'Completed',
@@ -1027,7 +928,6 @@ const getDashboardAnalytics = async (req, res) => {
       preparing: 'Preparing'
     }
 
-    // Format user role data
     const userRoleData = formatArrayData(data.userRoleAnalytics)
     const userRoleMap = {
       head_admin: 'Head Admin',
@@ -1036,7 +936,6 @@ const getDashboardAnalytics = async (req, res) => {
       subcon: 'Subcontractor'
     }
 
-    // Format user status data
     const userStatusData = formatArrayData(data.userStatusAnalytics)
     const userStatusMap = {
       active: 'Active',
@@ -1046,10 +945,8 @@ const getDashboardAnalytics = async (req, res) => {
       revoked: 'Revoked'
     }
 
-    // Format subcon data
     const subconData = formatArrayData(data.subconAnalytics)
 
-    // Calculate total ongoing deployments
     const totalOngoingDeployments =
       data.activeDeployments +
       data.preparingDeployments +
@@ -1057,7 +954,6 @@ const getDashboardAnalytics = async (req, res) => {
       data.inProgressDeployments +
       data.ongoingDeployments
 
-    // Helper function to format week label (e.g., "Feb 1-7")
     const formatWeekLabel = (year, month, week) => {
       const monthNames = [
         'Jan',
@@ -1078,45 +974,25 @@ const getDashboardAnalytics = async (req, res) => {
       return `${monthNames[month - 1]} ${startDay}-${endDay}`
     }
 
-    // Process weekly deployment data - Only show weeks that have deployment values
     const processWeeklyDeploymentData = weeklyData => {
-      // If no data, return empty array
-      if (!weeklyData || weeklyData.length === 0) {
-        return []
-      }
+      if (!weeklyData || weeklyData.length === 0) return []
 
-      // Group data by week
       const weeklyMap = {}
-
       weeklyData.forEach(item => {
-        const year = item._id.year
-        const month = item._id.month
-        const week = item._id.week
-        const status = item._id.status
+        const { year, month, week, status } = item._id
         const count = item.count || 0
-
         const weekKey = `${year}-${month}-${week}`
 
         if (!weeklyMap[weekKey]) {
-          weeklyMap[weekKey] = {
-            year: year,
-            month: month,
-            week: week,
-            completed: 0,
-            canceled: 0
-          }
+          weeklyMap[weekKey] = { year, month, week, completed: 0, canceled: 0 }
         }
 
-        if (status === 'completed') {
-          weeklyMap[weekKey].completed = count
-        } else if (status === 'canceled') {
-          weeklyMap[weekKey].canceled = count
-        }
+        if (status === 'completed') weeklyMap[weekKey].completed = count
+        else if (status === 'canceled') weeklyMap[weekKey].canceled = count
       })
 
-      // Convert to array and filter out weeks with no deployments
-      const weeklyArray = Object.values(weeklyMap)
-        .filter(week => week.completed > 0 || week.canceled > 0) // Only show weeks with data
+      return Object.values(weeklyMap)
+        .filter(week => week.completed > 0 || week.canceled > 0)
         .sort((a, b) => {
           if (a.year !== b.year) return a.year - b.year
           if (a.month !== b.month) return a.month - b.month
@@ -1126,19 +1002,10 @@ const getDashboardAnalytics = async (req, res) => {
           ...week,
           label: formatWeekLabel(week.year, week.month, week.week)
         }))
-
-      return weeklyArray
     }
 
-    const processedWeeklyDeployments =
-      processWeeklyDeploymentData(weeklyTrendsData)
-
-    // Process weekly sacks data
     const processWeeklySacksData = weeklyData => {
-      if (!weeklyData || weeklyData.length === 0) {
-        return []
-      }
-
+      if (!weeklyData || weeklyData.length === 0) return []
       return weeklyData
         .filter(item => item.totalSacks > 0 || item.deploymentCount > 0)
         .sort((a, b) => {
@@ -1152,14 +1019,8 @@ const getDashboardAnalytics = async (req, res) => {
         }))
     }
 
-    const processedWeeklySacks = processWeeklySacksData(weeklySacksData)
-
-    // Process weekly weight data
     const processWeeklyWeightData = weeklyData => {
-      if (!weeklyData || weeklyData.length === 0) {
-        return []
-      }
-
+      if (!weeklyData || weeklyData.length === 0) return []
       return weeklyData
         .filter(item => item.totalWeight > 0 || item.deploymentCount > 0)
         .sort((a, b) => {
@@ -1173,9 +1034,11 @@ const getDashboardAnalytics = async (req, res) => {
         }))
     }
 
+    const processedWeeklyDeployments =
+      processWeeklyDeploymentData(weeklyTrendsData)
+    const processedWeeklySacks = processWeeklySacksData(weeklySacksData)
     const processedWeeklyWeight = processWeeklyWeightData(weeklyWeightData)
 
-    // Format pickup sites with additional data
     const formattedPickupSites = formatArrayData(data.topPickupSites).map(
       site => ({
         name: site._id,
@@ -1185,7 +1048,6 @@ const getDashboardAnalytics = async (req, res) => {
       })
     )
 
-    // Format territory metrics from the FIXED territoryPerformance aggregation
     const formattedTerritoryMetrics = formatArrayData(data.territoryPerformance)
       .map(item => ({
         _id: item._id || 'Unknown',
@@ -1201,7 +1063,6 @@ const getDashboardAnalytics = async (req, res) => {
       }))
       .filter(item => item._id !== 'Unknown' && item._id !== null)
 
-    // Format the analytics data for frontend
     const analyticsData = {
       overview: {
         totalTrucks: data.totalTrucks || 0,
@@ -1223,23 +1084,18 @@ const getDashboardAnalytics = async (req, res) => {
         yearlyDeployments: data.yearlyDeployments || 0,
         deploymentsLast30Days: data.deploymentsLast30Days || 0,
         recentActivity: data.recentActivity || 0,
-
-        // Total sacks and weight (excluding canceled)
         totalSacks: totalSacks || 0,
         totalWeight: totalWeight || 0,
         avgSacksPerDeployment: parseFloat(avgSacks.toFixed(1)),
         avgWeightPerDeployment: parseFloat(avgWeight.toFixed(1)),
         maxSacks: maxSacks || 0,
         maxWeight: maxWeight || 0,
-
-        // NEW: Completed deployments sacks and weight
         totalCompletedSacks: totalCompletedSacks || 0,
         totalCompletedWeight: totalCompletedWeight || 0,
         avgCompletedSacks: parseFloat(avgCompletedSacks.toFixed(1)),
         avgCompletedWeight: parseFloat(avgCompletedWeight.toFixed(1)),
         maxCompletedSacks: maxCompletedSacks || 0,
         maxCompletedWeight: maxCompletedWeight || 0,
-
         utilizationRate: parseFloat(utilizationRate),
         driverUtilizationRate: parseFloat(driverUtilizationRate),
         completionRate: parseFloat(completionRate),
@@ -1257,7 +1113,6 @@ const getDashboardAnalytics = async (req, res) => {
       },
 
       charts: {
-        // Line chart - Weekly deployments (completed vs canceled)
         weeklyDeployments: {
           labels: processedWeeklyDeployments.map(item => item.label),
           completedData: processedWeeklyDeployments.map(
@@ -1267,8 +1122,6 @@ const getDashboardAnalytics = async (req, res) => {
             item => item.canceled || 0
           )
         },
-
-        // Line chart - Weekly sacks (excluding canceled)
         weeklySacks: {
           labels: processedWeeklySacks.map(item => item.label),
           data: processedWeeklySacks.map(item => item.totalSacks || 0),
@@ -1279,8 +1132,6 @@ const getDashboardAnalytics = async (req, res) => {
             parseFloat((item.avgSacksPerDeployment || 0).toFixed(1))
           )
         },
-
-        // Line chart - Weekly weight (excluding canceled)
         weeklyWeight: {
           labels: processedWeeklyWeight.map(item => item.label),
           data: processedWeeklyWeight.map(item => item.totalWeight || 0),
@@ -1291,16 +1142,12 @@ const getDashboardAnalytics = async (req, res) => {
             parseFloat((item.avgWeightPerDeployment || 0).toFixed(1))
           )
         },
-
-        // Bar chart - Deployment status
         deploymentStatus: {
           labels: deploymentStatusData.map(
             item => deploymentStatusMap[item._id] || item._id || 'Unknown'
           ),
           data: deploymentStatusData.map(item => item.count || 0)
         },
-
-        // Bar chart - Pickup Sites
         pickupSites: {
           data: formattedPickupSites,
           labels: formattedPickupSites.map(item => item.name),
@@ -1308,8 +1155,6 @@ const getDashboardAnalytics = async (req, res) => {
           sacks: formattedPickupSites.map(item => item.totalSacks),
           weights: formattedPickupSites.map(item => item.totalWeight)
         },
-
-        // Bar chart - Truck types
         truckTypes: {
           labels: formatArrayData(data.truckTypeAnalytics).map(
             item => item._id || 'Unknown'
@@ -1318,8 +1163,6 @@ const getDashboardAnalytics = async (req, res) => {
             item => item.count || 0
           )
         },
-
-        // Pie chart - Truck status
         truckStatus: {
           labels: formatArrayData(data.truckStatusAnalytics).map(
             item => item._id || 'Unknown'
@@ -1328,8 +1171,6 @@ const getDashboardAnalytics = async (req, res) => {
             item => item.count || 0
           )
         },
-
-        // Pie chart - Driver status
         driverStatus: {
           labels: formatArrayData(data.driverStatusAnalytics).map(
             item => item._id || 'Unknown'
@@ -1338,28 +1179,22 @@ const getDashboardAnalytics = async (req, res) => {
             item => item.count || 0
           )
         },
-
-        // USER CHARTS
         userRoles: {
           labels: userRoleData.map(
             item => userRoleMap[item._id] || item._id || 'Unknown'
           ),
           data: userRoleData.map(item => item.count || 0)
         },
-
         userStatus: {
           labels: userStatusData.map(
             item => userStatusMap[item._id] || item._id || 'Unknown'
           ),
           data: userStatusData.map(item => item.count || 0)
         },
-
         subconDistribution: {
           labels: subconData.map(item => item._id || 'Unknown'),
           data: subconData.map(item => item.count || 0)
         },
-
-        // Subcon performance with status breakdown
         subconPerformance: {
           data: formattedSubconPerformance,
           labels: formattedSubconPerformance.map(item => item.name),
@@ -1376,8 +1211,6 @@ const getDashboardAnalytics = async (req, res) => {
             item => item.statusBreakdown
           )
         },
-
-        // Territory Distribution
         territoryDistribution: {
           labels: formatArrayData(data.territoryAnalytics).map(
             item => item._id || 'Unknown'
@@ -1386,8 +1219,6 @@ const getDashboardAnalytics = async (req, res) => {
             item => item.count || 0
           )
         },
-
-        // Hybrid Distribution
         hybridDistribution: {
           labels: formatArrayData(data.hybridAnalytics).map(
             item => item._id || 'Unknown'
@@ -1396,8 +1227,6 @@ const getDashboardAnalytics = async (req, res) => {
             item => item.count || 0
           )
         },
-
-        // Flagging Distribution
         flaggingDistribution: {
           labels: formatArrayData(data.flaggingAnalytics).map(
             item => item._id || 'Unknown'
@@ -1406,8 +1235,6 @@ const getDashboardAnalytics = async (req, res) => {
             item => item.count || 0
           )
         },
-
-        // Territory Performance
         territoryPerformance: {
           data: formattedTerritoryPerformance,
           labels: formattedTerritoryPerformance.map(item => item.name),
@@ -1424,8 +1251,6 @@ const getDashboardAnalytics = async (req, res) => {
             item => item.statusBreakdown
           )
         },
-
-        // Hybrid Performance
         hybridPerformance: {
           data: formattedHybridPerformance,
           labels: formattedHybridPerformance.map(item => item.name),
@@ -1442,8 +1267,6 @@ const getDashboardAnalytics = async (req, res) => {
             item => item.statusBreakdown
           )
         },
-
-        // Flagging Performance
         flaggingPerformance: {
           data: formattedFlaggingPerformance,
           labels: formattedFlaggingPerformance.map(item => item.name),
@@ -1462,13 +1285,9 @@ const getDashboardAnalytics = async (req, res) => {
         }
       },
 
-      // Top performers
       topDrivers: formatArrayData(data.topDriversByTrips),
-
-      // Territory Performance Metrics with completion rate
       territoryMetrics: formattedTerritoryMetrics,
 
-      // Hybrid Performance Metrics
       hybridMetrics: formatArrayData(data.hybridPerformance).map(item => ({
         _id: item._id || 'Unknown',
         count: item.count || 0,
@@ -1478,7 +1297,6 @@ const getDashboardAnalytics = async (req, res) => {
         avgWeight: parseFloat((item.avgWeight || 0).toFixed(1))
       })),
 
-      // Flagging Performance Metrics
       flaggingMetrics: formatArrayData(data.flaggingPerformance).map(item => ({
         _id: item._id || 'Unknown',
         count: item.count || 0,
@@ -1489,7 +1307,6 @@ const getDashboardAnalytics = async (req, res) => {
       })),
 
       performanceMetrics: {
-        // Deployment metrics
         totalDeployments,
         completedDeployments: data.completedDeployments,
         ongoingDeployments: totalOngoingDeployments,
@@ -1498,47 +1315,33 @@ const getDashboardAnalytics = async (req, res) => {
         preparingDeployments: data.preparingDeployments || 0,
         inProgressDeployments: data.inProgressDeployments || 0,
         activeDeployments: data.activeDeployments || 0,
-
-        // Truck metrics
         totalTrucks: data.totalTrucks,
         activeTrucks: data.activeTrucks,
         availableTrucks: data.availableTrucks,
         deployedTrucks: data.deployedTrucks,
-
-        // Driver metrics
         totalDrivers: data.totalDrivers,
         availableDrivers: data.availableDrivers,
         deployedDrivers: data.deployedDrivers,
-
-        // Cargo metrics (all non-canceled)
         totalSacks: totalSacks || 0,
         totalWeight: totalWeight || 0,
         avgSacksPerDeployment: parseFloat(avgSacks.toFixed(1)),
         avgWeightPerDeployment: parseFloat(avgWeight.toFixed(1)),
         maxSacks: maxSacks || 0,
         maxWeight: maxWeight || 0,
-
-        // NEW: Completed cargo metrics
         totalCompletedSacks: totalCompletedSacks || 0,
         totalCompletedWeight: totalCompletedWeight || 0,
         avgCompletedSacks: parseFloat(avgCompletedSacks.toFixed(1)),
         avgCompletedWeight: parseFloat(avgCompletedWeight.toFixed(1)),
         maxCompletedSacks: maxCompletedSacks || 0,
         maxCompletedWeight: maxCompletedWeight || 0,
-
-        // Performance rates
         completionRate: parseFloat(completionRate),
         cancellationRate: parseFloat(cancellationRate),
         successRate: parseFloat(successRate),
         utilizationRate: parseFloat(utilizationRate),
         driverUtilizationRate: parseFloat(driverUtilizationRate),
-
-        // Activity metrics
         recentActivity: data.recentActivity || 0,
         monthlyDeployments: data.monthlyDeployments || 0,
         yearlyDeployments: data.yearlyDeployments || 0,
-
-        // USER METRICS
         totalUsers: data.totalUsers || 0,
         activeUsers: data.activeUsers || 0,
         pendingUsers: data.pendingUsers || 0,
@@ -1546,15 +1349,12 @@ const getDashboardAnalytics = async (req, res) => {
         totalLogins: totalLogins || 0,
         avgLoginCount: parseFloat(avgLoginCount.toFixed(1)),
         maxLoginCount: maxLoginCount || 0,
-
-        // Additional metrics
         territoryCount: formatArrayData(data.territoryAnalytics).length || 0,
         hybridCount: formatArrayData(data.hybridAnalytics).length || 0,
         flaggingCount: formatArrayData(data.flaggingAnalytics).length || 0
       }
     }
 
-    // Add subcon-specific analytics if user is a subcontractor
     if (req.user.role === 'subcon' && req.user.subcon) {
       analyticsData.subconAnalytics = {
         drivers: {
@@ -1573,12 +1373,8 @@ const getDashboardAnalytics = async (req, res) => {
           deployed: data.deployedTrucks || 0
         },
         territories: {
-          distribution: formatArrayData(data.territoryAnalytics).filter(
-            item => item._id && item._id.includes(req.user.subcon)
-          ),
-          performance: formatArrayData(data.territoryPerformance).filter(
-            item => item.name && item.name.includes(req.user.subcon)
-          )
+          distribution: formatArrayData(data.territoryAnalytics),
+          performance: formatArrayData(data.territoryPerformance)
         },
         hybrids: {
           distribution: formatArrayData(data.hybridAnalytics),
@@ -1606,6 +1402,4 @@ const getDashboardAnalytics = async (req, res) => {
   }
 }
 
-module.exports = {
-  getDashboardAnalytics
-}
+module.exports = { getDashboardAnalytics }

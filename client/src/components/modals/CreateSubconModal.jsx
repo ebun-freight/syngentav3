@@ -18,9 +18,11 @@ import { FaSave } from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import clsx from 'clsx'
 import useCreateUser from '../../hooks/userCreateUser'
-import { SUBCON_OPTIONS } from '../../utils/generalOptions'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 
 function CreateSubconModal ({ isOpen, onClose, onCreate }) {
+  const { settings } = useSettingsContext()
+
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -38,18 +40,12 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
   const [subconQuery, setSubconQuery] = useState('')
   const { createUserFunction, isLoading } = useCreateUser()
 
-  // Filter SUBCON_OPTIONS based on query
-  const filteredSubcons = SUBCON_OPTIONS.filter(subcon =>
-    subcon.label.toLowerCase().includes(subconQuery.toLowerCase())
-  )
-
-  // Find the selected subcon for display
-  const selectedSubcon = SUBCON_OPTIONS.find(
-    subcon => subcon.value === formData.subcon
+  // Filter subcon options from settings based on query (same as CreateTruckModal)
+  const filteredSubcons = settings.trucksDrivers.subcon.filter(subcon =>
+    subcon.toLowerCase().includes(subconQuery.toLowerCase())
   )
 
   const handleClose = () => {
-    // Clean up preview URL
     if (previewImage) {
       URL.revokeObjectURL(previewImage)
     }
@@ -57,6 +53,7 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
     onClose()
 
     setPreviewImage(null)
+    setSubconQuery('')
     setFormData({
       firstname: '',
       lastname: '',
@@ -64,6 +61,7 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
       phoneNo: '',
       role: 'subcon',
       status: 'active',
+      subcon: '',
       password: '',
       confirmPassword: '',
       image: {}
@@ -82,22 +80,15 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
       const reader = new FileReader()
       reader.onload = () => {
         setPreviewImage(reader.result)
-        setFormData(prev => ({
-          ...prev,
-          image: file
-        }))
+        setFormData(prev => ({ ...prev, image: file }))
       }
       reader.readAsDataURL(file)
     } else {
       setPreviewImage(null)
-      setFormData(prev => ({
-        ...prev,
-        image: null
-      }))
+      setFormData(prev => ({ ...prev, image: null }))
     }
   }
 
-  // create driver
   const handleSubmit = async e => {
     e.preventDefault()
 
@@ -107,9 +98,7 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
 
     if (result.user) {
       toast.success(result.message)
-
       console.log(result.user)
-
       onCreate(result.user)
       handleClose()
     } else {
@@ -168,7 +157,7 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
                   />
                 ) : (
                   <div className='h-full flex flex-col gap-2 items-center justify-center text-gray-600'>
-                    <LuUpload className='text-4xl ' />
+                    <LuUpload className='text-4xl' />
                     Upload Image
                   </div>
                 )}
@@ -197,7 +186,6 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
                   label='Firstname'
                   type='text'
                   name='firstname'
-                  placeholder='Firstname'
                   value={formData.firstname}
                   onChange={handleChange}
                 />
@@ -206,7 +194,6 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
                   label='Lastname'
                   type='text'
                   name='lastname'
-                  placeholder='Lastname'
                   value={formData.lastname}
                   onChange={handleChange}
                 />
@@ -215,7 +202,6 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
                   label='Email'
                   type='email'
                   name='email'
-                  placeholder='Email'
                   value={formData.email}
                   onChange={handleChange}
                   isCapitalize={false}
@@ -226,13 +212,13 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
                     label='Phone No.'
                     type='tel'
                     name='phoneNo'
-                    placeholder='Phone No.'
                     pattern='^(09|\+639)\d{9}$'
                     value={formData.phoneNo}
                     onChange={handleChange}
                     phoneMaxLength={11}
                   />
 
+                  {/* Subcon — dynamic from settings, same pattern as CreateTruckModal */}
                   <div className='flex flex-col gap-1'>
                     <span className='uppercase text-xs text-gray-500 font-semibold'>
                       Subcon
@@ -240,17 +226,20 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
                     <Combobox
                       value={formData.subcon}
                       onChange={value =>
-                        setFormData(prev => ({ ...prev, subcon: value }))
+                        setFormData(prev => ({
+                          ...prev,
+                          subcon: value
+                            ? value.charAt(0).toUpperCase() + value.slice(1)
+                            : ''
+                        }))
                       }
                     >
                       <div className='relative'>
                         <ComboboxInput
                           className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400'
-                          displayValue={() =>
-                            selectedSubcon ? selectedSubcon.label : ''
-                          }
+                          displayValue={() => formData.subcon || ''}
                           onChange={event => setSubconQuery(event.target.value)}
-                          placeholder='Search'
+                          placeholder='Subcon'
                           required
                           autoComplete='off'
                         />
@@ -263,25 +252,23 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
                               Nothing found.
                             </div>
                           ) : (
-                            filteredSubcons.map(subcon => (
+                            filteredSubcons.map((subcon, index) => (
                               <ComboboxOption
-                                key={subcon.value}
-                                value={subcon.value}
+                                key={index}
+                                value={subcon}
                                 className={({ focus }) =>
                                   `relative cursor-default select-none py-2 px-4 text-base ${
                                     focus ? 'bg-gray-50' : 'text-gray-900'
                                   } ${
-                                    formData.subcon === subcon.value
+                                    formData.subcon === subcon
                                       ? 'bg-gray-100'
                                       : ''
                                   }`
                                 }
                               >
-                                {({ selected }) => (
-                                  <span className='block truncate'>
-                                    {subcon.label}
-                                  </span>
-                                )}
+                                <span className='block truncate capitalize'>
+                                  {subcon}
+                                </span>
                               </ComboboxOption>
                             ))
                           )}
@@ -295,7 +282,6 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
                   label='Password'
                   type='password'
                   name='password'
-                  placeholder='Password'
                   value={formData.password}
                   onChange={handleChange}
                 />
@@ -304,7 +290,6 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
                   label='Confirm Password'
                   type='password'
                   name='confirmPassword'
-                  placeholder='Confirm Password'
                   value={formData.confirmPassword}
                   onChange={handleChange}
                 />
@@ -312,8 +297,7 @@ function CreateSubconModal ({ isOpen, onClose, onCreate }) {
                 <div className='mt-12 col-span-full'>
                   <button
                     type='submit'
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600
-                     text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
+                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
                   >
                     {isLoading ? (
                       <>
@@ -359,7 +343,6 @@ const InputField = ({
       <input
         type={type}
         name={name}
-        // placeholder={placeholder}
         value={value}
         minLength={2}
         maxLength={phoneMaxLength || 30}

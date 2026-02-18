@@ -11,7 +11,7 @@ import {
 } from '@headlessui/react'
 import clsx from 'clsx'
 import { IoClose, IoWarning } from 'react-icons/io5'
-import { DEPLOYMENT_STATUS, TRUCK_TYPES } from '../../utils/generalOptions'
+import { DEPLOYMENT_STATUS } from '../../utils/generalOptions'
 import { MdKeyboardArrowDown } from 'react-icons/md'
 import { useEffect, useState } from 'react'
 import { DateTime } from 'luxon'
@@ -19,12 +19,8 @@ import useUpdateDeployment from '../../hooks/useUpdateDeployment'
 import { toast } from 'react-toastify'
 import { HiDotsHorizontal } from 'react-icons/hi'
 import { NumericFormat } from 'react-number-format'
-import {
-  FLAGGING_OPTIONS,
-  HYBRID_OPTIONS,
-  TERRITORY_OPTIONS
-} from '../../utils/deploymentOptions'
 import { useUserContext } from '../../contexts/UserContext'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 import {
   TbDeviceFloppy,
   TbExchange,
@@ -50,6 +46,7 @@ function DeploymentDetailsModal ({
   updatable
 }) {
   const { userData } = useUserContext()
+  const { settings } = useSettingsContext()
   console.log(userData.data.role)
   console.log(deployment)
 
@@ -145,10 +142,7 @@ function DeploymentDetailsModal ({
       // Helper function to format truck type
       const formatTruckType = type => {
         if (!type) return ''
-        const lowerType = type.toLowerCase().trim()
-        return (
-          TRUCK_TYPES[lowerType] || capitalizeWords(type.replace(/-/g, ' '))
-        )
+        return capitalizeWords(type.replace(/-/g, ' '))
       }
 
       // Helper function to format numbers with commas
@@ -490,7 +484,7 @@ function DeploymentDetailsModal ({
       )
       leftY = drawField(
         'No. of Sacks',
-        formatNumber(deployment.sacksCount), // ✅ Apply number formatting (if you want it formatted)
+        formatNumber(deployment.sacksCount),
         leftColX,
         leftY,
         fieldWidth
@@ -543,24 +537,11 @@ function DeploymentDetailsModal ({
       const thirdColX = margin + (contentWidth / 3) * 2 + 1
 
       // Draw all three fields on the same line
-      // Note: If you have actual weight values from deployment.loadWeightKg or similar, apply formatNumber()
-      drawField(
-        'Gross Weight',
-        '', // Empty for manual entry, or formatNumber(deployment.grossWeight) if available
-        firstColX,
-        loadDetailY,
-        threeColWidth
-      )
-      drawField(
-        'Tare Weight',
-        '', // Empty for manual entry, or formatNumber(deployment.tareWeight) if available
-        secondColX,
-        loadDetailY,
-        threeColWidth
-      )
+      drawField('Gross Weight', '', firstColX, loadDetailY, threeColWidth)
+      drawField('Tare Weight', '', secondColX, loadDetailY, threeColWidth)
       drawField(
         'Net Weight',
-        formatNumber(deployment.loadWeightKg), // ✅ Apply number formatting if you have the value
+        formatNumber(deployment.loadWeightKg),
         thirdColX,
         loadDetailY,
         threeColWidth
@@ -1544,6 +1525,8 @@ const OverviewTab = ({
   handleChange,
   handleComboboxChange
 }) => {
+  const { settings } = useSettingsContext()
+
   return (
     <div className='space-y-4'>
       {!isReplacementShow ? (
@@ -1636,13 +1619,13 @@ const OverviewTab = ({
                       onChange={handleChange}
                       className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                     >
-                      {TRUCK_TYPES.map((item, index) => (
-                        <option key={index} value={item.value}>
-                          {item.label}
+                      {settings.trucksDrivers.truckType.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
                         </option>
                       ))}
                     </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                   </div>
                 ) : (
                   <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
@@ -1874,13 +1857,13 @@ const OverviewTab = ({
                       onChange={handleChange}
                       className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                     >
-                      {TRUCK_TYPES.map((item, index) => (
-                        <option key={index} value={item.value}>
-                          {item.label}
+                      {settings.trucksDrivers.truckType.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
                         </option>
                       ))}
                     </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                   </div>
                 ) : (
                   <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
@@ -2041,13 +2024,13 @@ const OverviewTab = ({
                     onChange={handleChange}
                     className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                   >
-                    {TERRITORY_OPTIONS.map((item, index) => (
+                    {settings.deployments.territory.map((item, index) => (
                       <option key={index} value={item}>
                         {item}
                       </option>
                     ))}
                   </select>
-                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                 </div>
               ) : (
                 <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
@@ -2056,7 +2039,7 @@ const OverviewTab = ({
               )}
             </label>
 
-            {/* territory */}
+            {/* hybrid */}
             <label className='flex flex-col gap-1'>
               <span className='uppercase text-xs text-gray-500 font-semibold'>
                 Hybrid
@@ -2069,13 +2052,13 @@ const OverviewTab = ({
                     onChange={handleChange}
                     className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                   >
-                    {HYBRID_OPTIONS.map((item, index) => (
+                    {settings.deployments.hybrid.map((item, index) => (
                       <option key={index} value={item}>
                         {item}
                       </option>
                     ))}
                   </select>
-                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                 </div>
               ) : (
                 <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize'>
@@ -2105,7 +2088,7 @@ const OverviewTab = ({
                       </option>
                     ))}
                   </select>
-                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                 </div>
               ) : (
                 <div className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
@@ -2143,13 +2126,13 @@ const OverviewTab = ({
                     onChange={handleChange}
                     className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                   >
-                    {FLAGGING_OPTIONS.map((item, index) => (
+                    {settings.deployments.flagging.map((item, index) => (
                       <option key={index} value={item}>
                         {item}
                       </option>
                     ))}
                   </select>
-                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                  <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                 </div>
               ) : (
                 <div className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400'>
@@ -2378,13 +2361,11 @@ const InputField = ({
   isUpperCase = false,
   isFullWidth = true,
   isDarkerOutline = false,
-  // New props for number formatting
   formatNumber = false,
   thousandSeparator = true,
   decimalScale = 0,
   allowNegative = false
 }) => {
-  // If it's a number field with formatting, use NumericFormat
   if (formatNumber && type === 'number') {
     return (
       <label className={`col-span-${colSpan} flex flex-col gap-1`}>
@@ -2424,7 +2405,6 @@ const InputField = ({
     )
   }
 
-  // Regular input field
   return (
     <label
       className={`col-span-${colSpan} row-span-${rowSpan} flex flex-col gap-1`}

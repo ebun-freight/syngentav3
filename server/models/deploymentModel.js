@@ -133,10 +133,6 @@ const deploymentSchema = new mongoose.Schema(
     },
 
     // ------------- other tags ------------- //
-    subcon: {
-      type: String,
-      required: [true, 'Subcon is required']
-    },
     status: {
       type: String,
       default: 'preparing'

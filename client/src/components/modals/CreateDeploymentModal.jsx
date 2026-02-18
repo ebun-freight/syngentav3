@@ -132,6 +132,8 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
   const handleSubmit = async e => {
     e.preventDefault()
 
+    console.log(e.target.name)
+
     console.log('FROM MODAL', formData)
 
     const result = await createDeploymentFunction(formData)
@@ -228,7 +230,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
 
                   <InputField
                     label='Field Contact Person No.'
-                    type='tel'
+                    type='phone'
                     name='fieldContactPersonNo'
                     placeholder='Contact Number'
                     value={formData.fieldContactPersonNo}

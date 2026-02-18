@@ -20,8 +20,8 @@ import { RiFolderUploadLine } from 'react-icons/ri'
 import { DateTime } from 'luxon'
 import { no_image, user_placeholder } from '../../consts/images'
 import useUpdateDriver from '../../hooks/useUpdateDriver'
-import { SUBCON_OPTIONS } from '../../utils/generalOptions'
 import { useUserContext } from '../../contexts/UserContext'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 
 function DriverDetailsModal ({
   isOpen,
@@ -31,15 +31,16 @@ function DriverDetailsModal ({
   openDeleteModal
 }) {
   const { userData } = useUserContext()
-  const [isEditMode, setIsEditMode] = useState(false)
+  const { settings } = useSettingsContext()
 
+  const [isEditMode, setIsEditMode] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
 
   // For subcon search
   const [subconQuery, setSubconQuery] = useState('')
-  const [filteredSubcons, setFilteredSubcons] = useState(SUBCON_OPTIONS || [])
+  const [filteredSubcons, setFilteredSubcons] = useState([])
 
   const { updateDriverFunction, isLoading } = useUpdateDriver()
 
@@ -55,16 +56,11 @@ function DriverDetailsModal ({
 
   // Filter subcons based on search
   useEffect(() => {
-    const filtered = SUBCON_OPTIONS.filter(subcon =>
-      subcon.label.toLowerCase().includes(subconQuery.toLowerCase())
+    const filtered = settings.trucksDrivers.subcon.filter(subcon =>
+      subcon.toLowerCase().includes(subconQuery.toLowerCase())
     )
     setFilteredSubcons(filtered)
-  }, [subconQuery])
-
-  // Find the selected subcon for display
-  const selectedSubcon = SUBCON_OPTIONS.find(
-    subcon => subcon.value === editForm?.subcon
-  )
+  }, [subconQuery, settings.trucksDrivers.subcon])
 
   // Handle file selection
   const handleFileChange = e => {
@@ -100,7 +96,6 @@ function DriverDetailsModal ({
   }
 
   const handleCloseModal = () => {
-    // setEditForm(driver)
     onClose()
   }
 
@@ -282,10 +277,8 @@ function DriverDetailsModal ({
                         >
                           <div className='relative'>
                             <ComboboxInput
-                              className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400'
-                              displayValue={() =>
-                                selectedSubcon ? selectedSubcon.label : ''
-                              }
+                              className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
+                              displayValue={value => value || ''}
                               onChange={event =>
                                 setSubconQuery(event.target.value)
                               }
@@ -294,7 +287,7 @@ function DriverDetailsModal ({
                               autoComplete='off'
                             />
                             <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                              <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
+                              <MdKeyboardArrowDown className='h-5 w-5 text-gray-400 pointer-events-none' />
                             </ComboboxButton>
                             <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
                               {filteredSubcons.length === 0 ? (
@@ -302,23 +295,23 @@ function DriverDetailsModal ({
                                   Nothing found.
                                 </div>
                               ) : (
-                                filteredSubcons.map(subcon => (
+                                filteredSubcons.map((subcon, index) => (
                                   <ComboboxOption
-                                    key={subcon.value}
-                                    value={subcon.value}
+                                    key={index}
+                                    value={subcon}
                                     className={({ focus }) =>
                                       `relative cursor-default select-none py-2 px-4 text-base ${
                                         focus ? 'bg-gray-50' : 'text-gray-900'
                                       } ${
-                                        editForm?.subcon === subcon.value
+                                        editForm?.subcon === subcon
                                           ? 'bg-gray-100'
                                           : ''
                                       }`
                                     }
                                   >
                                     {({ selected }) => (
-                                      <span className='block truncate'>
-                                        {subcon.label}
+                                      <span className='block truncate capitalize'>
+                                        {subcon}
                                       </span>
                                     )}
                                   </ComboboxOption>
@@ -328,10 +321,8 @@ function DriverDetailsModal ({
                           </div>
                         </Combobox>
                       ) : (
-                        <p className='outline outline-gray-200 px-3 py-2 rounded break-all'>
-                          {selectedSubcon
-                            ? selectedSubcon.label
-                            : 'Not assigned'}
+                        <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize overflow-x-auto text-nowrap scrollbar-none'>
+                          {editForm?.subcon || 'Not assigned'}
                         </p>
                       )}
                     </label>
@@ -358,13 +349,13 @@ function DriverDetailsModal ({
                             value={editForm?.status}
                             disabled={!isEditMode || isLoading}
                             onChange={handleChange}
-                            className='outline outline-gray-200 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full'
+                            className='outline outline-gray-200 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                           >
                             <option value='available'>Available</option>
                             <option value='deployed'>Deployed</option>
                             <option value='unavailable'>Unavailable</option>
                           </select>
-                          <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                          <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
                         </div>
                       ) : (
                         <div className='outline outline-gray-200 px-3 py-2 rounded'>
