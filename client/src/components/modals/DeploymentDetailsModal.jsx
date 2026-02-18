@@ -484,7 +484,7 @@ function DeploymentDetailsModal ({
       )
       leftY = drawField(
         'No. of Sacks',
-        formatNumber(deployment.sacksCount),
+        formatNumber(deployment.totalSacksCount),
         leftColX,
         leftY,
         fieldWidth
@@ -1726,8 +1726,8 @@ const OverviewTab = ({
               <InputField
                 label='Sacks Count'
                 type='number'
-                name='sacksCount'
-                value={editForm?.sacksCount}
+                name='totalSacksCount'
+                value={editForm?.totalSacksCount}
                 disabled={!isEditMode}
                 onChange={handleChange}
                 formatNumber={true}
@@ -1977,8 +1977,8 @@ const OverviewTab = ({
               <InputField
                 label='Sacks Count'
                 type='number'
-                name='sacksCount'
-                value={editForm?.sacksCount}
+                name='totalSacksCount'
+                value={editForm?.totalSacksCount}
                 disabled={!isEditMode}
                 onChange={handleChange}
                 formatNumber={true}

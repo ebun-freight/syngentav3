@@ -82,7 +82,7 @@ const deploymentSchema = new mongoose.Schema(
     flaggingRemarks: {
       type: String
     },
-    sacksCount: {
+    totalSacksCount: {
       type: Number,
       default: 0
     },

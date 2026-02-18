@@ -36,7 +36,7 @@ const createDeployment = async (req, res, next) => {
       territory,
       flagging,
       flaggingRemarks,
-      sacksCount,
+      totalSacksCount,
       loadWeightKg,
       departed,
       pickupIn,
@@ -97,7 +97,7 @@ const createDeployment = async (req, res, next) => {
       territory,
       flagging,
       flaggingRemarks,
-      sacksCount: sacksCount || 0,
+      totalSacksCount: totalSacksCount || 0,
       loadWeightKg: loadWeightKg || 0,
       departed: departed || '',
       pickupIn: pickupIn || '',
@@ -434,7 +434,7 @@ const updateDeployment = async (req, res, next) => {
       territory,
       flagging,
       flaggingRemarks,
-      sacksCount,
+      totalSacksCount,
       loadWeightKg,
       replacement,
       departed,
@@ -509,7 +509,7 @@ const updateDeployment = async (req, res, next) => {
       territory: existingDeployment.territory,
       flagging: existingDeployment.flagging,
       flaggingRemarks: existingDeployment.flaggingRemarks,
-      sacksCount: existingDeployment.sacksCount,
+      totalSacksCount: existingDeployment.totalSacksCount,
       loadWeightKg: existingDeployment.loadWeightKg,
       departed: existingDeployment.departed,
       pickupIn: existingDeployment.pickupIn,
@@ -964,8 +964,10 @@ const updateDeployment = async (req, res, next) => {
         flaggingRemarks !== undefined
           ? flaggingRemarks
           : existingDeployment.flaggingRemarks,
-      sacksCount:
-        sacksCount !== undefined ? sacksCount : existingDeployment.sacksCount,
+      totalSacksCount:
+        totalSacksCount !== undefined
+          ? totalSacksCount
+          : existingDeployment.totalSacksCount,
       loadWeightKg:
         loadWeightKg !== undefined
           ? loadWeightKg
@@ -1281,8 +1283,11 @@ const updateDeployment = async (req, res, next) => {
       receivingContactPersonNo !== originalValues.receivingContactPersonNo
     )
       await createActivityLog(`Receiving contact person number changed`)
-    if (sacksCount !== undefined && sacksCount !== originalValues.sacksCount)
-      await createActivityLog(`Sacks count changed to ${sacksCount}`)
+    if (
+      totalSacksCount !== undefined &&
+      totalSacksCount !== originalValues.totalSacksCount
+    )
+      await createActivityLog(`Sacks count changed to ${totalSacksCount}`)
     if (
       loadWeightKg !== undefined &&
       loadWeightKg !== originalValues.loadWeightKg

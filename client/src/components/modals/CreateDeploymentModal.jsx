@@ -43,7 +43,7 @@ const defaultValue = {
   territory: '',
   flagging: '',
   flaggingRemarks: '',
-  sacksCount: 0,
+  totalSacksCount: 0,
 
   // load details
   loadWeightKg: 0,

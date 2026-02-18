@@ -152,7 +152,7 @@ const getDashboardAnalytics = async (req, res) => {
               week: { $ceil: { $divide: [{ $dayOfMonth: '$createdAt' }, 7] } }
             },
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
           }
         },
@@ -190,9 +190,9 @@ const getDashboardAnalytics = async (req, res) => {
               month: { $month: '$createdAt' },
               week: { $ceil: { $divide: [{ $dayOfMonth: '$createdAt' }, 7] } }
             },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             deploymentCount: { $sum: 1 },
-            avgSacksPerDeployment: { $avg: '$sacksCount' }
+            avgSacksPerDeployment: { $avg: '$totalSacksCount' }
           }
         },
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
@@ -232,7 +232,7 @@ const getDashboardAnalytics = async (req, res) => {
           $group: {
             _id: '$pickupSite',
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
           }
         },
@@ -245,9 +245,9 @@ const getDashboardAnalytics = async (req, res) => {
         {
           $group: {
             _id: null,
-            avgSacks: { $avg: '$sacksCount' },
+            avgSacks: { $avg: '$totalSacksCount' },
             avgWeight: { $avg: '$loadWeightKg' },
-            maxSacks: { $max: '$sacksCount' },
+            maxSacks: { $max: '$totalSacksCount' },
             maxWeight: { $max: '$loadWeightKg' }
           }
         }
@@ -258,11 +258,11 @@ const getDashboardAnalytics = async (req, res) => {
         {
           $group: {
             _id: null,
-            totalCompletedSacks: { $sum: '$sacksCount' },
+            totalCompletedSacks: { $sum: '$totalSacksCount' },
             totalCompletedWeight: { $sum: '$loadWeightKg' },
-            avgCompletedSacks: { $avg: '$sacksCount' },
+            avgCompletedSacks: { $avg: '$totalSacksCount' },
             avgCompletedWeight: { $avg: '$loadWeightKg' },
-            maxCompletedSacks: { $max: '$sacksCount' },
+            maxCompletedSacks: { $max: '$totalSacksCount' },
             maxCompletedWeight: { $max: '$loadWeightKg' }
           }
         }
@@ -388,7 +388,7 @@ const getDashboardAnalytics = async (req, res) => {
           $group: {
             _id: { subcon: '$activeSubcon', status: '$status' },
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
           }
         },
@@ -465,16 +465,20 @@ const getDashboardAnalytics = async (req, res) => {
           $group: {
             _id: '$territory',
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' },
-            avgSacks: { $avg: '$sacksCount' },
+            avgSacks: { $avg: '$totalSacksCount' },
             avgWeight: { $avg: '$loadWeightKg' },
             completed: {
               $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
             },
             completedSacks: {
               $sum: {
-                $cond: [{ $eq: ['$status', 'completed'] }, '$sacksCount', 0]
+                $cond: [
+                  { $eq: ['$status', 'completed'] },
+                  '$totalSacksCount',
+                  0
+                ]
               }
             },
             completedWeight: {
@@ -514,9 +518,9 @@ const getDashboardAnalytics = async (req, res) => {
           $group: {
             _id: '$hybrid',
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' },
-            avgSacks: { $avg: '$sacksCount' },
+            avgSacks: { $avg: '$totalSacksCount' },
             avgWeight: { $avg: '$loadWeightKg' }
           }
         },
@@ -529,9 +533,9 @@ const getDashboardAnalytics = async (req, res) => {
           $group: {
             _id: '$flagging',
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' },
-            avgSacks: { $avg: '$sacksCount' },
+            avgSacks: { $avg: '$totalSacksCount' },
             avgWeight: { $avg: '$loadWeightKg' }
           }
         },
@@ -544,7 +548,7 @@ const getDashboardAnalytics = async (req, res) => {
           $group: {
             _id: { territory: '$territory', status: '$status' },
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
           }
         },
@@ -557,7 +561,7 @@ const getDashboardAnalytics = async (req, res) => {
           $group: {
             _id: { hybrid: '$hybrid', status: '$status' },
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
           }
         },
@@ -570,7 +574,7 @@ const getDashboardAnalytics = async (req, res) => {
           $group: {
             _id: { flagging: '$flagging', status: '$status' },
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
           }
         },
@@ -595,7 +599,7 @@ const getDashboardAnalytics = async (req, res) => {
               territory: '$territory'
             },
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
           }
         },
@@ -619,7 +623,7 @@ const getDashboardAnalytics = async (req, res) => {
               territory: '$territory'
             },
             count: { $sum: 1 },
-            totalSacks: { $sum: '$sacksCount' },
+            totalSacks: { $sum: '$totalSacksCount' },
             totalWeight: { $sum: '$loadWeightKg' }
           }
         },
@@ -872,7 +876,7 @@ const getDashboardAnalytics = async (req, res) => {
       {
         $group: {
           _id: null,
-          totalSacks: { $sum: '$sacksCount' },
+          totalSacks: { $sum: '$totalSacksCount' },
           totalWeight: { $sum: '$loadWeightKg' }
         }
       }

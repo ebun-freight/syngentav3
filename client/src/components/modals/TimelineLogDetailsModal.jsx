@@ -517,7 +517,9 @@ function TimelineLogDetailsModal ({
                       <div className='grid grid-cols-2 gap-6'>
                         <StatisField
                           label='Sacks Count'
-                          value={timelineDetails?.targetDeployment?.sacksCount}
+                          value={
+                            timelineDetails?.targetDeployment?.totalSacksCount
+                          }
                           type='number'
                           formatNumber={true}
                         />
@@ -583,7 +585,9 @@ function TimelineLogDetailsModal ({
                       <div className='grid grid-cols-2 gap-6'>
                         <StatisField
                           label='Sacks Count'
-                          value={timelineDetails?.targetDeployment?.sacksCount}
+                          value={
+                            timelineDetails?.targetDeployment?.totalSacksCount
+                          }
                           type='number'
                           formatNumber={true}
                         />
