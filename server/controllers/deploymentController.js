@@ -32,7 +32,7 @@ const createDeployment = async (req, res, next) => {
       flagging,
       flaggingRemarks,
       totalSacksCount,
-      loadWeightKg,
+      totalWeightKg,
       departed,
       destArrival,
       destDeparture,
@@ -42,6 +42,8 @@ const createDeployment = async (req, res, next) => {
     if (!['head_admin', 'admin'].includes(req.user.role)) {
       return next(createError(403, 'Access denied'))
     }
+
+    console.log(req.body)
 
     validateFields({
       truckId,
@@ -68,7 +70,7 @@ const createDeployment = async (req, res, next) => {
         [`pickups[${i}].fieldContactPerson`]: p.fieldContactPerson,
         [`pickups[${i}].fieldContactPersonNo`]: p.fieldContactPersonNo,
         [`pickups[${i}].scheduledPickupTime`]: p.scheduledPickupTime,
-        [`pickups[${i}].estimatedQuantityKg`]: p.estimatedQuantityKg
+        [`pickups[${i}].estimatedWeightKg`]: p.estimatedWeightKg
       })
     }
 
@@ -89,7 +91,7 @@ const createDeployment = async (req, res, next) => {
         fieldContactPerson: p.fieldContactPerson,
         fieldContactPersonNo: p.fieldContactPersonNo,
         scheduledPickupTime: p.scheduledPickupTime,
-        estimatedQuantityKg: p.estimatedQuantityKg,
+        estimatedWeightKg: p.estimatedWeightKg,
         pickupIn: p.pickupIn || '',
         pickupOut: p.pickupOut || '',
         sacksCount: p.sacksCount || 0
@@ -106,7 +108,7 @@ const createDeployment = async (req, res, next) => {
       flagging,
       flaggingRemarks,
       totalSacksCount: totalSacksCount || 0,
-      loadWeightKg: loadWeightKg || 0,
+      totalWeightKg: totalWeightKg || 0,
       departed: departed || '',
       destArrival: destArrival || '',
       destDeparture: destDeparture || '',
@@ -442,7 +444,7 @@ const updateDeployment = async (req, res, next) => {
       flagging,
       flaggingRemarks,
       totalSacksCount,
-      loadWeightKg,
+      totalWeightKg,
       replacement,
       departed,
       destArrival,
@@ -510,7 +512,7 @@ const updateDeployment = async (req, res, next) => {
       flagging: existingDeployment.flagging,
       flaggingRemarks: existingDeployment.flaggingRemarks,
       totalSacksCount: existingDeployment.totalSacksCount,
-      loadWeightKg: existingDeployment.loadWeightKg,
+      totalWeightKg: existingDeployment.totalWeightKg,
       departed: existingDeployment.departed,
       destArrival: existingDeployment.destArrival,
       destDeparture: existingDeployment.destDeparture,
@@ -918,7 +920,7 @@ const updateDeployment = async (req, res, next) => {
         fieldContactPerson: p.fieldContactPerson,
         fieldContactPersonNo: p.fieldContactPersonNo,
         scheduledPickupTime: p.scheduledPickupTime,
-        estimatedQuantityKg: p.estimatedQuantityKg,
+        estimatedWeightKg: p.estimatedWeightKg,
         pickupIn: p.pickupIn || '',
         pickupOut: p.pickupOut || '',
         sacksCount: p.sacksCount || 0
@@ -926,7 +928,6 @@ const updateDeployment = async (req, res, next) => {
     }
 
     // Apply pickups update — Option B: per-stop timeline patches
-    // Body shape: pickupUpdates: [{ index: 0, pickupIn: '...', pickupOut: '...', sacksCount: 10 }]
     if (pickupUpdates && Array.isArray(pickupUpdates)) {
       for (const update of pickupUpdates) {
         const stop = existingDeployment.pickups[update.index]
@@ -972,10 +973,10 @@ const updateDeployment = async (req, res, next) => {
         totalSacksCount !== undefined
           ? totalSacksCount
           : existingDeployment.totalSacksCount,
-      loadWeightKg:
-        loadWeightKg !== undefined
-          ? loadWeightKg
-          : existingDeployment.loadWeightKg,
+      totalWeightKg:
+        totalWeightKg !== undefined
+          ? totalWeightKg
+          : existingDeployment.totalWeightKg,
       departed: departed !== undefined ? departed : existingDeployment.departed,
       destArrival:
         destArrival !== undefined
@@ -1267,10 +1268,10 @@ const updateDeployment = async (req, res, next) => {
     )
       await createActivityLog(`Sacks count changed to ${totalSacksCount}`)
     if (
-      loadWeightKg !== undefined &&
-      loadWeightKg !== originalValues.loadWeightKg
+      totalWeightKg !== undefined &&
+      totalWeightKg !== originalValues.totalWeightKg
     )
-      await createActivityLog(`Load weight changed to ${loadWeightKg} kg`)
+      await createActivityLog(`Load weight changed to ${totalWeightKg} kg`)
     if (finalStatus !== undefined && finalStatus !== originalStatus)
       await createActivityLog(`Status changed to ${finalStatus}`)
     if (territory !== undefined && territory !== originalValues.territory)

@@ -31,7 +31,7 @@ const deploymentSchema = new mongoose.Schema(
           type: String,
           required: [true, 'Scheduled Pickup Time is required']
         },
-        estimatedQuantityKg: {
+        estimatedWeightKg: {
           type: String,
           required: [true, 'Estimated Quantity is required']
         },
@@ -105,7 +105,7 @@ const deploymentSchema = new mongoose.Schema(
     },
 
     // ------------- load details ------------- //
-    loadWeightKg: {
+    totalWeightKg: {
       type: Number,
       default: 0
     },

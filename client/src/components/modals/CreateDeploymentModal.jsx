@@ -26,7 +26,7 @@ const defaultPickup = {
   fieldContactPerson: '',
   fieldContactPersonNo: '',
   scheduledPickupTime: '',
-  estimatedQuantityKg: ''
+  estimatedWeightKg: ''
 }
 
 const defaultValue = {
@@ -49,7 +49,7 @@ const defaultValue = {
   totalSacksCount: 0,
 
   // load details
-  loadWeightKg: 0,
+  totalWeightKg: 0,
 
   // timeline details
   departed: '',
@@ -286,24 +286,24 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                           onChange={e => handlePickupChange(index, e)}
                           plateNoMaxLength={11}
                         />
-                        {/* Estimated Quantity numeric field */}
+                        {/* Estimated Weight numeric field */}
                         <label className='flex flex-col gap-1'>
                           <span className='uppercase text-xs text-gray-500 font-semibold text-nowrap'>
-                            Estimated Quantity (Kg)
+                            Estimated Weight (Kg)
                           </span>
                           <NumericFormat
                             thousandSeparator
                             decimalScale={2}
                             allowNegative={false}
-                            value={pickup.estimatedQuantityKg}
+                            value={pickup.estimatedWeightKg}
                             onValueChange={values =>
                               handlePickupNumericChange(
                                 index,
-                                'estimatedQuantityKg',
+                                'estimatedWeightKg',
                                 values.floatValue
                               )
                             }
-                            placeholder='Estimated Quantity'
+                            placeholder='Estimated Weight'
                             required
                             className='outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400 bg-white'
                           />

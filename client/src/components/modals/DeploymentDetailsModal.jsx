@@ -43,7 +43,7 @@ const defaultPickup = {
   fieldContactPerson: '',
   fieldContactPersonNo: '',
   scheduledPickupTime: '',
-  estimatedQuantityKg: '',
+  estimatedWeightKg: '',
   pickupIn: '',
   pickupOut: '',
   sacksCount: 0
@@ -375,7 +375,7 @@ function DeploymentDetailsModal ({
         )
         rightY = drawField(
           'Estimated Quantity (kg)',
-          formatNumber(pickup.estimatedQuantityKg),
+          formatNumber(pickup.estimatedWeightKg),
           rightColX,
           rightY,
           fieldWidth
@@ -525,7 +525,7 @@ function DeploymentDetailsModal ({
       drawField('Tare Weight', '', secondColX, loadDetailY, threeColWidth)
       drawField(
         'Net Weight',
-        formatNumber(deployment.loadWeightKg),
+        formatNumber(deployment.totalWeightKg),
         thirdColX,
         loadDetailY,
         threeColWidth
@@ -864,12 +864,13 @@ function DeploymentDetailsModal ({
 
                       return (
                         <div key={index}>
+                          {/* ── FIX: render the stop label inside the timeline
+                               column so the vertical line passes through it ── */}
                           {multiStop && (
-                            <div className='ml-9 mb-1'>
-                              <span className='text-xs font-semibold text-emerald-600 uppercase tracking-wide'>
-                                {stopLabel}
-                              </span>
-                            </div>
+                            <TimelineLabel
+                              isActive={!!prevPickupOut}
+                              label={stopLabel}
+                            />
                           )}
 
                           <TimelineStop
@@ -878,9 +879,7 @@ function DeploymentDetailsModal ({
                           >
                             {isEditMode ? (
                               <InputField
-                                label={`Pick-up In${
-                                  multiStop ? ` (${stopLabel})` : ''
-                                }`}
+                                label='Pick-up In'
                                 type='datetime-local'
                                 name='pickupIn'
                                 isCapitalize={false}
@@ -893,9 +892,7 @@ function DeploymentDetailsModal ({
                               />
                             ) : (
                               <TimelineDisplay
-                                label={`Pick-up In${
-                                  multiStop ? ` (${stopLabel})` : ''
-                                }`}
+                                label='Pick-up In'
                                 value={pickup.pickupIn}
                               />
                             )}
@@ -907,9 +904,7 @@ function DeploymentDetailsModal ({
                           >
                             {isEditMode ? (
                               <InputField
-                                label={`Pick-up Out${
-                                  multiStop ? ` (${stopLabel})` : ''
-                                }`}
+                                label='Pick-up Out'
                                 type='datetime-local'
                                 name='pickupOut'
                                 isCapitalize={false}
@@ -922,9 +917,7 @@ function DeploymentDetailsModal ({
                               />
                             ) : (
                               <TimelineDisplay
-                                label={`Pick-up Out${
-                                  multiStop ? ` (${stopLabel})` : ''
-                                }`}
+                                label='Pick-up Out'
                                 value={pickup.pickupOut}
                               />
                             )}
@@ -1098,7 +1091,6 @@ function DeploymentDetailsModal ({
 
                   <div className='ml-auto rounded-t-lg outline outline-gray-200 flex '>
                     <p className='px-3 py-2 text-sm text-gray-500'>
-                      {/* Assigned at:{' '} */}
                       {DateTime.fromISO(editForm?.createdAt)
                         .setZone('Asia/Manila')
                         .toFormat('MMM d, yyyy - hh:mm a')}
@@ -1243,6 +1235,34 @@ function DeploymentDetailsModal ({
 }
 
 // ── TIMELINE HELPERS ──
+
+/**
+ * TimelineLabel — renders a stop badge (e.g. "Stop #1") while keeping the
+ * vertical connecting line unbroken. It mirrors the left-column structure of
+ * TimelineStop but has no dot, just the continuous line.
+ */
+const TimelineLabel = ({ isActive, label }) => (
+  <div className='flex gap-5'>
+    {/* left column: line only, no dot */}
+    <div className='relative'>
+      <div
+        className={clsx(
+          'w-0.5 h-full absolute top-0 left-1/2 -translate-x-1/2',
+          {
+            'bg-emerald-500': isActive,
+            'bg-gray-300': !isActive
+          }
+        )}
+      />
+    </div>
+    {/* right column: the label text */}
+    <div className='pb-1 flex-1'>
+      <span className='text-xs font-semibold text-emerald-600 uppercase tracking-wide'>
+        {label}
+      </span>
+    </div>
+  </div>
+)
 
 const TimelineStop = ({ isActive, isLast, children }) => (
   <div className='flex gap-5'>
@@ -1565,8 +1585,8 @@ const DeploymentInfoTab = ({
             <InputField
               label='Load Weight (kg)'
               type='number'
-              name='loadWeightKg'
-              value={editForm?.loadWeightKg}
+              name='totalWeightKg'
+              value={editForm?.totalWeightKg}
               disabled={!isEditMode}
               onChange={handleChange}
               formatNumber={true}
@@ -1825,7 +1845,6 @@ const PickupSitesTab = ({
   const prevLengthRef = useRef(pickups.length)
 
   useEffect(() => {
-    // Only scroll when a stop was added (length increased), not on initial render
     if (pickups.length > prevLengthRef.current && lastStopRef.current) {
       lastStopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
@@ -1925,27 +1944,50 @@ const PickupSitesTab = ({
                 onChange={e => handlePickupChange(index, e)}
                 isCapitalize={false}
               />
-              <label className='flex flex-col gap-1'>
-                <span className='uppercase text-xs text-gray-500 font-semibold'>
-                  Estimated Quantity (Kg)
-                </span>
-                <NumericFormat
-                  thousandSeparator
-                  decimalScale={2}
-                  allowNegative={false}
-                  value={pickup.estimatedQuantityKg}
-                  onValueChange={values =>
-                    handlePickupNumericChange(
-                      index,
-                      'estimatedQuantityKg',
-                      values.floatValue
-                    )
-                  }
-                  disabled={!isEditMode}
-                  required
-                  className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 w-full'
-                />
-              </label>
+              {/* Estimated Qty + Sacks Count side by side */}
+              <div className='grid grid-cols-2 gap-x-3'>
+                <label className='flex flex-col gap-1'>
+                  <span className='uppercase text-xs text-gray-500 font-semibold text-nowrap'>
+                    Est. Weight (Kg)
+                  </span>
+                  <NumericFormat
+                    thousandSeparator
+                    decimalScale={2}
+                    allowNegative={false}
+                    value={pickup.estimatedWeightKg}
+                    onValueChange={values =>
+                      handlePickupNumericChange(
+                        index,
+                        'estimatedWeightKg',
+                        values.floatValue
+                      )
+                    }
+                    disabled={!isEditMode}
+                    required
+                    className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 w-full'
+                  />
+                </label>
+                <label className='flex flex-col gap-1'>
+                  <span className='uppercase text-xs text-gray-500 font-semibold text-nowrap'>
+                    Sacks Count
+                  </span>
+                  <NumericFormat
+                    thousandSeparator={false}
+                    decimalScale={0}
+                    allowNegative={false}
+                    value={pickup.sacksCount}
+                    onValueChange={values =>
+                      handlePickupNumericChange(
+                        index,
+                        'sacksCount',
+                        values.floatValue
+                      )
+                    }
+                    disabled={!isEditMode}
+                    className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 w-full'
+                  />
+                </label>
+              </div>
             </div>
           </div>
         ))}
