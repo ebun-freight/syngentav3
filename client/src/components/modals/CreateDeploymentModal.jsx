@@ -228,21 +228,20 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                       className='border border-gray-200 rounded-xl p-4 relative bg-gray-50/50'
                     >
                       {/* Stop header */}
-                      <div className='flex items-center justify-between mb-3'>
-                        <span className='text-xs font-semibold text-emerald-600 uppercase tracking-wide'>
-                          Stop #{index + 1}
-                        </span>
-                        {formData.pickups.length > 1 && (
-                          <button
-                            type='button'
-                            onClick={() => removePickup(index)}
-                            className='text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-colors'
-                            title='Remove stop'
-                          >
-                            <FiTrash2 className='text-sm' />
-                          </button>
-                        )}
-                      </div>
+                      <p className='text-xs font-semibold text-emerald-600 uppercase tracking-wide  mb-3'>
+                        Stop #{index + 1}
+                      </p>
+
+                      {formData.pickups.length > 1 && (
+                        <button
+                          type='button'
+                          onClick={() => removePickup(index)}
+                          className='text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded transition-colors absolute top-2 right-2 cursor-pointer'
+                          title='Remove stop'
+                        >
+                          <FiTrash2 className='text-lg' />
+                        </button>
+                      )}
 
                       <div className='grid grid-cols-3 gap-x-6 gap-y-4'>
                         <InputField

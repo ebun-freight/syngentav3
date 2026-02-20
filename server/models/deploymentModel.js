@@ -11,6 +11,12 @@ const deploymentSchema = new mongoose.Schema(
     // ------------- pickup details ------------- //
     pickups: [
       {
+        tmoNo: {
+          type: String,
+          unique: false, // uniqueness is enforced at app level via counter
+          sparse: true,
+          index: true
+        },
         pickupSite: {
           type: String,
           required: [true, 'Pick-up site is required']
@@ -34,6 +40,10 @@ const deploymentSchema = new mongoose.Schema(
         estimatedWeightKg: {
           type: String,
           required: [true, 'Estimated Quantity is required']
+        },
+        actualWeightKg: {
+          type: String,
+          default: 0
         },
         sacksCount: {
           type: Number,
@@ -171,6 +181,8 @@ const deploymentSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
+// ─── counters ──────────────────────────────────────────────────────────────────
+
 const counterSchema = new mongoose.Schema({
   _id: String,
   seq: Number
@@ -178,35 +190,48 @@ const counterSchema = new mongoose.Schema({
 
 const Counter = mongoose.model('Counter', counterSchema)
 
-// Format: DP241200001 (DP + YYMM + 5-digit sequence)
+/**
+ * Generate the next code for a given counter key.
+ * @param {string} prefix        - e.g. 'DP' or 'TMO'
+ * @param {string} monthKey      - e.g. '2502'
+ * @param {string} counterPrefix - e.g. 'deployment' or 'tmo'
+ */
+const generateCode = async (prefix, monthKey, counterPrefix) => {
+  const counterId = `${counterPrefix}-${monthKey}`
+  const counter = await Counter.findByIdAndUpdate(
+    counterId,
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  )
+  return `${prefix}${monthKey}${String(counter.seq).padStart(5, '0')}`
+}
+
+// ─── pre-save hook ─────────────────────────────────────────────────────────────
+
 deploymentSchema.pre('save', async function (next) {
-  if (!this.deploymentCode) {
-    try {
-      const now = new Date()
-      const year = now.getFullYear().toString().slice(-2) // "24"
-      const month = String(now.getMonth() + 1).padStart(2, '0') // "01" to "12"
+  try {
+    const now = new Date()
+    const year = now.getFullYear().toString().slice(-2) // e.g. "25"
+    const month = String(now.getMonth() + 1).padStart(2, '0') // e.g. "02"
+    const monthKey = `${year}${month}` // e.g. "2502"
 
-      const monthKey = `${year}${month}` // "2412" for Dec 2024
-      const counterId = `deployment-${monthKey}`
-
-      const counter = await Counter.findByIdAndUpdate(
-        counterId,
-        { $inc: { seq: 1 } },
-        { new: true, upsert: true }
-      )
-
-      // Format: DP241200001
-      this.deploymentCode = `DP${monthKey}${String(counter.seq).padStart(
-        5,
-        '0'
-      )}`
-
-      next()
-    } catch (error) {
-      next(error)
+    // 1. Generate deploymentCode if this is a new document
+    if (!this.deploymentCode) {
+      this.deploymentCode = await generateCode('DP', monthKey, 'deployment')
     }
-  } else {
+
+    // 2. Generate tmoNo for any pickup stop that doesn't have one yet
+    //    (handles both initial creation and stops added during updates)
+    //    Format: TMO + monthKey + 5-digit seq  →  e.g. TMO2502000001
+    for (const pickup of this.pickups) {
+      if (!pickup.tmoNo) {
+        pickup.tmoNo = await generateCode('TMO', monthKey, 'tmo')
+      }
+    }
+
     next()
+  } catch (error) {
+    next(error)
   }
 })
 

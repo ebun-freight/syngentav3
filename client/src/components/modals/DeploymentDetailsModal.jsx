@@ -32,7 +32,7 @@ import { FiPlus, FiTrash2 } from 'react-icons/fi'
 import jsPDF from 'jspdf'
 import { API_DEPLOYMENT } from '../../utils/APIRoutes'
 import axios from 'axios'
-import { SMC_HEADER_IMAGE, TMO_HEADER } from '../../consts/base_64_images'
+import { SMC_HEADER_IMAGE } from '../../consts/base_64_images'
 import { useRef } from 'react'
 
 const MAX_PICKUPS = 10
@@ -146,40 +146,41 @@ function DeploymentDetailsModal ({
     }
   }
 
+  // ─── PDF helpers ────────────────────────────────────────────────────────────
+
+  const capitalizeWords = str => {
+    if (!str) return ''
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word =>
+        word.includes('(') || word.includes(')')
+          ? word.replace(/\b\w/g, c => c.toUpperCase())
+          : word.charAt(0).toUpperCase() + word.slice(1)
+      )
+      .join(' ')
+  }
+
+  const formatTruckType = type =>
+    type ? capitalizeWords(type.replace(/-/g, ' ')) : ''
+
+  const formatNumber = value => {
+    if (!value || value === '' || isNaN(value)) return ''
+    return parseFloat(value).toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    })
+  }
+
+  // ─── single PDF export — one A4 page per pickup stop ────────────────────────
+
   const handlePrintTMO = async () => {
-    if (!deployment) {
-      toast.error('No deployment data available')
-      return
-    }
+    if (!deployment) return toast.error('No deployment data available')
 
     try {
-      const capitalizeWords = str => {
-        if (!str) return ''
-        return str
-          .toLowerCase()
-          .split(' ')
-          .map(word => {
-            if (word.includes('(') || word.includes(')')) {
-              return word.replace(/\b\w/g, char => char.toUpperCase())
-            }
-            return word.charAt(0).toUpperCase() + word.slice(1)
-          })
-          .join(' ')
-      }
-
-      const formatTruckType = type => {
-        if (!type) return ''
-        return capitalizeWords(type.replace(/-/g, ' '))
-      }
-
-      const formatNumber = value => {
-        if (!value || value === '' || isNaN(value)) return ''
-        const num = parseFloat(value)
-        return num.toLocaleString('en-US', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 2
-        })
-      }
+      const pickups = deployment.pickups || []
+      if (!pickups.length)
+        return toast.error('No pickup stops found on this deployment')
 
       const hasReplacement = deployment?.replacement?.replacementTruckId?._id
       const activeTruck = hasReplacement
@@ -192,8 +193,7 @@ function DeploymentDetailsModal ({
         ? deployment.replacement.replacementTruckType
         : deployment.truckType
 
-      const pickups = deployment.pickups || []
-
+      // ── create document ────────────────────────────────────────────────────
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -201,427 +201,330 @@ function DeploymentDetailsModal ({
       })
       doc.setFont('helvetica')
 
-      const borderColor = [200, 200, 200]
-      const margin = 15
-      const pageWidth = 210
-      const contentWidth = pageWidth - margin * 2
+      const BORDER = [200, 200, 200]
+      const MARGIN = 15
+      const PW = 210 // page width
+      const CW = PW - MARGIN * 2 // content width
+      const LEFT = MARGIN + 2
+      const RIGHT = PW / 2 + 2
+      const FW = CW / 2 - 4 // column field width
 
-      let yPos = 12
-
-      try {
-        const logoWidth = 28
-        const logoHeight = 10.5
-        doc.addImage(
-          SMC_HEADER_IMAGE,
-          'PNG',
-          margin,
-          yPos,
-          logoWidth,
-          logoHeight
-        )
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(0, 0, 160)
-        doc.text('A Glocal Company', margin, yPos + logoHeight + 4)
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(0, 0, 160)
-        doc.text(
-          '"Global Expertise, Grown Locally"',
-          pageWidth - margin,
-          yPos + logoHeight + 4,
-          { align: 'right' }
-        )
-        yPos += logoHeight + 18
-      } catch (error) {
-        console.warn('Could not load logo')
-      }
-
-      doc.setTextColor(0, 0, 0)
-      doc.setFontSize(14)
-      doc.setFont('helvetica', 'bold')
-      doc.text('TRANSPORT MOVEMENT ORDER', pageWidth / 2, yPos, {
-        align: 'center'
-      })
-      yPos += 6
-      doc.setLineWidth(0.5)
-      doc.setDrawColor(...borderColor)
-      doc.line(margin, yPos, pageWidth - margin, yPos)
-      yPos += 10
-
-      doc.setFontSize(10)
-      const currentDate = DateTime.now()
-        .setZone('Asia/Manila')
-        .toFormat('MMMM dd, yyyy')
-      const rightAlignX = pageWidth - margin
-      const headerGap = 3
-
-      doc.setFont('helvetica', 'bold')
-      doc.text('Date:', rightAlignX - 60, yPos)
-      doc.setFont('helvetica', 'normal')
-      const dateLabelWidth = doc.getTextWidth('Date: ')
-      const dateValueStartX = rightAlignX - 60 + dateLabelWidth + headerGap
-      doc.text(currentDate, dateValueStartX, yPos)
-      doc.setLineWidth(0.2)
-      doc.setDrawColor(...borderColor)
-      doc.line(dateValueStartX, yPos + 1, rightAlignX, yPos + 1)
-      yPos += 5
-
-      doc.setFont('helvetica', 'bold')
-      doc.text('TMO No:', rightAlignX - 60, yPos)
-      doc.setFont('helvetica', 'normal')
-      const tmoLabelWidth = doc.getTextWidth('TMO No: ')
-      const tmoValueStartX = rightAlignX - 60 + tmoLabelWidth + headerGap
-      doc.text(deployment.deploymentCode.toUpperCase(), tmoValueStartX, yPos)
-      doc.setLineWidth(0.2)
-      doc.line(tmoValueStartX, yPos + 1, rightAlignX, yPos + 1)
-      yPos += 8
-
-      const drawSectionHeader = (title, startY) => {
+      // ── reusable renderers ─────────────────────────────────────────────────
+      const sectionHeader = (title, y) => {
         doc.setFillColor(240, 240, 240)
-        doc.rect(margin, startY, contentWidth, 6, 'F')
-        doc.setDrawColor(...borderColor)
-        doc.rect(margin, startY, contentWidth, 6)
+        doc.rect(MARGIN, y, CW, 6, 'F')
+        doc.setDrawColor(...BORDER)
+        doc.rect(MARGIN, y, CW, 6)
         doc.setTextColor(0, 0, 0)
         doc.setFontSize(10)
         doc.setFont('helvetica', 'bold')
-        doc.text(title, margin + 2, startY + 4.5)
-        return startY + 6
-      }
-
-      const drawField = (label, value, x, y, maxWidth = 80) => {
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(9)
-        doc.text(label + ':', x, y)
-        const labelWidth = doc.getTextWidth(label + ': ')
-        const gap = 3
-        const displayValue = value || ''
-        const underlineWidth = maxWidth - labelWidth - gap - 2
-        const underlineStartX = x + labelWidth + gap
-        if (displayValue) {
-          const centerX = underlineStartX + underlineWidth / 2
-          doc.text(displayValue, centerX, y, { align: 'center' })
-        }
-        doc.setLineWidth(0.2)
-        doc.line(
-          underlineStartX,
-          y + 1,
-          underlineStartX + underlineWidth,
-          y + 1
-        )
+        doc.text(title, MARGIN + 2, y + 4.5)
         return y + 6
       }
 
-      const leftColX = margin + 2
-      const rightColX = pageWidth / 2 + 2
-      const fieldWidth = contentWidth / 2 - 4
+      const field = (label, value, x, y, maxW = 80) => {
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        doc.text(label + ':', x, y)
+        const lw = doc.getTextWidth(label + ': ')
+        const uw = maxW - lw - 5
+        const ux = x + lw + 3
+        if (value) doc.text(value, ux + uw / 2, y, { align: 'center' })
+        doc.setLineWidth(0.2)
+        doc.line(ux, y + 1, ux + uw, y + 1)
+        return y + 6
+      }
 
-      // 1. PICKUP DETAILS
-      yPos = drawSectionHeader('1. PICKUP DETAILS', yPos)
+      // ── one page per pickup ────────────────────────────────────────────────
+      pickups.forEach((pickup, idx) => {
+        if (idx > 0) doc.addPage()
 
-      pickups.forEach((pickup, i) => {
-        if (pickups.length > 1) {
-          yPos += 4
-          doc.setFontSize(8)
+        let y = 12
+
+        // Logo
+        try {
+          doc.addImage(SMC_HEADER_IMAGE, 'PNG', MARGIN, y, 28, 10.5)
+          doc.setFontSize(10)
           doc.setFont('helvetica', 'bold')
-          doc.setTextColor(80, 80, 80)
-          doc.text(`Stop #${i + 1}`, margin + 2, yPos)
+          doc.setTextColor(0, 0, 160)
+          doc.text('A Glocal Company', MARGIN, y + 14.5)
+          doc.text('"Global Expertise, Grown Locally"', PW - MARGIN, y + 14.5, {
+            align: 'right'
+          })
           doc.setTextColor(0, 0, 0)
-          yPos += 3
+          y += 28
+        } catch {
+          console.warn('Could not load logo')
         }
 
-        let leftY = yPos + 5
-        let rightY = yPos + 5
+        // Title + rule
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.text('TRANSPORT MOVEMENT ORDER', PW / 2, y, { align: 'center' })
+        y += 6
+        doc.setLineWidth(0.5)
+        doc.setDrawColor(...BORDER)
+        doc.line(MARGIN, y, PW - MARGIN, y)
+        y += 10
 
-        leftY = drawField(
+        // Header meta
+        doc.setFontSize(10)
+        const date = DateTime.now()
+          .setZone('Asia/Manila')
+          .toFormat('MMMM dd, yyyy')
+        const RAX = PW - MARGIN
+
+        // Row 1: DP Code (left) | Date (right)
+        doc.setFont('helvetica', 'bold')
+        doc.text('DP Code:', MARGIN, y)
+        doc.setFont('helvetica', 'normal')
+        const dpVX = MARGIN + doc.getTextWidth('DP Code: ') + 3
+        doc.text(deployment.deploymentCode.toUpperCase(), dpVX, y)
+        doc.setLineWidth(0.2)
+        doc.line(dpVX, y + 1, MARGIN + CW / 2 - 5, y + 1)
+
+        doc.setFont('helvetica', 'bold')
+        doc.text('Date:', RAX - 60, y)
+        doc.setFont('helvetica', 'normal')
+        const dateVX = RAX - 60 + doc.getTextWidth('Date: ') + 3
+        doc.text(date, dateVX, y)
+        doc.setLineWidth(0.2)
+        doc.line(dateVX, y + 1, RAX, y + 1)
+        y += 5
+
+        // Row 2: TMO No. (left)
+        const tmoLabel = pickup.tmoNo ? pickup.tmoNo.toUpperCase() : ''
+        doc.setFont('helvetica', 'bold')
+        doc.text('TMO No.:', MARGIN, y)
+        doc.setFont('helvetica', 'normal')
+        const tmoVX = MARGIN + doc.getTextWidth('TMO No.: ') + 3
+        doc.text(tmoLabel, tmoVX, y)
+        doc.setLineWidth(0.2)
+        doc.line(tmoVX, y + 1, MARGIN + CW / 2 - 5, y + 1)
+        y += 8
+
+        // ── 1. PICKUP DETAILS ──────────────────────────────────────────────
+        y = sectionHeader('1. PICKUP DETAILS', y)
+        let ly = y + 5,
+          ry = y + 5
+
+        ly = field(
           'Farm / Collection Point',
           capitalizeWords(pickup.pickupSite),
-          leftColX,
-          leftY,
-          fieldWidth
+          LEFT,
+          ly,
+          FW
         )
-        leftY = drawField(
+        ly = field(
           'Municipality',
           capitalizeWords(pickup.municipality),
-          leftColX,
-          leftY,
-          fieldWidth
+          LEFT,
+          ly,
+          FW
         )
-        leftY = drawField(
+        ly = field(
           'Scheduled Pickup Time',
           pickup.scheduledPickupTime
             ? DateTime.fromISO(pickup.scheduledPickupTime)
                 .setZone('Asia/Manila')
-                .toFormat('MMMM dd, yyyy hh:mm a')
+                .toFormat('MMM dd, yyyy hh:mm a')
             : '',
-          leftColX,
-          leftY,
-          fieldWidth
+          LEFT,
+          ly,
+          FW
         )
 
-        rightY = drawField(
+        ry = field(
           'Field Contact Person',
           capitalizeWords(pickup.fieldContactPerson),
-          rightColX,
-          rightY,
-          fieldWidth
+          RIGHT,
+          ry,
+          FW
         )
-        rightY = drawField(
-          'Contact No',
-          pickup.fieldContactPersonNo,
-          rightColX,
-          rightY,
-          fieldWidth
-        )
-        rightY = drawField(
+        ry = field('Contact No', pickup.fieldContactPersonNo, RIGHT, ry, FW)
+        ry = field(
           'Estimated Quantity (kg)',
           formatNumber(pickup.estimatedWeightKg),
-          rightColX,
-          rightY,
-          fieldWidth
+          RIGHT,
+          ry,
+          FW
         )
 
-        yPos = Math.max(leftY, rightY) + 3
+        y = Math.max(ly, ry) + 3
 
-        if (i < pickups.length - 1) {
-          doc.setDrawColor(220, 220, 220)
-          doc.setLineWidth(0.2)
-          doc.line(margin + 4, yPos, pageWidth - margin - 4, yPos)
-          yPos += 2
-        }
+        // ── 2. TRUCK & DRIVER DETAILS ──────────────────────────────────────
+        y = sectionHeader('2. TRUCK & DRIVER DETAILS', y)
+        ly = y + 7
+        ry = y + 7
+
+        const driverName = activeDriver
+          ? `${capitalizeWords(activeDriver.firstname)} ${capitalizeWords(
+              activeDriver.lastname
+            )}`
+          : ''
+
+        ly = field(
+          'Truck Plate Number',
+          activeTruck?.plateNo?.toUpperCase(),
+          LEFT,
+          ly,
+          FW
+        )
+        const hw = FW / 2 - 2
+        field('Truck Type', formatTruckType(activeTruckType), LEFT, ly, hw)
+        field(
+          'Helper Count',
+          deployment.helperCount?.toString(),
+          LEFT + FW / 2 + 2,
+          ly,
+          hw
+        )
+        ly += 6
+
+        ry = field("Driver's Name", driverName, RIGHT, ry, FW)
+        ry = field(
+          "Driver's License No",
+          activeDriver?.licenseNo?.toUpperCase() || '',
+          RIGHT,
+          ry,
+          FW
+        )
+
+        y = Math.max(ly, ry) + 3
+
+        // ── 3. DELIVERY DETAILS ────────────────────────────────────────────
+        y = sectionHeader('3. DELIVERY DETAILS', y)
+        ly = y + 7
+        ry = y + 7
+
+        ly = field(
+          'Delivery / Tolling Facility',
+          capitalizeWords(deployment.destination),
+          LEFT,
+          ly,
+          FW
+        )
+        ly = field(
+          'Receiving Contact Person',
+          capitalizeWords(deployment.receivingContactPerson),
+          LEFT,
+          ly,
+          FW
+        )
+        ly = field(
+          'Contact No',
+          deployment.receivingContactPersonNo,
+          LEFT,
+          ly,
+          FW
+        )
+        ly = field(
+          'No. of Sacks',
+          formatNumber(deployment.totalSacksCount),
+          LEFT,
+          ly,
+          FW
+        )
+
+        ry = field(
+          'Territory',
+          capitalizeWords(deployment.territory),
+          RIGHT,
+          ry,
+          FW
+        )
+        ry = field('Hybrid', capitalizeWords(deployment.hybrid), RIGHT, ry, FW)
+        ry = field(
+          'Flagging',
+          capitalizeWords(deployment.flagging),
+          RIGHT,
+          ry,
+          FW
+        )
+        ry = field(
+          'Reason of Flagging',
+          capitalizeWords(deployment.flaggingRemarks),
+          RIGHT,
+          ry,
+          FW
+        )
+
+        y = Math.max(ly, ry) + 3
+
+        // ── 4. LOAD DETAILS ────────────────────────────────────────────────
+        y = sectionHeader('4. LOAD DETAILS (To be completed on-site)', y)
+        const colW = CW / 3 - 2
+        const loadY = y + 7
+        field('Gross Weight', '', MARGIN + 2, loadY, colW)
+        field('Tare Weight', '', MARGIN + CW / 3 + 1, loadY, colW)
+        field('Net Weight', '', MARGIN + (CW / 3) * 2 + 1, loadY, colW)
+        y = loadY + 9
+
+        // ── 5. CONFIRMATION ────────────────────────────────────────────────
+        y = sectionHeader('5. CONFIRMATION', y)
+        y += 7
+
+        const sbW = CW / 2 - 2
+        const sbH = 25
+        doc.setDrawColor(...BORDER)
+        doc.setLineWidth(0.3)
+
+        // left sig box
+        doc.rect(MARGIN, y, sbW, sbH)
+        doc.setFont('helvetica', 'bold').setFontSize(9)
+        doc.text('Loaded by (Field Personnel)', MARGIN + 2, y + 4)
+        doc.setFont('helvetica', 'normal').setFontSize(8)
+        doc.text('Name:', MARGIN + 2, y + 10)
+        doc.line(MARGIN + 12, y + 10.5, MARGIN + sbW - 2, y + 10.5)
+        doc.text('Signature:', MARGIN + 2, y + 18)
+        doc.line(MARGIN + 17, y + 18.5, MARGIN + sbW - 2, y + 18.5)
+
+        // right sig box
+        const rbx = PW / 2 + 1
+        doc.rect(rbx, y, sbW, sbH)
+        doc.setFont('helvetica', 'bold').setFontSize(9)
+        doc.text('Received by (Plant Personnel)', rbx + 2, y + 4)
+        doc.setFont('helvetica', 'normal').setFontSize(8)
+        doc.text('Name:', rbx + 2, y + 10)
+        doc.line(rbx + 12, y + 10.5, rbx + sbW - 2, y + 10.5)
+        doc.text('Signature:', rbx + 2, y + 18)
+        doc.line(rbx + 17, y + 18.5, rbx + sbW - 2, y + 18.5)
+
+        y += sbH + 8
+        doc.setFont('helvetica', 'bold').setFontSize(9)
+        doc.text('Unloading Date:', MARGIN, y)
+        doc.setFont('helvetica', 'normal')
+        doc.line(MARGIN + 30, y + 0.5, MARGIN + 80, y + 0.5)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Unloading Time:', PW / 2 + 10, y)
+        doc.setFont('helvetica', 'normal')
+        doc.line(PW / 2 + 40, y + 0.5, PW / 2 + 90, y + 0.5)
+        y += 8
+
+        // ── 6. REMARKS ─────────────────────────────────────────────────────
+        y = sectionHeader('6. REMARKS', y)
+        y += 5
+        doc.setDrawColor(...BORDER).setLineWidth(0.3)
+        doc.rect(MARGIN, y, CW, 20)
+
+        // Footer
+        doc
+          .setFontSize(7)
+          .setFont('helvetica', 'italic')
+          .setTextColor(100, 100, 100)
+        const ts = DateTime.now()
+          .setZone('Asia/Manila')
+          .toFormat('MMMM dd, yyyy hh:mm a')
+        doc.text(`Generated on: ${ts}`, PW / 2, 287, { align: 'center' })
       })
 
-      // 2. TRUCK & DRIVER DETAILS
-      yPos = drawSectionHeader('2. TRUCK & DRIVER DETAILS', yPos)
-
-      let leftY = yPos + 7
-      let rightY = yPos + 7
-
-      const driverName = activeDriver
-        ? `${capitalizeWords(activeDriver.firstname)} ${capitalizeWords(
-            activeDriver.lastname
-          )}`
-        : ''
-
-      leftY = drawField(
-        'Truck Plate Number',
-        activeTruck?.plateNo?.toUpperCase(),
-        leftColX,
-        leftY,
-        fieldWidth
-      )
-
-      const halfFieldWidth = fieldWidth / 2 - 2
-      const helperCountX = leftColX + fieldWidth / 2 + 2
-      drawField(
-        'Truck Type',
-        formatTruckType(activeTruckType),
-        leftColX,
-        leftY,
-        halfFieldWidth
-      )
-      drawField(
-        'Helper Count',
-        deployment.helperCount?.toString(),
-        helperCountX,
-        leftY,
-        halfFieldWidth
-      )
-      leftY += 6
-
-      rightY = drawField(
-        "Driver's Name",
-        driverName,
-        rightColX,
-        rightY,
-        fieldWidth
-      )
-      rightY = drawField(
-        "Driver's License No",
-        activeDriver?.licenseNo?.toUpperCase() || '',
-        rightColX,
-        rightY,
-        fieldWidth
-      )
-
-      yPos = Math.max(leftY, rightY) + 3
-
-      // 3. DELIVERY DETAILS
-      yPos = drawSectionHeader('3. DELIVERY DETAILS', yPos)
-      leftY = yPos + 7
-      rightY = yPos + 7
-
-      leftY = drawField(
-        'Delivery / Tolling Facility',
-        capitalizeWords(deployment.destination),
-        leftColX,
-        leftY,
-        fieldWidth
-      )
-      leftY = drawField(
-        'Receiving Contact Person',
-        capitalizeWords(deployment.receivingContactPerson),
-        leftColX,
-        leftY,
-        fieldWidth
-      )
-      leftY = drawField(
-        'Contact No',
-        deployment.receivingContactPersonNo,
-        leftColX,
-        leftY,
-        fieldWidth
-      )
-      leftY = drawField(
-        'No. of Sacks',
-        formatNumber(deployment.totalSacksCount),
-        leftColX,
-        leftY,
-        fieldWidth
-      )
-
-      rightY = drawField(
-        'Territory',
-        capitalizeWords(deployment.territory),
-        rightColX,
-        rightY,
-        fieldWidth
-      )
-      rightY = drawField(
-        'Hybrid',
-        capitalizeWords(deployment.hybrid),
-        rightColX,
-        rightY,
-        fieldWidth
-      )
-      rightY = drawField(
-        'Flagging',
-        capitalizeWords(deployment.flagging),
-        rightColX,
-        rightY,
-        fieldWidth
-      )
-      rightY = drawField(
-        'Reason of Flagging',
-        capitalizeWords(deployment.flaggingRemarks),
-        rightColX,
-        rightY,
-        fieldWidth
-      )
-
-      yPos = Math.max(leftY, rightY) + 3
-
-      // 4. LOAD DETAILS
-      yPos = drawSectionHeader(
-        '4. LOAD DETAILS (To be completed on-site)',
-        yPos
-      )
-      const loadDetailY = yPos + 7
-      const threeColWidth = contentWidth / 3 - 2
-      const firstColX = margin + 2
-      const secondColX = margin + contentWidth / 3 + 1
-      const thirdColX = margin + (contentWidth / 3) * 2 + 1
-      drawField('Gross Weight', '', firstColX, loadDetailY, threeColWidth)
-      drawField('Tare Weight', '', secondColX, loadDetailY, threeColWidth)
-      drawField(
-        'Net Weight',
-        formatNumber(deployment.totalWeightKg),
-        thirdColX,
-        loadDetailY,
-        threeColWidth
-      )
-      yPos = loadDetailY + 9
-
-      // 5. CONFIRMATION
-      yPos = drawSectionHeader('5. CONFIRMATION', yPos)
-      yPos += 7
-
-      const signatureBoxWidth = contentWidth / 2 - 2
-      const signatureBoxHeight = 25
-
-      doc.setDrawColor(...borderColor)
-      doc.setLineWidth(0.3)
-      doc.rect(margin, yPos, signatureBoxWidth, signatureBoxHeight)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(9)
-      doc.text('Loaded by (Field Personnel)', margin + 2, yPos + 4)
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8)
-      doc.text('Name:', margin + 2, yPos + 10)
-      doc.line(
-        margin + 12,
-        yPos + 10.5,
-        margin + signatureBoxWidth - 2,
-        yPos + 10.5
-      )
-      doc.text('Signature:', margin + 2, yPos + 18)
-      doc.line(
-        margin + 17,
-        yPos + 18.5,
-        margin + signatureBoxWidth - 2,
-        yPos + 18.5
-      )
-
-      const rightBoxX = pageWidth / 2 + 1
-      doc.rect(rightBoxX, yPos, signatureBoxWidth, signatureBoxHeight)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(9)
-      doc.text('Received by (Plant Personnel)', rightBoxX + 2, yPos + 4)
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8)
-      doc.text('Name:', rightBoxX + 2, yPos + 10)
-      doc.line(
-        rightBoxX + 12,
-        yPos + 10.5,
-        rightBoxX + signatureBoxWidth - 2,
-        yPos + 10.5
-      )
-      doc.text('Signature:', rightBoxX + 2, yPos + 18)
-      doc.line(
-        rightBoxX + 17,
-        yPos + 18.5,
-        rightBoxX + signatureBoxWidth - 2,
-        yPos + 18.5
-      )
-
-      yPos += signatureBoxHeight + 8
-
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(9)
-      doc.text('Unloading Date:', margin, yPos)
-      doc.setFont('helvetica', 'normal')
-      doc.line(margin + 30, yPos + 0.5, margin + 80, yPos + 0.5)
-      doc.setFont('helvetica', 'bold')
-      doc.text('Unloading Time:', pageWidth / 2 + 10, yPos)
-      doc.setFont('helvetica', 'normal')
-      doc.line(pageWidth / 2 + 40, yPos + 0.5, pageWidth / 2 + 90, yPos + 0.5)
-      yPos += 8
-
-      // 6. REMARKS
-      yPos = drawSectionHeader('6. REMARKS', yPos)
-      yPos += 5
-      const remarkBoxHeight = 20
-      doc.setDrawColor(...borderColor)
-      doc.setLineWidth(0.3)
-      doc.rect(margin, yPos, contentWidth, remarkBoxHeight)
-      yPos += remarkBoxHeight + 6
-
-      doc.setFontSize(7)
-      doc.setFont('helvetica', 'italic')
-      doc.setTextColor(100, 100, 100)
-      const timestamp = DateTime.now()
-        .setZone('Asia/Manila')
-        .toFormat('MMMM dd, yyyy hh:mm a')
-      doc.text(`Generated on: ${timestamp}`, pageWidth / 2, 287, {
-        align: 'center'
-      })
-
+      // ── Save single file ───────────────────────────────────────────────────
       doc.save(`TMO_${deployment.deploymentCode}.pdf`)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(r => setTimeout(r, 800))
 
       if (!deployment.isTMOPrinted) {
         try {
-          const response = await axios.patch(
+          const res = await axios.patch(
             `${API_DEPLOYMENT}/${deployment._id}`,
             { isTMOPrinted: true },
             {
@@ -630,25 +533,24 @@ function DeploymentDetailsModal ({
               }
             }
           )
-          onUpdate(response.data.deployment)
+          onUpdate(res.data.deployment)
           setEditForm(prev => ({ ...prev, isTMOPrinted: true }))
-          toast.success(
-            `TMO exported successfully for ${deployment.deploymentCode}`
-          )
-        } catch (error) {
+        } catch (err) {
           toast.warning(
             `PDF generated but failed to update print status: ${
-              error.response?.data?.message || error.message
+              err.response?.data?.message || err.message
             }`
           )
+          return
         }
-      } else {
-        toast.success(
-          `TMO exported successfully for ${deployment.deploymentCode}`
-        )
       }
-    } catch (error) {
-      toast.error(`Error generating TMO PDF: ${error.message}`)
+      toast.success(
+        `TMO exported — ${pickups.length} page${
+          pickups.length > 1 ? 's' : ''
+        } (${deployment.deploymentCode})`
+      )
+    } catch (err) {
+      toast.error(`Error generating TMO PDF: ${err.message}`)
     }
   }
 
@@ -690,40 +592,34 @@ function DeploymentDetailsModal ({
 
   const filteredTrucks =
     trucks?.filter(
-      truck =>
-        truck.status === 'available' &&
-        (truck.plateNo.toLowerCase().includes(truckQuery.toLowerCase()) ||
-          truck.truckType.toLowerCase().includes(truckQuery.toLowerCase()))
+      t =>
+        t.status === 'available' &&
+        (t.plateNo.toLowerCase().includes(truckQuery.toLowerCase()) ||
+          t.truckType.toLowerCase().includes(truckQuery.toLowerCase()))
     ) || []
 
   const filteredDrivers =
     drivers?.filter(
-      driver =>
-        driver.status === 'available' &&
-        (driver.firstname.toLowerCase().includes(driverQuery.toLowerCase()) ||
-          driver.lastname.toLowerCase().includes(driverQuery.toLowerCase()))
+      d =>
+        d.status === 'available' &&
+        (d.firstname.toLowerCase().includes(driverQuery.toLowerCase()) ||
+          d.lastname.toLowerCase().includes(driverQuery.toLowerCase()))
     ) || []
 
   const filteredReplacementTrucks =
     trucks?.filter(
-      truck =>
-        truck.plateNo
-          .toLowerCase()
-          .includes(replacementTruckQuery.toLowerCase()) ||
-        truck.truckType
-          .toLowerCase()
-          .includes(replacementTruckQuery.toLowerCase())
+      t =>
+        t.plateNo.toLowerCase().includes(replacementTruckQuery.toLowerCase()) ||
+        t.truckType.toLowerCase().includes(replacementTruckQuery.toLowerCase())
     ) || []
 
   const filteredReplacementDrivers =
     drivers?.filter(
-      driver =>
-        driver.firstname
+      d =>
+        d.firstname
           .toLowerCase()
           .includes(replacementDriverQuery.toLowerCase()) ||
-        driver.lastname
-          .toLowerCase()
-          .includes(replacementDriverQuery.toLowerCase())
+        d.lastname.toLowerCase().includes(replacementDriverQuery.toLowerCase())
     ) || []
 
   const currentTruckId = isReplacementShow
@@ -732,8 +628,8 @@ function DeploymentDetailsModal ({
   const currentDriverId = isReplacementShow
     ? editForm?.replacement?.replacementDriverId?._id
     : editForm?.driverId?._id
-  const currentTruck = trucks?.find(truck => truck._id === currentTruckId)
-  const currentDriver = drivers?.find(driver => driver._id === currentDriverId)
+  const currentTruck = trucks?.find(t => t._id === currentTruckId)
+  const currentDriver = drivers?.find(d => d._id === currentDriverId)
 
   const pickups = editForm?.pickups || []
   const lastPickupOut = pickups[pickups.length - 1]?.pickupOut
@@ -761,18 +657,15 @@ function DeploymentDetailsModal ({
           leaveTo='opacity-0 -translate-y-8'
         >
           <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-xl overflow-hidden relative h-[80vh] overflow-y-auto scrollbar-thin'>
-            {/* edit mode warning */}
             <p
               className={clsx(
                 'bg-orange-500 text-white px-4 right-26 font-medium py-3 text-sm flex items-center gap-2 transition-all absolute rounded-b-md shadow-warning tracking-wider z-10',
                 { '-translate-y-12': !isEditMode, 'translate-y-0': isEditMode }
               )}
             >
-              <IoWarning className='text-xl' />
-              EDIT MODE
+              <IoWarning className='text-xl' /> EDIT MODE
             </p>
 
-            {/* top right buttons */}
             <div className='absolute top-4 right-4 flex items-center gap-2 z-10'>
               <div className='dropdown dropdown-bottom dropdown-end'>
                 <div
@@ -805,16 +698,13 @@ function DeploymentDetailsModal ({
             </div>
 
             <form onSubmit={handleUpdateDeployment} className='flex h-full'>
-              {/* left side */}
               {/* ── TIMELINE SIDEBAR ── */}
               <div className='bg-gray-100 min-w-60 border-r border-gray-200 flex flex-col pb-8'>
-                <h2 className='text-lg font-semibold mb-4 -ml-2  px-6 pt-8'>
+                <h2 className='text-lg font-semibold mb-4 -ml-2 px-6 pt-8'>
                   Transport Log
                 </h2>
-
-                <div className='relative flex-1 overflow-y-auto scrollbar-thin  px-6'>
+                <div className='relative flex-1 overflow-y-auto scrollbar-thin px-6 mt-4'>
                   <div className='flex flex-col'>
-                    {/* DEPARTED */}
                     <TimelineStop
                       isActive={
                         isEditMode
@@ -843,12 +733,10 @@ function DeploymentDetailsModal ({
                       )}
                     </TimelineStop>
 
-                    {/* PER-STOP PICKUP IN / PICKUP OUT */}
                     {(isEditMode
                       ? editForm.pickups
                       : deployment.pickups || []
                     ).map((pickup, index) => {
-                      const stopLabel = `Stop #${index + 1}`
                       const prevPickupOut =
                         index === 0
                           ? isEditMode
@@ -861,18 +749,14 @@ function DeploymentDetailsModal ({
                         (isEditMode
                           ? editForm.pickups?.length
                           : deployment.pickups?.length) > 1
-
                       return (
                         <div key={index}>
-                          {/* ── FIX: render the stop label inside the timeline
-                               column so the vertical line passes through it ── */}
                           {multiStop && (
                             <TimelineLabel
                               isActive={!!prevPickupOut}
-                              label={stopLabel}
+                              label={`Stop #${index + 1}`}
                             />
                           )}
-
                           <TimelineStop
                             isActive={!!pickup.pickupIn?.trim()}
                             isLast={false}
@@ -897,7 +781,6 @@ function DeploymentDetailsModal ({
                               />
                             )}
                           </TimelineStop>
-
                           <TimelineStop
                             isActive={!!pickup.pickupOut?.trim()}
                             isLast={false}
@@ -926,7 +809,6 @@ function DeploymentDetailsModal ({
                       )
                     })}
 
-                    {/* DEST ARRIVAL */}
                     <TimelineStop
                       isActive={
                         isEditMode
@@ -956,7 +838,6 @@ function DeploymentDetailsModal ({
                       )}
                     </TimelineStop>
 
-                    {/* DEST DEPARTURE */}
                     <TimelineStop
                       isActive={
                         isEditMode
@@ -986,7 +867,6 @@ function DeploymentDetailsModal ({
                       )}
                     </TimelineStop>
 
-                    {/* UNLOADING TIME */}
                     <TimelineStop
                       isActive={
                         isEditMode
@@ -1011,30 +891,27 @@ function DeploymentDetailsModal ({
                                 'minutes'
                               ])
                               const totalHours = days * 24 + hours
-                              const formatDays = () => {
-                                const parts = []
-                                if (days > 0) parts.push(`${days}d`)
-                                if (hours > 0) parts.push(`${hours}h`)
+                              const fmt = () => {
+                                const p = []
+                                if (days > 0) p.push(`${days}d`)
+                                if (hours > 0) p.push(`${hours}h`)
                                 if (minutes > 0)
-                                  parts.push(`${Math.floor(minutes)}m`)
-                                return (
-                                  parts.join(' ') || `${Math.floor(minutes)}m`
-                                )
+                                  p.push(`${Math.floor(minutes)}m`)
+                                return p.join(' ') || `${Math.floor(minutes)}m`
                               }
-                              const formatTotalHours = () => {
-                                if (totalHours > 0)
-                                  return `${totalHours}h${
-                                    minutes > 0
-                                      ? ` ${Math.floor(minutes)}m`
-                                      : ''
-                                  }`
-                                return `${Math.floor(minutes)}m`
-                              }
+                              const fmtH = () =>
+                                totalHours > 0
+                                  ? `${totalHours}h${
+                                      minutes > 0
+                                        ? ` ${Math.floor(minutes)}m`
+                                        : ''
+                                    }`
+                                  : `${Math.floor(minutes)}m`
                               if (totalHours >= 24)
-                                return `${formatDays()} (${formatTotalHours()})`
-                              else if (hours > 0)
+                                return `${fmt()} (${fmtH()})`
+                              if (hours > 0)
                                 return `${hours}h ${Math.floor(minutes)}m`
-                              else return `${Math.floor(minutes)}m`
+                              return `${Math.floor(minutes)}m`
                             })()}
                           </div>
                         ) : (
@@ -1048,24 +925,23 @@ function DeploymentDetailsModal ({
                 </div>
               </div>
 
-              {/* right side */}
               {/* ── MAIN PANEL ── */}
               <div className='pl-6 py-8 flex-1 flex flex-col'>
                 <div className='flex items-center gap-3 mb-4'>
                   <h2 className='text-lg font-semibold'>Deployment Details</h2>
                   <div
-                    className='bg-gray-100 px-2 py-1 rounded-md shadow-card3 text-sm font-medium relative cursor-copy'
+                    className='bg-gray-100 px-2 py-1 rounded-md shadow-card3 text-sm font-medium relative cursor-copy '
                     onClick={e => {
                       e.stopPropagation()
                       navigator.clipboard.writeText(deployment.deploymentCode)
                       const div = e.currentTarget
-                      const tooltip = document.createElement('div')
-                      tooltip.className =
+                      const tip = document.createElement('div')
+                      tip.className =
                         'absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50'
-                      tooltip.textContent = 'Copied'
-                      div.appendChild(tooltip)
+                      tip.textContent = 'Copied'
+                      div.appendChild(tip)
                       setTimeout(() => {
-                        if (div.contains(tooltip)) div.removeChild(tooltip)
+                        if (div.contains(tip)) div.removeChild(tip)
                       }, 1000)
                     }}
                     title='Click to copy'
@@ -1074,7 +950,6 @@ function DeploymentDetailsModal ({
                   </div>
                 </div>
 
-                {/* TABS */}
                 <div className='flex gap-2 border-b border-gray-200 mb-4 mr-6'>
                   <TabButton
                     label='Deployment Info'
@@ -1088,15 +963,13 @@ function DeploymentDetailsModal ({
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                   />
-
-                  <div className='ml-auto rounded-t-lg outline outline-gray-200 flex '>
+                  <div className='ml-auto rounded-t-lg outline outline-gray-200 flex'>
                     <p className='px-3 py-2 text-sm text-gray-500'>
                       {DateTime.fromISO(editForm?.createdAt)
                         .setZone('Asia/Manila')
                         .toFormat('MMM d, yyyy - hh:mm a')}
                     </p>
-
-                    <div className='px-4 py-2 text-sm font-medium text-gray-500  flex items-center justify-center gap-2 border-l border-gray-200'>
+                    <div className='px-4 py-2 text-sm font-medium text-gray-500 flex items-center justify-center gap-2 border-l border-gray-200'>
                       {editForm?.isTMOPrinted
                         ? 'TMO PRINTED'
                         : 'TMO NOT PRINTED'}
@@ -1110,7 +983,6 @@ function DeploymentDetailsModal ({
                   </div>
                 </div>
 
-                {/* TAB CONTENT */}
                 <div className='flex-1 overflow-y-auto scrollbar-thin pr-6'>
                   {activeTab === 'info' && (
                     <DeploymentInfoTab
@@ -1150,7 +1022,6 @@ function DeploymentDetailsModal ({
                   )}
                 </div>
 
-                {/* ACTION BUTTONS */}
                 {updatable && (
                   <div className='flex gap-4 col-span-full mt-6 mr-6'>
                     {isEditMode ? (
@@ -1170,7 +1041,7 @@ function DeploymentDetailsModal ({
                         >
                           {isLoading ? (
                             <>
-                              <span className='loading loading-spinner loading-xs'></span>
+                              <span className='loading loading-spinner loading-xs' />
                               Saving
                             </>
                           ) : (
@@ -1189,8 +1060,7 @@ function DeploymentDetailsModal ({
                           disabled={isLoading}
                           className='bg-linear-to-b from-blue-500 to-blue-600 text-white px-6 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
                         >
-                          <TbPencilMinus className='text-lg -mt-0.5' />
-                          Update
+                          <TbPencilMinus className='text-lg -mt-0.5' /> Update
                         </button>
                         <button
                           type='button'
@@ -1208,8 +1078,8 @@ function DeploymentDetailsModal ({
                             disabled={isLoading}
                             className='bg-linear-to-b from-amber-500 to-amber-600 text-white px-6 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
                           >
-                            <TbExchange className='text-lg -mt-0.5' />
-                            Replace Truck
+                            <TbExchange className='text-lg -mt-0.5' /> Replace
+                            Truck
                           </button>
                         )}
                         <button
@@ -1218,8 +1088,7 @@ function DeploymentDetailsModal ({
                           disabled={isLoading}
                           className='bg-linear-to-b from-red-500 to-red-600 text-white px-6 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95 ml-auto'
                         >
-                          <TbTrash className='text-lg -mt-0.5' />
-                          Delete
+                          <TbTrash className='text-lg -mt-0.5' /> Delete
                         </button>
                       </>
                     )}
@@ -1234,28 +1103,17 @@ function DeploymentDetailsModal ({
   )
 }
 
-// ── TIMELINE HELPERS ──
-
-/**
- * TimelineLabel — renders a stop badge (e.g. "Stop #1") while keeping the
- * vertical connecting line unbroken. It mirrors the left-column structure of
- * TimelineStop but has no dot, just the continuous line.
- */
+// ── TIMELINE HELPERS ───────────────────────────────────────────────────────────
 const TimelineLabel = ({ isActive, label }) => (
   <div className='flex gap-5'>
-    {/* left column: line only, no dot */}
     <div className='relative'>
       <div
         className={clsx(
           'w-0.5 h-full absolute top-0 left-1/2 -translate-x-1/2',
-          {
-            'bg-emerald-500': isActive,
-            'bg-gray-300': !isActive
-          }
+          { 'bg-emerald-500': isActive, 'bg-gray-300': !isActive }
         )}
       />
     </div>
-    {/* right column: the label text */}
     <div className='pb-1 flex-1'>
       <span className='text-xs font-semibold text-emerald-600 uppercase tracking-wide'>
         {label}
@@ -1280,10 +1138,7 @@ const TimelineStop = ({ isActive, isLast, children }) => (
         <div
           className={clsx(
             'w-0.5 h-full absolute top-0 left-1/2 -translate-x-1/2',
-            {
-              'bg-emerald-500': isActive,
-              'bg-gray-300': !isActive
-            }
+            { 'bg-emerald-500': isActive, 'bg-gray-300': !isActive }
           )}
         />
       )}
@@ -1328,7 +1183,8 @@ const TabButton = ({ label, tab, activeTab, setActiveTab }) => (
   </button>
 )
 
-// ── DEPLOYMENT INFO TAB — all data except pickups ──
+// ── DEPLOYMENT INFO TAB ────────────────────────────────────────────────────────
+
 const DeploymentInfoTab = ({
   isEditMode,
   editForm,
@@ -1373,7 +1229,6 @@ const DeploymentInfoTab = ({
 
   return (
     <div className='space-y-4'>
-      {/* TRUCK & DRIVER */}
       <div className='space-y-2'>
         <div className='flex justify-between items-center'>
           <h3 className='text-xs uppercase font-semibold text-gray-500'>
@@ -1384,7 +1239,6 @@ const DeploymentInfoTab = ({
           )}
         </div>
         <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>
-          {/* Plate No */}
           <label className='flex flex-col gap-1'>
             <span className='uppercase text-xs text-gray-500 font-semibold'>
               Plate No.
@@ -1392,22 +1246,21 @@ const DeploymentInfoTab = ({
             {isEditMode ? (
               <Combobox
                 value={activeTruckId}
-                onChange={value =>
+                onChange={v =>
                   handleComboboxChange(
                     isReplacementShow
                       ? 'replacement.replacementTruckId'
                       : 'truckId',
-                    value
+                    v
                   )
                 }
               >
                 <div className='relative'>
                   <ComboboxInput
                     className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 uppercase'
-                    displayValue={id => {
-                      const truck = trucks?.find(t => t._id === id)
-                      return truck ? truck.plateNo : ''
-                    }}
+                    displayValue={id =>
+                      trucks?.find(t => t._id === id)?.plateNo || ''
+                    }
                     onChange={e =>
                       isReplacementShow
                         ? setReplacementTruckQuery(e.target.value)
@@ -1422,10 +1275,10 @@ const DeploymentInfoTab = ({
                     {(isReplacementShow
                       ? filteredReplacementTrucks
                       : filteredTrucks
-                    ).map(truck => (
+                    ).map(t => (
                       <ComboboxOption
-                        key={truck._id}
-                        value={truck._id}
+                        key={t._id}
+                        value={t._id}
                         className={({ focus }) =>
                           `cursor-default select-none py-2 px-4 text-base ${
                             focus ? 'bg-gray-50' : 'text-gray-900'
@@ -1433,7 +1286,7 @@ const DeploymentInfoTab = ({
                         }
                       >
                         <span className='block truncate uppercase'>
-                          {truck.plateNo}
+                          {t.plateNo}
                         </span>
                       </ComboboxOption>
                     ))}
@@ -1450,7 +1303,6 @@ const DeploymentInfoTab = ({
           </label>
 
           <div className='grid grid-cols-2 gap-x-6'>
-            {/* Truck Type */}
             <label className='flex flex-col gap-1'>
               <span className='uppercase text-xs text-gray-500 font-semibold'>
                 Truck Type
@@ -1471,8 +1323,8 @@ const DeploymentInfoTab = ({
                     onChange={handleChange}
                     className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                   >
-                    {settings.trucksDrivers.truckType.map((item, index) => (
-                      <option key={index} value={item}>
+                    {settings.trucksDrivers.truckType.map((item, i) => (
+                      <option key={i} value={item}>
                         {item}
                       </option>
                     ))}
@@ -1498,7 +1350,6 @@ const DeploymentInfoTab = ({
             />
           </div>
 
-          {/* Driver */}
           <label className='flex flex-col gap-1'>
             <span className='uppercase text-xs text-gray-500 font-semibold'>
               Driver
@@ -1506,12 +1357,12 @@ const DeploymentInfoTab = ({
             {isEditMode ? (
               <Combobox
                 value={activeDriverId}
-                onChange={value =>
+                onChange={v =>
                   handleComboboxChange(
                     isReplacementShow
                       ? 'replacement.replacementDriverId'
                       : 'driverId',
-                    value
+                    v
                   )
                 }
               >
@@ -1519,10 +1370,8 @@ const DeploymentInfoTab = ({
                   <ComboboxInput
                     className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
                     displayValue={id => {
-                      const driver = drivers?.find(d => d._id === id)
-                      return driver
-                        ? `${driver.firstname} ${driver.lastname}`
-                        : ''
+                      const d = drivers?.find(d => d._id === id)
+                      return d ? `${d.firstname} ${d.lastname}` : ''
                     }}
                     onChange={e =>
                       isReplacementShow
@@ -1538,10 +1387,10 @@ const DeploymentInfoTab = ({
                     {(isReplacementShow
                       ? filteredReplacementDrivers
                       : filteredDrivers
-                    ).map(driver => (
+                    ).map(d => (
                       <ComboboxOption
-                        key={driver._id}
-                        value={driver._id}
+                        key={d._id}
+                        value={d._id}
                         className={({ focus }) =>
                           `cursor-default select-none py-2 px-4 text-base ${
                             focus ? 'bg-gray-50' : 'text-gray-900'
@@ -1549,7 +1398,7 @@ const DeploymentInfoTab = ({
                         }
                       >
                         <span className='block truncate capitalize'>
-                          {driver.firstname} {driver.lastname}
+                          {d.firstname} {d.lastname}
                         </span>
                       </ComboboxOption>
                     ))}
@@ -1571,11 +1420,11 @@ const DeploymentInfoTab = ({
 
           <div className='grid grid-cols-2 gap-x-6'>
             <InputField
-              label='Sacks Count'
+              label='Total Sacks Count'
               type='number'
               name='totalSacksCount'
               value={editForm?.totalSacksCount}
-              disabled={!isEditMode}
+              disabled={true}
               onChange={handleChange}
               formatNumber={true}
               thousandSeparator={true}
@@ -1587,7 +1436,7 @@ const DeploymentInfoTab = ({
               type='number'
               name='totalWeightKg'
               value={editForm?.totalWeightKg}
-              disabled={!isEditMode}
+              disabled={true}
               onChange={handleChange}
               formatNumber={true}
               thousandSeparator={true}
@@ -1598,7 +1447,6 @@ const DeploymentInfoTab = ({
         </div>
       </div>
 
-      {/* DELIVERY DETAILS */}
       <div className='space-y-2'>
         <h3 className='text-xs uppercase font-semibold text-gray-500'>
           Delivery Details
@@ -1623,7 +1471,6 @@ const DeploymentInfoTab = ({
             onChange={handleChange}
           />
 
-          {/* Destination */}
           <label className='flex flex-col gap-1'>
             <span className='uppercase text-xs text-gray-500 font-semibold'>
               Destination
@@ -1636,8 +1483,8 @@ const DeploymentInfoTab = ({
                   onChange={handleChange}
                   className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                 >
-                  {settings.deployments.destination.map((item, index) => (
-                    <option key={index} value={item}>
+                  {settings.deployments.destination.map((item, i) => (
+                    <option key={i} value={item}>
                       {item}
                     </option>
                   ))}
@@ -1652,7 +1499,6 @@ const DeploymentInfoTab = ({
           </label>
 
           <div className='grid grid-cols-2 gap-x-6'>
-            {/* Territory */}
             <label className='flex flex-col gap-1'>
               <span className='uppercase text-xs text-gray-500 font-semibold'>
                 Territory
@@ -1665,8 +1511,8 @@ const DeploymentInfoTab = ({
                     onChange={handleChange}
                     className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                   >
-                    {settings.deployments.territory.map((item, index) => (
-                      <option key={index} value={item}>
+                    {settings.deployments.territory.map((item, i) => (
+                      <option key={i} value={item}>
                         {item}
                       </option>
                     ))}
@@ -1679,8 +1525,6 @@ const DeploymentInfoTab = ({
                 </p>
               )}
             </label>
-
-            {/* Hybrid */}
             <label className='flex flex-col gap-1'>
               <span className='uppercase text-xs text-gray-500 font-semibold'>
                 Hybrid
@@ -1693,8 +1537,8 @@ const DeploymentInfoTab = ({
                     onChange={handleChange}
                     className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                   >
-                    {settings.deployments.hybrid.map((item, index) => (
-                      <option key={index} value={item}>
+                    {settings.deployments.hybrid.map((item, i) => (
+                      <option key={i} value={item}>
                         {item}
                       </option>
                     ))}
@@ -1710,7 +1554,6 @@ const DeploymentInfoTab = ({
           </div>
 
           <div className='grid grid-cols-2 gap-x-6'>
-            {/* Flagging */}
             <label className='flex flex-col gap-1'>
               <span className='uppercase text-xs text-gray-500 font-semibold'>
                 Flagging
@@ -1723,8 +1566,8 @@ const DeploymentInfoTab = ({
                     onChange={handleChange}
                     className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                   >
-                    {settings.deployments.flagging.map((item, index) => (
-                      <option key={index} value={item}>
+                    {settings.deployments.flagging.map((item, i) => (
+                      <option key={i} value={item}>
                         {item}
                       </option>
                     ))}
@@ -1753,7 +1596,6 @@ const DeploymentInfoTab = ({
                 </div>
               )}
             </label>
-
             <InputField
               label='Flagging Remarks'
               type='text'
@@ -1768,7 +1610,6 @@ const DeploymentInfoTab = ({
           </div>
 
           <div className='grid grid-cols-2 gap-x-6'>
-            {/* Status */}
             <label className='flex flex-col gap-1'>
               <span className='uppercase text-xs text-gray-500 font-semibold'>
                 Status
@@ -1781,8 +1622,8 @@ const DeploymentInfoTab = ({
                     onChange={handleChange}
                     className='outline outline-gray-300 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full capitalize'
                   >
-                    {DEPLOYMENT_STATUS.map((item, index) => (
-                      <option key={index} value={item.value}>
+                    {DEPLOYMENT_STATUS.map((item, i) => (
+                      <option key={i} value={item.value}>
                         {item.label}
                       </option>
                     ))}
@@ -1811,7 +1652,6 @@ const DeploymentInfoTab = ({
                 </div>
               )}
             </label>
-
             <InputField
               label='Cancellation Reason'
               type='text'
@@ -1831,7 +1671,8 @@ const DeploymentInfoTab = ({
   )
 }
 
-// ── PICKUP SITES TAB — only pickups ──
+// ── PICKUP SITES TAB ───────────────────────────────────────────────────────────
+
 const PickupSitesTab = ({
   isEditMode,
   editForm,
@@ -1852,8 +1693,7 @@ const PickupSitesTab = ({
   }, [pickups.length])
 
   return (
-    <div className=''>
-      {/* header */}
+    <div>
       <div className='flex items-center justify-between sticky top-0 bg-white z-10 pb-2'>
         <div className='flex items-center gap-2'>
           <h3 className='text-xs uppercase font-semibold text-gray-500'>
@@ -1870,8 +1710,7 @@ const PickupSitesTab = ({
             disabled={pickups.length >= MAX_PICKUPS}
             className='flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors px-2 cursor-pointer'
           >
-            <FiPlus className='text-sm' />
-            Add Stop
+            <FiPlus className='text-sm' /> Add Stop
           </button>
         )}
       </div>
@@ -1883,9 +1722,16 @@ const PickupSitesTab = ({
             ref={index === pickups.length - 1 ? lastStopRef : null}
             className='border border-gray-200 rounded-xl p-4 bg-gray-50/50 relative'
           >
-            <p className='text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2'>
-              Stop #{index + 1}
-            </p>
+            <div className='flex items-center gap-2 mb-2'>
+              <p className='text-xs font-semibold text-emerald-600 uppercase tracking-wide'>
+                Stop #{index + 1}
+              </p>
+              {pickup.tmoNo && (
+                <span className='text-sm font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded'>
+                  {pickup.tmoNo}
+                </span>
+              )}
+            </div>
 
             {isEditMode && pickups.length > 1 && (
               <button
@@ -1935,17 +1781,34 @@ const PickupSitesTab = ({
                 disabled={!isEditMode}
                 onChange={e => handlePickupChange(index, e)}
               />
-              <InputField
-                label='Scheduled Pickup Time'
-                type='datetime-local'
-                name='scheduledPickupTime'
-                value={pickup.scheduledPickupTime}
-                disabled={!isEditMode}
-                onChange={e => handlePickupChange(index, e)}
-                isCapitalize={false}
-              />
-              {/* Estimated Qty + Sacks Count side by side */}
-              <div className='grid grid-cols-2 gap-x-3'>
+              {isEditMode ? (
+                <InputField
+                  label='Scheduled Pickup Time'
+                  type='datetime-local'
+                  name='scheduledPickupTime'
+                  value={pickup.scheduledPickupTime}
+                  onChange={e => handlePickupChange(index, e)}
+                  isCapitalize={false}
+                />
+              ) : (
+                <label className='flex flex-col gap-1'>
+                  <span className='uppercase text-xs text-gray-500 font-semibold'>
+                    Scheduled Pickup Time
+                  </span>
+                  {pickup.scheduledPickupTime ? (
+                    <p className='outline outline-gray-200 px-3 py-2 rounded'>
+                      {DateTime.fromISO(pickup.scheduledPickupTime)
+                        .setZone('Asia/Manila')
+                        .toFormat('MMM d, yyyy - hh:mm a')}
+                    </p>
+                  ) : (
+                    <p className='italic text-gray-400 text-sm font-light outline outline-gray-200 px-3 py-2.5 rounded'>
+                      Not set
+                    </p>
+                  )}
+                </label>
+              )}
+              <div className='grid grid-cols-3 gap-x-3'>
                 <label className='flex flex-col gap-1'>
                   <span className='uppercase text-xs text-gray-500 font-semibold text-nowrap'>
                     Est. Weight (Kg)
@@ -1955,15 +1818,35 @@ const PickupSitesTab = ({
                     decimalScale={2}
                     allowNegative={false}
                     value={pickup.estimatedWeightKg}
-                    onValueChange={values =>
+                    onValueChange={v =>
                       handlePickupNumericChange(
                         index,
                         'estimatedWeightKg',
-                        values.floatValue
+                        v.floatValue
                       )
                     }
                     disabled={!isEditMode}
                     required
+                    className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 w-full'
+                  />
+                </label>
+                <label className='flex flex-col gap-1'>
+                  <span className='uppercase text-xs text-gray-500 font-semibold text-nowrap'>
+                    Act. Weight (Kg)
+                  </span>
+                  <NumericFormat
+                    thousandSeparator
+                    decimalScale={2}
+                    allowNegative={false}
+                    value={pickup.actualWeightKg}
+                    onValueChange={v =>
+                      handlePickupNumericChange(
+                        index,
+                        'actualWeightKg',
+                        v.floatValue
+                      )
+                    }
+                    disabled={!isEditMode}
                     className='outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 w-full'
                   />
                 </label>
@@ -1976,11 +1859,11 @@ const PickupSitesTab = ({
                     decimalScale={0}
                     allowNegative={false}
                     value={pickup.sacksCount}
-                    onValueChange={values =>
+                    onValueChange={v =>
                       handlePickupNumericChange(
                         index,
                         'sacksCount',
-                        values.floatValue
+                        v.floatValue
                       )
                     }
                     disabled={!isEditMode}
@@ -2002,7 +1885,8 @@ const PickupSitesTab = ({
   )
 }
 
-// ── INPUT FIELD ──
+// ── INPUT FIELD ────────────────────────────────────────────────────────────────
+
 const InputField = ({
   colSpan = 1,
   rowSpan = 1,
@@ -2035,12 +1919,9 @@ const InputField = ({
           decimalScale={decimalScale}
           allowNegative={allowNegative}
           value={value}
-          onValueChange={values => {
-            const syntheticEvent = {
-              target: { name, value: values.floatValue || '' }
-            }
-            onChange(syntheticEvent)
-          }}
+          onValueChange={v =>
+            onChange({ target: { name, value: v.floatValue || '' } })
+          }
           placeholder={placeholder}
           disabled={disabled}
           required={isRequired}
@@ -2059,7 +1940,6 @@ const InputField = ({
       </label>
     )
   }
-
   return (
     <label
       className={`col-span-${colSpan} row-span-${rowSpan} flex flex-col gap-1`}

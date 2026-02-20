@@ -39,6 +39,52 @@ const defaultFilters = {
   page: 1
 }
 
+// ─── helper: format a pickup stop's in/out timestamps ─────────────────────────
+const formatISO = iso =>
+  iso
+    ? DateTime.fromISO(iso)
+        .setZone('Asia/Manila')
+        .toFormat('MMM d, yyyy hh:mm a')
+    : null
+
+/**
+ * Renders a stacked list of pickup stop timestamps for either pickupIn or pickupOut.
+ * Shows "Stop #N  <time>" for each stop that has a value, and a single "Pending /
+ * Canceled" fallback if none of the stops have a value.
+ */
+const PickupStopsCell = ({ pickups = [], field, status }) => {
+  const stopsWithValue = pickups.filter(p => p[field])
+
+  if (stopsWithValue.length === 0) {
+    return status === 'canceled' ? (
+      <p className='italic text-gray-400 font-light'>Canceled</p>
+    ) : (
+      <p className='italic text-gray-400 font-light'>Pending</p>
+    )
+  }
+
+  return (
+    <div className='space-y-1'>
+      {pickups.map((stop, i) => (
+        <div key={i} className='flex items-center gap-1.5 text-nowrap'>
+          {/* stop badge — always visible so rows align across cells */}
+          <span className='text-[10px] font-semibold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full leading-none shrink-0'>
+            S{i + 1}
+          </span>
+
+          {stop[field] ? (
+            <span className='text-xs'>{formatISO(stop[field])}</span>
+          ) : (
+            <span className='italic text-gray-400 font-light text-xs'>
+              {status === 'canceled' ? 'Canceled' : 'Pending'}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function Deployments () {
   const { userData } = useUserContext()
   const { settings } = useSettingsContext()
@@ -80,7 +126,6 @@ function Deployments () {
       const delaySearch = setTimeout(() => {
         setFilters(prev => ({ ...prev, search: '' }))
       }, 300)
-
       return () => clearTimeout(delaySearch)
     }
   }, [tempFilters.search, filters.search])
@@ -94,7 +139,6 @@ function Deployments () {
     const isDefault = Object.keys(defaultFilters).every(
       key => tempFilters[key] === defaultFilters[key]
     )
-
     if (!isDefault) {
       setTempFilters(defaultFilters)
       setFilters(defaultFilters)
@@ -114,58 +158,38 @@ function Deployments () {
     }
   }
 
-  const handleExportToExcel = () => {
-    exportDeploymentToExcel(allDeployments)
-  }
-
-  const handleExportToBillingToExcel = async () => {
+  const handleExportToExcel = () => exportDeploymentToExcel(allDeployments)
+  const handleExportToBillingToExcel = async () =>
     await exportBillingToExcel(allDeployments)
-  }
-
-  const handleExportToSubconBillingToExcel = async () => {
+  const handleExportToSubconBillingToExcel = async () =>
     await exportSubconBillingToExcel(allDeployments, userData)
-  }
 
   const handleAddNewDeployment = newDeployment => {
-    console.log('NEW DEPLOYMENT', newDeployment)
     setAllDeployments(prev => [newDeployment, ...prev])
   }
 
   const handleShowTruckDetailsModal = async data => {
     setSelectedDeployment(data)
     setIsDeploymentDetailsModalOpen(true)
-    console.log(data)
   }
 
   const handleUpdateAllDeployments = updatedDeployment => {
-    console.log(updatedDeployment)
-    setAllDeployments(prevAllDeployments =>
-      prevAllDeployments.map(deployment =>
-        deployment._id === updatedDeployment._id
-          ? updatedDeployment
-          : deployment
-      )
+    setAllDeployments(prev =>
+      prev.map(d => (d._id === updatedDeployment._id ? updatedDeployment : d))
     )
   }
 
   const handleRemoveDeletedDeployment = deletedDeployment => {
-    setAllDeployments(prev =>
-      prev.filter(deployment => deployment._id !== deletedDeployment)
-    )
+    setAllDeployments(prev => prev.filter(d => d._id !== deletedDeployment))
     setIsDeleteDeploymentModalOpen(false)
     setIsDeploymentDetailsModalOpen(false)
   }
 
   useEffect(() => {
-    console.log(filters)
-
     const handleGetAllDeployment = async () => {
       const { deployments, total, page, totalPages, error } =
         await getAllDeploymentFunction(filters)
-
-      if (error) {
-        setDeploymentError(error)
-      }
+      if (error) setDeploymentError(error)
       setAllDeployments(deployments)
       setTotal(total)
       setPage(page)
@@ -174,19 +198,13 @@ function Deployments () {
 
     const handleGetAllTrucks = async () => {
       const { trucks, error } = await getAllTruckFunction({})
-
-      if (error) {
-        setTruckError(error)
-      }
+      if (error) setTruckError(error)
       setAllTrucks(trucks || [])
     }
 
     const handleGetAllDrivers = async () => {
       const { drivers, error } = await getAllDriverFunction({})
-
-      if (error) {
-        setDriverError(error)
-      }
+      if (error) setDriverError(error)
       setAllDrivers(drivers || [])
     }
 
@@ -206,7 +224,6 @@ function Deployments () {
           <div className='flex flex-wrap gap-4'>
             {/* filters */}
             <div className='dropdown dropdown-center'>
-              {/* button */}
               <div
                 tabIndex={0}
                 role='button'
@@ -216,13 +233,11 @@ function Deployments () {
                 <p>Filter</p>
               </div>
 
-              {/* menu */}
               <div
                 tabIndex='0'
                 className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-sm ring-1 ring-gray-300'
               >
                 <div className='grid grid-cols-2 gap-4 p-4'>
-                  {/* Status */}
                   <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                     <p className='font-semibold'>Status</p>
                     <select
@@ -240,7 +255,6 @@ function Deployments () {
                     </select>
                   </label>
 
-                  {/* Sort */}
                   <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                     <p className='font-semibold'>Sort</p>
                     <select
@@ -256,7 +270,6 @@ function Deployments () {
 
                   {userData.data.role !== 'subcon' && (
                     <>
-                      {/* Subcon */}
                       {userData.data.role !== 'visitor' && (
                         <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                           <p className='font-semibold'>Subcon</p>
@@ -278,13 +291,10 @@ function Deployments () {
                         </label>
                       )}
 
-                      {/* Territory */}
                       <label
                         className={clsx(
                           'flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2',
-                          {
-                            'col-span-2': userData.data.role === 'visitor'
-                          }
+                          { 'col-span-2': userData.data.role === 'visitor' }
                         )}
                       >
                         <p className='font-semibold'>Territory</p>
@@ -305,7 +315,6 @@ function Deployments () {
                     </>
                   )}
 
-                  {/* Assigned At */}
                   <label className='col-span-2 flex items-center justify-between text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                     <p className='font-semibold text-nowrap'>Assigned At</p>
                     <input
@@ -317,7 +326,6 @@ function Deployments () {
                     />
                   </label>
 
-                  {/* Departed At */}
                   <label className='col-span-2 flex items-center justify-between text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                     <p className='font-semibold text-nowrap'>Departed At</p>
                     <input
@@ -387,13 +395,11 @@ function Deployments () {
               >
                 <MdOutlineKeyboardArrowLeft />
               </button>
-
               <p className='text-sm min-w-22 text-center'>
                 {!isDeploymentLoading &&
                   allDeployments &&
                   `Page ${total > 0 ? page : 0} of ${totalPages}`}
               </p>
-
               <button
                 onClick={() => handleChangePage('next')}
                 disabled={isDeploymentLoading || filters.page === totalPages}
@@ -436,7 +442,7 @@ function Deployments () {
                     </div>
                   </button>
 
-                  <div className='border-t border-gray-200 my-1'></div>
+                  <div className='border-t border-gray-200 my-1' />
 
                   <button
                     onClick={handleExportToBillingToExcel}
@@ -454,7 +460,7 @@ function Deployments () {
                     </div>
                   </button>
 
-                  <div className='border-t border-gray-200 my-1'></div>
+                  <div className='border-t border-gray-200 my-1' />
 
                   <button
                     onClick={handleExportToSubconBillingToExcel}
@@ -493,16 +499,14 @@ function Deployments () {
         {isDeploymentLoading ? (
           <div className='flex-1 flex items-center justify-center'>
             <div className='flex flex-col items-center justify-center gap-4 text-center'>
-              <div className='relative'>
-                <span className='loading loading-spinner loading-lg text-primaryColor'></span>
-              </div>
+              <span className='loading loading-spinner loading-lg text-primaryColor' />
               <p className='text-gray-600 font-medium'>Loading content...</p>
             </div>
           </div>
         ) : deploymentError ? (
           <div className='flex-1 flex justify-center items-center'>
             <div className='flex flex-col justify-center items-center gap-4 px-4 text-center'>
-              <img src={error_illustration} alt='empty list' className='w-56' />
+              <img src={error_illustration} alt='error' className='w-56' />
               <div className='space-y-2'>
                 <h1 className='text-xl font-semibold text-gray-700'>
                   Something went wrong
@@ -516,7 +520,7 @@ function Deployments () {
         ) : allDeployments.length === 0 ? (
           <div className='flex-1 flex justify-center items-center'>
             <div className='flex flex-col justify-center items-center gap-4 px-4 text-center'>
-              <img src={empty_illustration} alt='empty list' className='w-56' />
+              <img src={empty_illustration} alt='empty' className='w-56' />
               <div className='space-y-2'>
                 <h1 className='text-xl font-semibold text-gray-700'>
                   Nothing to show here
@@ -552,12 +556,14 @@ function Deployments () {
                     <tr
                       key={index}
                       onClick={() => handleShowTruckDetailsModal(deployment)}
-                      className='border-b border-gray-200 last:border-none hover:bg-gray-50 cursor-pointer capitalize'
+                      className='border-b border-gray-200 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top'
                     >
+                      {/* # */}
                       <td className='text-xs font-bold text-gray-600'>
                         {(filters.page - 1) * filters.perPage + index + 1}
                       </td>
 
+                      {/* Deployment code */}
                       <td className='p-0 relative'>
                         <div
                           className='cursor-copy h-full w-fit p-2 hover:bg-gray-100 transition-colors rounded relative group'
@@ -566,19 +572,15 @@ function Deployments () {
                             navigator.clipboard.writeText(
                               deployment.deploymentCode
                             )
-
                             const div = e.currentTarget
                             const tooltip = document.createElement('div')
                             tooltip.className =
                               'absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50'
                             tooltip.textContent = 'Copied'
-
                             div.appendChild(tooltip)
-
                             setTimeout(() => {
-                              if (div.contains(tooltip)) {
+                              if (div.contains(tooltip))
                                 div.removeChild(tooltip)
-                              }
                             }, 1000)
                           }}
                           title='Click to copy'
@@ -587,6 +589,7 @@ function Deployments () {
                         </div>
                       </td>
 
+                      {/* Truck / driver */}
                       <td>
                         <div className='space-y-1'>
                           {deployment?.replacement?.replacementTruckId?._id ? (
@@ -600,7 +603,9 @@ function Deployments () {
                                 </span>
                                 ({deployment.replacement.replacementTruckType})
                               </p>
-                              <p className='text-nowrap font-light'>{`${deployment.replacement.replacementDriverId.firstname} ${deployment.replacement.replacementDriverId.lastname}`}</p>
+                              <p className='text-nowrap font-light'>
+                                {`${deployment.replacement.replacementDriverId.firstname} ${deployment.replacement.replacementDriverId.lastname}`}
+                              </p>
                             </>
                           ) : (
                             <>
@@ -610,12 +615,15 @@ function Deployments () {
                                 </span>
                                 ({deployment.truckType})
                               </p>
-                              <p className='text-nowrap font-light'>{`${deployment.driverId.firstname} ${deployment.driverId.lastname}`}</p>
+                              <p className='text-nowrap font-light'>
+                                {`${deployment.driverId.firstname} ${deployment.driverId.lastname}`}
+                              </p>
                             </>
                           )}
                         </div>
                       </td>
 
+                      {/* Status */}
                       <td>
                         <div
                           className={clsx('px-2 py-1 rounded-full w-fit', {
@@ -633,13 +641,12 @@ function Deployments () {
                         </div>
                       </td>
 
+                      {/* Departed */}
                       <td>
                         {deployment.departed ? (
-                          <div className='text-nowrap w-fit px-2 py-1 rounded-full'>
-                            {DateTime.fromISO(deployment.departed)
-                              .setZone('Asia/Manila')
-                              .toFormat('MMM d, yyyy hh:mm a')}
-                          </div>
+                          <span className='text-nowrap text-xs'>
+                            {formatISO(deployment.departed)}
+                          </span>
                         ) : deployment.status === 'canceled' ? (
                           <p className='italic text-gray-400 font-light'>
                             Canceled
@@ -651,49 +658,30 @@ function Deployments () {
                         )}
                       </td>
 
+                      {/* Pick-up In — one row per stop */}
                       <td>
-                        {deployment.pickupIn ? (
-                          <div className='text-nowrap w-fit px-2 py-1 rounded-full'>
-                            {DateTime.fromISO(deployment.pickupIn)
-                              .setZone('Asia/Manila')
-                              .toFormat('MMM d, yyyy hh:mm a')}
-                          </div>
-                        ) : deployment.status === 'canceled' ? (
-                          <p className='italic text-gray-400 font-light'>
-                            Canceled
-                          </p>
-                        ) : (
-                          <p className='italic text-gray-400 font-light'>
-                            Pending
-                          </p>
-                        )}
+                        <PickupStopsCell
+                          pickups={deployment.pickups}
+                          field='pickupIn'
+                          status={deployment.status}
+                        />
                       </td>
 
+                      {/* Pick-up Out — one row per stop */}
                       <td>
-                        {deployment.pickupOut ? (
-                          <div className='text-nowrap w-fit px-2 py-1 rounded-full'>
-                            {DateTime.fromISO(deployment.pickupOut)
-                              .setZone('Asia/Manila')
-                              .toFormat('MMM d, yyyy hh:mm a')}
-                          </div>
-                        ) : deployment.status === 'canceled' ? (
-                          <p className='italic text-gray-400 font-light'>
-                            Canceled
-                          </p>
-                        ) : (
-                          <p className='italic text-gray-400 font-light'>
-                            Pending
-                          </p>
-                        )}
+                        <PickupStopsCell
+                          pickups={deployment.pickups}
+                          field='pickupOut'
+                          status={deployment.status}
+                        />
                       </td>
 
+                      {/* Dest. Arrival */}
                       <td>
                         {deployment.destArrival ? (
-                          <div className='text-nowrap w-fit px-2 py-1 rounded-full'>
-                            {DateTime.fromISO(deployment.destArrival)
-                              .setZone('Asia/Manila')
-                              .toFormat('MMM d, yyyy hh:mm a')}
-                          </div>
+                          <span className='text-nowrap text-xs'>
+                            {formatISO(deployment.destArrival)}
+                          </span>
                         ) : deployment.status === 'canceled' ? (
                           <p className='italic text-gray-400 font-light'>
                             Canceled
@@ -705,13 +693,12 @@ function Deployments () {
                         )}
                       </td>
 
+                      {/* Dest. Departure */}
                       <td>
                         {deployment.destDeparture ? (
-                          <div className='text-nowrap w-fit px-2 py-1 rounded-full'>
-                            {DateTime.fromISO(deployment.destDeparture)
-                              .setZone('Asia/Manila')
-                              .toFormat('MMM d, yyyy hh:mm a')}
-                          </div>
+                          <span className='text-nowrap text-xs'>
+                            {formatISO(deployment.destDeparture)}
+                          </span>
                         ) : deployment.status === 'canceled' ? (
                           <p className='italic text-gray-400 font-light'>
                             Canceled
@@ -723,9 +710,10 @@ function Deployments () {
                         )}
                       </td>
 
+                      {/* Unloading duration */}
                       <td>
                         {deployment.destArrival && deployment.destDeparture ? (
-                          <div className='text-nowrap w-fit px-3 py-1 rounded-full bg-emerald-500 text-white'>
+                          <div className='text-nowrap w-fit px-3 py-1 rounded-full bg-emerald-500 text-white text-xs'>
                             {(() => {
                               const { hours, minutes } = DateTime.fromISO(
                                 deployment.destDeparture

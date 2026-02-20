@@ -13,11 +13,9 @@ const getDashboardAnalytics = async (req, res) => {
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const currentYearStart = new Date(now.getFullYear(), 0, 1)
 
-    // Base deployment filter (no subcon field anymore)
     const baseFilter = { isSoftDeleted: { $ne: true } }
     const truckAndDriverFilter = { isSoftDeleted: { $ne: true } }
 
-    // For subcon users: filter trucks/drivers by subcon, deployments by truck lookup
     if (req.user.role === 'subcon' && req.user.subcon) {
       truckAndDriverFilter.subcon = req.user.subcon
     }
@@ -31,7 +29,6 @@ const getDashboardAnalytics = async (req, res) => {
       subconTruckIds = subconTrucks.map(t => t._id)
     }
 
-    // Deployment filter for subcon users — filter by truckId in subcon's truck list
     const deploymentFilter = subconTruckIds
       ? { ...baseFilter, truckId: { $in: subconTruckIds } }
       : { ...baseFilter }
@@ -52,7 +49,6 @@ const getDashboardAnalytics = async (req, res) => {
         ...truckAndDriverFilter,
         status: 'available'
       }),
-
       trucksInMaintenance: Truck.countDocuments({
         ...truckAndDriverFilter,
         status: 'unavailable'
@@ -69,7 +65,6 @@ const getDashboardAnalytics = async (req, res) => {
         ...deploymentFilter,
         status: 'canceled'
       }),
-
       recentDeployments: Deployment.countDocuments({
         ...deploymentFilter,
         createdAt: { $gte: last7Days }
@@ -92,7 +87,6 @@ const getDashboardAnalytics = async (req, res) => {
         { $match: truckAndDriverFilter },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]),
-
       truckTypeAnalytics: Truck.aggregate([
         { $match: truckAndDriverFilter },
         { $group: { _id: '$truckType', count: { $sum: 1 } } }
@@ -103,7 +97,6 @@ const getDashboardAnalytics = async (req, res) => {
         { $match: truckAndDriverFilter },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]),
-
       topDriversByTrips: Driver.aggregate([
         { $match: truckAndDriverFilter },
         { $sort: { tripCount: -1 } },
@@ -153,7 +146,7 @@ const getDashboardAnalytics = async (req, res) => {
             },
             count: { $sum: 1 },
             totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' }
+            totalWeight: { $sum: '$totalWeightKg' }
           }
         },
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
@@ -213,27 +206,39 @@ const getDashboardAnalytics = async (req, res) => {
               month: { $month: '$createdAt' },
               week: { $ceil: { $divide: [{ $dayOfMonth: '$createdAt' }, 7] } }
             },
-            totalWeight: { $sum: '$loadWeightKg' },
+            totalWeight: { $sum: '$totalWeightKg' },
             deploymentCount: { $sum: 1 },
-            avgWeightPerDeployment: { $avg: '$loadWeightKg' }
+            avgWeightPerDeployment: { $avg: '$totalWeightKg' }
           }
         },
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
       ]),
 
+      // ── Fixed: pickups is an array — must $unwind before grouping ──────────
+      // actualWeightKg is stored as String so we cast it with $toDouble
       topPickupSites: Deployment.aggregate([
+        { $match: deploymentFilter },
+        { $unwind: '$pickups' },
         {
           $match: {
-            ...deploymentFilter,
-            pickupSite: { $exists: true, $ne: '' }
+            'pickups.pickupSite': { $exists: true, $ne: '' }
           }
         },
         {
           $group: {
-            _id: '$pickupSite',
+            _id: '$pickups.pickupSite',
             count: { $sum: 1 },
-            totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' }
+            totalSacks: { $sum: '$pickups.sacksCount' },
+            totalWeight: {
+              $sum: {
+                $convert: {
+                  input: '$pickups.actualWeightKg',
+                  to: 'double',
+                  onError: 0,
+                  onNull: 0
+                }
+              }
+            }
           }
         },
         { $sort: { count: -1 } },
@@ -246,9 +251,9 @@ const getDashboardAnalytics = async (req, res) => {
           $group: {
             _id: null,
             avgSacks: { $avg: '$totalSacksCount' },
-            avgWeight: { $avg: '$loadWeightKg' },
+            avgWeight: { $avg: '$totalWeightKg' },
             maxSacks: { $max: '$totalSacksCount' },
-            maxWeight: { $max: '$loadWeightKg' }
+            maxWeight: { $max: '$totalWeightKg' }
           }
         }
       ]),
@@ -259,11 +264,11 @@ const getDashboardAnalytics = async (req, res) => {
           $group: {
             _id: null,
             totalCompletedSacks: { $sum: '$totalSacksCount' },
-            totalCompletedWeight: { $sum: '$loadWeightKg' },
+            totalCompletedWeight: { $sum: '$totalWeightKg' },
             avgCompletedSacks: { $avg: '$totalSacksCount' },
-            avgCompletedWeight: { $avg: '$loadWeightKg' },
+            avgCompletedWeight: { $avg: '$totalWeightKg' },
             maxCompletedSacks: { $max: '$totalSacksCount' },
-            maxCompletedWeight: { $max: '$loadWeightKg' }
+            maxCompletedWeight: { $max: '$totalWeightKg' }
           }
         }
       ]),
@@ -353,7 +358,7 @@ const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
-      // Subcon performance — now derived from truck's subcon via $lookup
+      // Subcon performance — derived from truck's subcon via $lookup
       subconPerformance: Deployment.aggregate([
         { $match: deploymentFilter },
         {
@@ -389,7 +394,7 @@ const getDashboardAnalytics = async (req, res) => {
             _id: { subcon: '$activeSubcon', status: '$status' },
             count: { $sum: 1 },
             totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' }
+            totalWeight: { $sum: '$totalWeightKg' }
           }
         },
         { $sort: { '_id.subcon': 1 } }
@@ -466,9 +471,9 @@ const getDashboardAnalytics = async (req, res) => {
             _id: '$territory',
             count: { $sum: 1 },
             totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' },
+            totalWeight: { $sum: '$totalWeightKg' },
             avgSacks: { $avg: '$totalSacksCount' },
-            avgWeight: { $avg: '$loadWeightKg' },
+            avgWeight: { $avg: '$totalWeightKg' },
             completed: {
               $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
             },
@@ -483,7 +488,7 @@ const getDashboardAnalytics = async (req, res) => {
             },
             completedWeight: {
               $sum: {
-                $cond: [{ $eq: ['$status', 'completed'] }, '$loadWeightKg', 0]
+                $cond: [{ $eq: ['$status', 'completed'] }, '$totalWeightKg', 0]
               }
             }
           }
@@ -519,9 +524,9 @@ const getDashboardAnalytics = async (req, res) => {
             _id: '$hybrid',
             count: { $sum: 1 },
             totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' },
+            totalWeight: { $sum: '$totalWeightKg' },
             avgSacks: { $avg: '$totalSacksCount' },
-            avgWeight: { $avg: '$loadWeightKg' }
+            avgWeight: { $avg: '$totalWeightKg' }
           }
         },
         { $sort: { count: -1 } }
@@ -534,9 +539,9 @@ const getDashboardAnalytics = async (req, res) => {
             _id: '$flagging',
             count: { $sum: 1 },
             totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' },
+            totalWeight: { $sum: '$totalWeightKg' },
             avgSacks: { $avg: '$totalSacksCount' },
-            avgWeight: { $avg: '$loadWeightKg' }
+            avgWeight: { $avg: '$totalWeightKg' }
           }
         },
         { $sort: { count: -1 } }
@@ -549,7 +554,7 @@ const getDashboardAnalytics = async (req, res) => {
             _id: { territory: '$territory', status: '$status' },
             count: { $sum: 1 },
             totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' }
+            totalWeight: { $sum: '$totalWeightKg' }
           }
         },
         { $sort: { '_id.territory': 1 } }
@@ -562,7 +567,7 @@ const getDashboardAnalytics = async (req, res) => {
             _id: { hybrid: '$hybrid', status: '$status' },
             count: { $sum: 1 },
             totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' }
+            totalWeight: { $sum: '$totalWeightKg' }
           }
         },
         { $sort: { '_id.hybrid': 1 } }
@@ -575,7 +580,7 @@ const getDashboardAnalytics = async (req, res) => {
             _id: { flagging: '$flagging', status: '$status' },
             count: { $sum: 1 },
             totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' }
+            totalWeight: { $sum: '$totalWeightKg' }
           }
         },
         { $sort: { '_id.flagging': 1 } }
@@ -600,7 +605,7 @@ const getDashboardAnalytics = async (req, res) => {
             },
             count: { $sum: 1 },
             totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' }
+            totalWeight: { $sum: '$totalWeightKg' }
           }
         },
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.territory': 1 } }
@@ -624,7 +629,7 @@ const getDashboardAnalytics = async (req, res) => {
             },
             count: { $sum: 1 },
             totalSacks: { $sum: '$totalSacksCount' },
-            totalWeight: { $sum: '$loadWeightKg' }
+            totalWeight: { $sum: '$totalWeightKg' }
           }
         },
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
@@ -877,7 +882,7 @@ const getDashboardAnalytics = async (req, res) => {
         $group: {
           _id: null,
           totalSacks: { $sum: '$totalSacksCount' },
-          totalWeight: { $sum: '$loadWeightKg' }
+          totalWeight: { $sum: '$totalWeightKg' }
         }
       }
     ])
