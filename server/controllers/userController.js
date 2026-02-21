@@ -105,10 +105,6 @@ const createUser = async (req, res, next) => {
       return next(createError(409, 'Email already exist'))
     }
 
-    // validate defaulted values
-    validateRole(forcedRole)
-    validateStatus(forcedStatus)
-
     // hash the password
     const hashedPassword = await bcrypt.hash(password, 12)
 
