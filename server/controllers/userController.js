@@ -48,10 +48,12 @@ const createUser = async (req, res, next) => {
       email,
       phoneNo,
       password,
-      confirmPassword,
-      role,
-      status
+      confirmPassword
     } = req.body
+
+    // Force server-controlled values to prevent client tampering (e.g., via proxy/Burp)
+    const forcedRole = 'visitor'
+    const forcedStatus = 'pending'
 
     console.log(req.body)
 
@@ -84,12 +86,7 @@ const createUser = async (req, res, next) => {
       confirmPassword
     })
 
-    if (role === 'admin' || role === 'head_admin')
-      return next(createError(400, 'Invalid role type'))
-
-    if (status !== 'pending') {
-      return next(createError(400, 'Invalid status'))
-    }
+    // role and status are controlled by server for signup; no client-provided values allowed
 
     // validate if password match
     if (password !== confirmPassword) {
@@ -107,11 +104,9 @@ const createUser = async (req, res, next) => {
       return next(createError(409, 'Email already exist'))
     }
 
-    // validate role
-    validateRole(role)
-
-    // validate status
-    validateStatus(status)
+    // validate server-forced role/status for signup
+    validateRole(forcedRole)
+    validateStatus(forcedStatus)
 
     // hash the password
     const hashedPassword = await bcrypt.hash(password, 10)
@@ -146,9 +141,9 @@ const createUser = async (req, res, next) => {
           })
           .toBuffer()
 
-        // folder path
+        // folder path (use forced role for public signup)
         const folderPath =
-          role === 'head_admin' || role === 'admin'
+          forcedRole === 'head_admin' || forcedRole === 'admin'
             ? 'Ebun/admin'
             : 'Ebun/visitor'
 
@@ -167,7 +162,7 @@ const createUser = async (req, res, next) => {
       }
     }
 
-    // create new user
+    // create new user (use forced role/status)
     const newUser = await User.create({
       firstname,
       middlename,
@@ -175,8 +170,8 @@ const createUser = async (req, res, next) => {
       email,
       phoneNo,
       password: hashedPassword,
-      role,
-      status,
+      role: forcedRole,
+      status: forcedStatus,
       imageUrl: imageData.url,
       imagePublicId: imageData.publicId
     })
@@ -213,8 +208,6 @@ const createAdmin = async (req, res, next) => {
       phoneNo,
       password,
       confirmPassword,
-      role,
-      status,
       subcon
     } = req.body
 
@@ -250,11 +243,17 @@ const createAdmin = async (req, res, next) => {
       return next(createError(409, 'Email already exist'))
     }
 
+    // Determine role server-side to prevent client tampering.
+    // If `subcon` is provided, create a `subcon` user; otherwise create `admin`.
+    const role = subcon ? 'subcon' : 'admin'
+
     // validate role
     validateRole(role)
 
-    // validate status
-    validateStatus(status)
+    // Ignore any client-supplied status for admin creation to prevent tampering.
+    // Server determines status for newly created admin/subcon accounts.
+    const finalStatus = 'active'
+    validateStatus(finalStatus)
 
     // hash the password
     const hashedPassword = await bcrypt.hash(password, 10)
@@ -306,7 +305,7 @@ const createAdmin = async (req, res, next) => {
       }
     }
 
-    // create new user
+    // create new user (admin/subcon) with server-controlled status
     const newUser = await User.create({
       firstname,
       middlename,
@@ -315,7 +314,7 @@ const createAdmin = async (req, res, next) => {
       phoneNo,
       password: hashedPassword,
       role,
-      status,
+      status: finalStatus,
       subcon,
       imageUrl: imageData.url,
       imagePublicId: imageData.publicId
@@ -634,6 +633,13 @@ const updateUser = async (req, res, next) => {
 
     // Track if status is being changed
     const isStatusChanged = status && status !== existingUser.status
+
+    // Restrict who can change status: only head_admin may change another user's status
+    if (status && status !== existingUser.status) {
+      if (req.user.role !== 'head_admin') {
+        return next(createError(403, 'Only head admin can change user status'))
+      }
+    }
 
     // handle file upload if provided
     let imageUrl = existingUser.imageUrl
