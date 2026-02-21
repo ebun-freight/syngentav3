@@ -7,14 +7,14 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     return
   }
 
-  // Helper function to capitalize words
+  // ─── helpers ────────────────────────────────────────────────────────────────
+
   const capitalizeWords = str => {
     if (!str) return ''
     return str
       .toLowerCase()
       .split(' ')
       .map(word => {
-        // Handle words with parentheses - capitalize after opening parenthesis
         if (word.includes('(')) {
           return word
             .replace(/(\()(\w)/g, (match, p1, p2) => p1 + p2.toUpperCase())
@@ -25,7 +25,6 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
       .join(' ')
   }
 
-  // Helper function to format truck type
   const formatTruckType = type => {
     if (!type) return ''
     const typeMappings = {
@@ -44,93 +43,60 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     )
   }
 
-  // Helper function to get minimum load for truck type
   const getMinimumLoad = truckType => {
     if (!truckType) return 0
-    const lowerType = truckType.toLowerCase().trim()
-
-    // Define minimum loads for each truck type
-    const minimumLoads = {
-      elf: 5000,
-      forward: 9000
-    }
-
-    return minimumLoads[lowerType] || 0
+    const minimumLoads = { elf: 5000, forward: 9000 }
+    return minimumLoads[truckType.toLowerCase().trim()] || 0
   }
 
-  // Helper function to determine if trip is underloaded
   const isUnderloaded = (truckType, actualWeight) => {
     const minLoad = getMinimumLoad(truckType)
     return minLoad > 0 && actualWeight < minLoad
   }
 
-  // Helper function to get demurrage rate per 12 hours
   const getDemurrageRate = truckType => {
     if (!truckType) return 0
-    const lowerType = truckType.toLowerCase().trim()
-
-    const demurrageRates = {
-      elf: 3500,
-      forward: 5000
-    }
-
-    return demurrageRates[lowerType] || 0
+    const demurrageRates = { elf: 3500, forward: 5000 }
+    return demurrageRates[truckType.toLowerCase().trim()] || 0
   }
 
-  // Helper function to calculate demurrage charges
   const calculateDemurrageCharges = (truckType, unloadingMinutes) => {
-    if (!unloadingMinutes || unloadingMinutes < 11 * 60 + 30) {
-      // Less than 11:30 hours = no charge
-      return 0
-    }
-
+    if (!unloadingMinutes || unloadingMinutes < 11 * 60 + 30) return 0
     const rate = getDemurrageRate(truckType)
     if (rate === 0) return 0
-
-    // First block: 11:30 to 24:00 hours = 1 charge
-    // Each additional 12 hours (or portion) = 1 additional charge
-
-    // Convert to total 12-hour blocks
-    // Subtract the first "free" 11.5 hours
     const chargeableMinutes = unloadingMinutes - (11 * 60 + 30)
-
-    // Calculate number of 12-hour blocks (round up)
-    const twelveHoursInMinutes = 12 * 60
-    const blocks = Math.ceil(chargeableMinutes / twelveHoursInMinutes) + 1 // +1 for the first block
-
+    const blocks = Math.ceil(chargeableMinutes / (12 * 60)) + 1
     return blocks * rate
   }
 
-  // Get current date and time for billing period
+  // ─── meta ────────────────────────────────────────────────────────────────────
+
   const billingDate = DateTime.now()
     .setZone('Asia/Manila')
     .toFormat('MMMM dd, yyyy')
 
-  // Get company name from first deployment or use default
   const firstDeployment = allDeployments[0]
   const companyName = (firstDeployment?.subcon || 'NO SUBCON COMPANY INDICATED')
     .replace(/_/g, ' ')
     .toUpperCase()
 
-  // Rate per kg - CHANGED TO 0.8 for subcon
   const ratePerKg = 0.8
 
-  // Create a new workbook
+  // ─── workbook setup ──────────────────────────────────────────────────────────
+
   const workbook = new ExcelJS.Workbook()
 
-  // Define professional color scheme
   const colors = {
-    primary: 'FF001E36', // Dark Blue
-    secondary: 'FF003057', // Lighter Dark Blue
-    accent: 'FFE3F2FD', // Light Blue-100
-    header: 'FFF5F9FC', // Very Light Blue
-    border: 'FFD1D5DB', // Gray-300
-    text: 'FF000000', // Black
-    textLight: 'FF6B7280', // Gray-500
-    warning: 'FFFEF3C7' // Yellow-100 for underload highlighting
+    primary: 'FF001E36',
+    secondary: 'FF003057',
+    accent: 'FFE3F2FD',
+    header: 'FFF5F9FC',
+    border: 'FFD1D5DB',
+    text: 'FF000000',
+    textLight: 'FF6B7280',
+    warning: 'FFFEF3C7'
   }
 
-  // Define professional styles
   const styles = {
     title: {
       font: { bold: true, size: 16, color: { argb: 'FF000000' } },
@@ -207,18 +173,16 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     value: {
       font: { size: 10, color: { argb: 'FF000000' } },
       alignment: { horizontal: 'left', vertical: 'middle' },
-      border: {
-        bottom: { style: 'thin', color: { argb: colors.border } }
-      }
+      border: { bottom: { style: 'thin', color: { argb: colors.border } } }
     }
   }
 
-  // Filter completed deployments
+  // ─── filter & split deployments ──────────────────────────────────────────────
+
   const completedDeployments = allDeployments.filter(
-    deployment => deployment.status === 'completed'
+    d => d.status === 'completed'
   )
 
-  // Separate regular and underloaded trips
   const regularTrips = []
   const underloadedTrips = []
 
@@ -227,9 +191,17 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     const currentTruckType = hasReplacement
       ? deployment.replacement?.replacementTruckType
       : deployment.truckType
-    const netWeight = deployment.loadWeightKg || 0
 
-    if (isUnderloaded(currentTruckType, netWeight)) {
+    // Sum actualWeightKg from each pickup stop — the ground truth for total weight.
+    // This is more reliable than deployment.totalWeightKg which may lag behind
+    // if pickup weights were updated after the deployment was last saved.
+    const totalPickupWeight =
+      deployment.pickups?.reduce(
+        (sum, p) => sum + (Number(p.actualWeightKg) || 0),
+        0
+      ) ?? 0
+
+    if (isUnderloaded(currentTruckType, totalPickupWeight)) {
       underloadedTrips.push(deployment)
     } else {
       regularTrips.push(deployment)
@@ -237,10 +209,11 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
   })
 
   // ======================= SHEET 1: Regular Trips =======================
+
   const worksheet1 = workbook.addWorksheet('Regular Trips', {
     views: [{ showGridLines: false }],
     pageSetup: {
-      paperSize: 9, // A4
+      paperSize: 9,
       orientation: 'landscape',
       fitToPage: true,
       fitToWidth: 1,
@@ -248,13 +221,12 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     }
   })
 
-  // Set column widths
   worksheet1.columns = [
     { width: 4 }, // A - Margin
     { width: 15 }, // B - DP Code
-    { width: 18 }, // C - Billing Period
-    { width: 12 }, // D - Series No.
-    { width: 20 }, // E - From
+    { width: 22 }, // C - TMO No. (may have multiple lines)
+    { width: 18 }, // D - Billing Period
+    { width: 30 }, // E - From (all pickup stops — wider for multi-line)
     { width: 20 }, // F - To
     { width: 12 }, // G - Plate
     { width: 12 }, // H - Truck Type
@@ -264,7 +236,6 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     { width: 4 } // L - Margin
   ]
 
-  // Add title (row 2)
   worksheet1.mergeCells('B2:K2')
   const titleCell1 = worksheet1.getCell('B2')
   titleCell1.value = 'REGULAR TRIPS'
@@ -272,17 +243,15 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
   titleCell1.alignment = { horizontal: 'center', vertical: 'middle' }
   worksheet1.getRow(2).height = 30
 
-  // Add empty row (row 3)
-  worksheet1.addRow([])
+  worksheet1.addRow([]) // row 3 spacer
 
-  // Add header row (row 4)
   const headerRow1 = worksheet1.getRow(4)
   headerRow1.values = [
     '',
     'DP Code',
+    'TMO No.',
     'Billing Period',
-    'Series No.',
-    'From',
+    'From (Pickup Stops)',
     'To',
     'Plate',
     'Truck Type',
@@ -292,68 +261,89 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     ''
   ]
   headerRow1.height = 25
-
-  // Apply header style
-  for (let col = 2; col <= 11; col++) {
+  for (let col = 2; col <= 11; col++)
     headerRow1.getCell(col).style = styles.header
-  }
 
-  // Add data rows for REGULAR TRIPS ONLY
-  let dataStartRow = 5
-  regularTrips.forEach((deployment, index) => {
+  const dataStartRow1 = 5
+
+  regularTrips.forEach(deployment => {
     const hasReplacement = deployment?.replacement?.replacementTruckId?._id
     const replacement = deployment?.replacement
 
     const currentPlateNo = hasReplacement
       ? replacement.replacementTruckId?.plateNo || ''
       : deployment.truckId?.plateNo || ''
-
     const currentTruckType = hasReplacement
       ? replacement.replacementTruckType
       : deployment.truckType
 
-    const netWeight = deployment.loadWeightKg || 0
-
-    // Format billing period (dest departure)
     const billingPeriod = deployment.destDeparture
       ? DateTime.fromISO(deployment.destDeparture)
           .setZone('Asia/Manila')
           .toFormat('MMM dd, yyyy')
       : ''
 
-    const rowNum = worksheet1.rowCount + 1
+    const pickups = deployment.pickups?.length ? deployment.pickups : [{}]
+    const startRow = worksheet1.rowCount + 1
 
-    const row = worksheet1.addRow([
-      '',
-      deployment.deploymentCode || '',
-      billingPeriod,
-      '', // Series No. - blank
-      capitalizeWords(deployment.pickupSite),
-      capitalizeWords(deployment.destination),
-      currentPlateNo.toUpperCase(),
-      formatTruckType(currentTruckType),
-      netWeight,
-      ratePerKg,
-      { formula: `I${rowNum}*J${rowNum}` },
-      ''
-    ])
+    pickups.forEach((pickup, idx) => {
+      const stopLabel = [
+        capitalizeWords(pickup.pickupSite),
+        capitalizeWords(pickup.municipality)
+      ]
+        .filter(Boolean)
+        .join(', ')
+      const pickupWeight = Number(pickup.actualWeightKg) || 0
+      const rowNum = worksheet1.rowCount + 1
 
-    row.height = 20
+      const row = worksheet1.addRow([
+        '',
+        idx === 0 ? deployment.deploymentCode || '' : '',
+        pickup.tmoNo || '',
+        idx === 0 ? billingPeriod : '',
+        stopLabel,
+        idx === 0 ? capitalizeWords(deployment.destination) : '',
+        idx === 0 ? currentPlateNo.toUpperCase() : '',
+        idx === 0 ? formatTruckType(currentTruckType) : '',
+        pickupWeight, // I — per pickup
+        idx === 0 ? ratePerKg : '', // J — shared (merged)
+        { formula: `I${rowNum}*J${startRow}` }, // K — per pickup, rate always from first row
+        ''
+      ])
+      row.height = 20
+      row.getCell(2).style = styles.data
+      row.getCell(3).style = styles.data
+      row.getCell(4).style = styles.data
+      row.getCell(5).style = styles.data
+      row.getCell(6).style = styles.data
+      row.getCell(7).style = styles.data
+      row.getCell(8).style = styles.data
+      row.getCell(9).style = { ...styles.data, numFmt: '#,##0.00' }
+      row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' }
+      row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' }
+    })
 
-    // Apply styles
-    row.getCell(2).style = styles.data // DP Code
-    row.getCell(3).style = styles.data // Billing Period
-    row.getCell(4).style = styles.data // Series No.
-    row.getCell(5).style = styles.dataLeft // From
-    row.getCell(6).style = styles.dataLeft // To
-    row.getCell(7).style = styles.data // Plate
-    row.getCell(8).style = styles.data // Truck Type
-    row.getCell(9).style = { ...styles.data, numFmt: '#,##0.00' } // Net Weight
-    row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' } // Rate
-    row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' } // Amount
+    // I=Weight and K=Amount NOT merged (per stop). J=Rate merged (one rate for the whole trip).
+    if (pickups.length > 1) {
+      const endRow = startRow + pickups.length - 1
+      // B=DP Code, D=Billing Period, F=To, G=Plate, H=Truck Type, J=Rate
+      for (const col of [2, 4, 6, 7, 8, 10]) {
+        worksheet1.mergeCells(startRow, col, endRow, col)
+      }
+      const topRow = worksheet1.getRow(startRow)
+      const m = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(2).style = m
+      topRow.getCell(4).style = m
+      topRow.getCell(6).style = m
+      topRow.getCell(7).style = m
+      topRow.getCell(8).style = m
+      topRow.getCell(10).style = { ...m, numFmt: '#,##0.00' }
+    }
   })
 
-  // Add empty row if no data
   if (regularTrips.length === 0) {
     const emptyRow = worksheet1.addRow([
       '',
@@ -370,14 +360,12 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
       ''
     ])
     emptyRow.height = 20
-    for (let col = 2; col <= 11; col++) {
+    for (let col = 2; col <= 11; col++)
       emptyRow.getCell(col).style = styles.data
-    }
   }
 
-  // Add subtotal row
-  const lastDataRow = worksheet1.rowCount
-  worksheet1.addRow([]) // Empty row
+  const lastDataRow1 = worksheet1.rowCount
+  worksheet1.addRow([])
 
   const subtotalRow1 = worksheet1.addRow([
     '',
@@ -390,17 +378,16 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     '',
     '',
     '',
-    { formula: `SUM(K${dataStartRow}:K${lastDataRow})` },
+    { formula: `SUM(K${dataStartRow1}:K${lastDataRow1})` },
     ''
   ])
-
   subtotalRow1.height = 25
   subtotalRow1.getCell(11).style = { ...styles.total, numFmt: '₱#,##0.00' }
 
-  // Store the subtotal row number for Sheet 4 reference
   const regularTripsSubtotalRow = worksheet1.rowCount
 
   // ======================= SHEET 2: Underload Charges =======================
+
   const worksheet2 = workbook.addWorksheet('Underload Charges', {
     views: [{ showGridLines: false }],
     pageSetup: {
@@ -412,13 +399,12 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     }
   })
 
-  // Set column widths
   worksheet2.columns = [
     { width: 4 }, // A - Margin
     { width: 15 }, // B - DP Code
-    { width: 18 }, // C - Billing Period
-    { width: 12 }, // D - Series No.
-    { width: 20 }, // E - From
+    { width: 22 }, // C - TMO No.
+    { width: 18 }, // D - Billing Period
+    { width: 30 }, // E - From (all pickup stops)
     { width: 20 }, // F - To
     { width: 12 }, // G - Plate
     { width: 12 }, // H - Truck Type
@@ -429,7 +415,6 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     { width: 4 } // M - Margin
   ]
 
-  // Add title (row 2)
   worksheet2.mergeCells('B2:L2')
   const titleCell2 = worksheet2.getCell('B2')
   titleCell2.value = 'UNDERLOAD CHARGES'
@@ -437,17 +422,15 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
   titleCell2.alignment = { horizontal: 'center', vertical: 'middle' }
   worksheet2.getRow(2).height = 30
 
-  // Add empty row (row 3)
-  worksheet2.addRow([])
+  worksheet2.addRow([]) // row 3 spacer
 
-  // Add header row (row 4)
   const headerRow2 = worksheet2.getRow(4)
   headerRow2.values = [
     '',
     'DP Code',
+    'TMO No.',
     'Billing Period',
-    'Series No.',
-    'From',
+    'From (Pickup Stops)',
     'To',
     'Plate',
     'Truck Type',
@@ -458,71 +441,118 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     ''
   ]
   headerRow2.height = 25
-
-  // Apply header style
-  for (let col = 2; col <= 12; col++) {
+  for (let col = 2; col <= 12; col++)
     headerRow2.getCell(col).style = styles.header
-  }
 
-  // Add data rows for UNDERLOADED TRIPS
   const underloadDataStartRow = 5
-  underloadedTrips.forEach((deployment, index) => {
+
+  underloadedTrips.forEach(deployment => {
     const hasReplacement = deployment?.replacement?.replacementTruckId?._id
     const replacement = deployment?.replacement
 
     const currentPlateNo = hasReplacement
       ? replacement.replacementTruckId?.plateNo || ''
       : deployment.truckId?.plateNo || ''
-
     const currentTruckType = hasReplacement
       ? replacement.replacementTruckType
       : deployment.truckType
 
-    const actualWeight = deployment.loadWeightKg || 0
     const minLoad = getMinimumLoad(currentTruckType)
-
-    // Format billing period (dest departure)
     const billingPeriod = deployment.destDeparture
       ? DateTime.fromISO(deployment.destDeparture)
           .setZone('Asia/Manila')
           .toFormat('MMM dd, yyyy')
       : ''
 
-    const rowNum = worksheet2.rowCount + 1
+    const pickups = deployment.pickups?.length ? deployment.pickups : [{}]
+    const startRow = worksheet2.rowCount + 1
 
-    const row = worksheet2.addRow([
-      '',
-      deployment.deploymentCode || '',
-      billingPeriod,
-      '', // Series No. - blank
-      capitalizeWords(deployment.pickupSite),
-      capitalizeWords(deployment.destination),
-      currentPlateNo.toUpperCase(),
-      formatTruckType(currentTruckType),
-      actualWeight,
-      minLoad,
-      ratePerKg,
-      { formula: `J${rowNum}*K${rowNum}` }, // Use minimum load for billing
-      ''
-    ])
+    pickups.forEach((pickup, idx) => {
+      const stopLabel = [
+        capitalizeWords(pickup.pickupSite),
+        capitalizeWords(pickup.municipality)
+      ]
+        .filter(Boolean)
+        .join(', ')
+      const pickupWeight = Number(pickup.actualWeightKg) || 0
 
-    row.height = 20
+      const row = worksheet2.addRow([
+        '',
+        idx === 0 ? deployment.deploymentCode || '' : '',
+        pickup.tmoNo || '',
+        idx === 0 ? billingPeriod : '',
+        stopLabel,
+        idx === 0 ? capitalizeWords(deployment.destination) : '',
+        idx === 0 ? currentPlateNo.toUpperCase() : '',
+        idx === 0 ? formatTruckType(currentTruckType) : '',
+        pickupWeight, // I — per pickup
+        idx === 0 ? minLoad : '', // J — merged (trip-level)
+        idx === 0 ? ratePerKg : '', // K — merged (trip-level)
+        idx === 0 ? { formula: `J${startRow}*K${startRow}` } : '', // L — merged (trip-level)
+        ''
+      ])
+      row.height = 20
+      row.getCell(2).style = styles.data
+      row.getCell(3).style = styles.data
+      row.getCell(4).style = styles.data
+      row.getCell(5).style = styles.data
+      row.getCell(6).style = styles.data
+      row.getCell(7).style = styles.data
+      row.getCell(8).style = styles.data
+      row.getCell(9).style = { ...styles.data, numFmt: '#,##0.00' }
+      row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' }
+      row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' }
+      row.getCell(12).style = { ...styles.data, numFmt: '#,##0.00' }
+    })
 
-    // Apply styles
-    row.getCell(2).style = styles.data
-    row.getCell(3).style = styles.data
-    row.getCell(4).style = styles.data
-    row.getCell(5).style = styles.dataLeft
-    row.getCell(6).style = styles.dataLeft
-    row.getCell(7).style = styles.data
-    row.getCell(8).style = styles.data
-    row.getCell(9).style = { ...styles.data, numFmt: '#,##0.00' }
-    row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' }
-    row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' }
-    row.getCell(12).style = { ...styles.data, numFmt: '#,##0.00' }
+    // Merge shared columns vertically when there are multiple pickup stops
+    // I=Actual Weight is NOT merged — each stop has its own weight
+    // J=Min Load, K=Rate, L=Amount remain merged (one underload charge for the whole trip)
+    if (pickups.length > 1) {
+      const endRow = startRow + pickups.length - 1
+      // B=DP Code, D=Billing Period, F=To, G=Plate, H=Truck Type, J=Min Load, K=Rate, L=Amount
+      for (const col of [2, 4, 6, 7, 8, 10, 11, 12]) {
+        worksheet2.mergeCells(startRow, col, endRow, col)
+      }
+      const topRow = worksheet2.getRow(startRow)
+      topRow.getCell(2).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(4).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(6).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(7).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(8).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(10).style = {
+        ...styles.data,
+        numFmt: '#,##0.00',
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(11).style = {
+        ...styles.data,
+        numFmt: '#,##0.00',
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(12).style = {
+        ...styles.data,
+        numFmt: '#,##0.00',
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+    }
   })
 
-  // Add empty row if no data
   if (underloadedTrips.length === 0) {
     const emptyRow = worksheet2.addRow([
       '',
@@ -540,14 +570,12 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
       ''
     ])
     emptyRow.height = 20
-    for (let col = 2; col <= 12; col++) {
+    for (let col = 2; col <= 12; col++)
       emptyRow.getCell(col).style = styles.data
-    }
   }
 
-  // Add subtotal row
   const lastUnderloadRow = worksheet2.rowCount
-  worksheet2.addRow([]) // Empty row
+  worksheet2.addRow([])
 
   const subtotalRow2 = worksheet2.addRow([
     '',
@@ -564,18 +592,17 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     { formula: `SUM(L${underloadDataStartRow}:L${lastUnderloadRow})` },
     ''
   ])
-
   subtotalRow2.height = 25
   subtotalRow2.getCell(12).style = { ...styles.total, numFmt: '₱#,##0.00' }
 
-  // Store the subtotal row number for Sheet 4 reference
   const underloadChargesSubtotalRow = worksheet2.rowCount
 
   // ======================= SHEET 3: Demurrage Fee =======================
+
   const worksheet3 = workbook.addWorksheet('Demurrage Fee', {
     views: [{ showGridLines: false }],
     pageSetup: {
-      paperSize: 9, // A4
+      paperSize: 9,
       orientation: 'landscape',
       fitToPage: true,
       fitToWidth: 1,
@@ -583,14 +610,13 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     }
   })
 
-  // Set column widths
   worksheet3.columns = [
     { width: 4 }, // A - Margin
     { width: 15 }, // B - DP Code
-    { width: 18 }, // C - Dest Arrival
-    { width: 18 }, // D - Dest Departure
+    { width: 22 }, // C - Dest Arrival
+    { width: 22 }, // D - Dest Departure
     { width: 14 }, // E - Unloading Time
-    { width: 20 }, // F - From
+    { width: 30 }, // F - From (all pickup stops)
     { width: 20 }, // G - To
     { width: 12 }, // H - Plate No
     { width: 12 }, // I - Truck Type
@@ -599,7 +625,6 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     { width: 4 } // L - Margin
   ]
 
-  // Add title (row 2)
   worksheet3.mergeCells('B2:K2')
   const titleCell3 = worksheet3.getCell('B2')
   titleCell3.value = 'DEMURRAGE FEE'
@@ -607,10 +632,8 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
   titleCell3.alignment = { horizontal: 'center', vertical: 'middle' }
   worksheet3.getRow(2).height = 30
 
-  // Add empty row (row 3)
-  worksheet3.addRow([])
+  worksheet3.addRow([]) // row 3 spacer
 
-  // Add header row (row 4)
   const headerRow3 = worksheet3.getRow(4)
   headerRow3.values = [
     '',
@@ -618,7 +641,7 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     'Dest Arrival',
     'Dest Departure',
     'Unloading Time',
-    'From',
+    'From (Pickup Stops)',
     'To',
     'Plate No',
     'Truck Type',
@@ -627,27 +650,19 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     ''
   ]
   headerRow3.height = 25
-
-  // Apply header style
-  for (let col = 2; col <= 11; col++) {
+  for (let col = 2; col <= 11; col++)
     headerRow3.getCell(col).style = styles.header
-  }
 
-  // Add demurrage data (only deployments with 11:30+ unloading time)
   const demurrageDataStartRow = 5
 
-  // Filter deployments that qualify for demurrage (11:30 hours or more)
   const demurrageDeployments = completedDeployments.filter(deployment => {
     if (!deployment.destArrival || !deployment.destDeparture) return false
-
     const arrival = DateTime.fromISO(deployment.destArrival)
     const departure = DateTime.fromISO(deployment.destDeparture)
-    const diffMinutes = departure.diff(arrival, 'minutes').minutes
-
-    return diffMinutes >= 11 * 60 + 30 // 11:30 hours or more
+    return departure.diff(arrival, 'minutes').minutes >= 11 * 60 + 30
   })
 
-  demurrageDeployments.forEach((deployment, index) => {
+  demurrageDeployments.forEach(deployment => {
     const hasReplacement = deployment?.replacement?.replacementTruckId?._id
     const currentPlateNo = hasReplacement
       ? deployment.replacement?.replacementTruckId?.plateNo || ''
@@ -656,59 +671,111 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
       ? deployment.replacement?.replacementTruckType
       : deployment.truckType
 
-    // Calculate unloading time
     const arrival = DateTime.fromISO(deployment.destArrival)
     const departure = DateTime.fromISO(deployment.destDeparture)
     const { hours, minutes } = departure.diff(arrival, ['hours', 'minutes'])
     const totalMinutes = departure.diff(arrival, 'minutes').minutes
     const unloadingTime = `${hours}h ${Math.floor(minutes)}m`
-
-    // Calculate demurrage charges
     const demurrageAmount = calculateDemurrageCharges(
       currentTruckType,
       totalMinutes
     )
     const demurrageRate = getDemurrageRate(currentTruckType)
 
-    const row = worksheet3.addRow([
-      '',
-      deployment.deploymentCode || '',
-      deployment.destArrival
-        ? DateTime.fromISO(deployment.destArrival)
-            .setZone('Asia/Manila')
-            .toFormat('MMM dd, yyyy hh:mm a')
-        : '',
-      deployment.destDeparture
-        ? DateTime.fromISO(deployment.destDeparture)
-            .setZone('Asia/Manila')
-            .toFormat('MMM dd, yyyy hh:mm a')
-        : '',
-      unloadingTime,
-      capitalizeWords(deployment.pickupSite),
-      capitalizeWords(deployment.destination),
-      currentPlateNo.toUpperCase(),
-      formatTruckType(currentTruckType),
-      demurrageRate,
-      demurrageAmount,
-      ''
-    ])
+    const destArrivalFmt = DateTime.fromISO(deployment.destArrival)
+      .setZone('Asia/Manila')
+      .toFormat('MMM dd, yyyy hh:mm a')
+    const destDepartureFmt = DateTime.fromISO(deployment.destDeparture)
+      .setZone('Asia/Manila')
+      .toFormat('MMM dd, yyyy hh:mm a')
 
-    row.height = 20
+    const pickups = deployment.pickups?.length ? deployment.pickups : [{}]
+    const startRow = worksheet3.rowCount + 1
 
-    // Apply styles
-    row.getCell(2).style = styles.data
-    row.getCell(3).style = styles.data
-    row.getCell(4).style = styles.data
-    row.getCell(5).style = styles.data
-    row.getCell(6).style = styles.dataLeft
-    row.getCell(7).style = styles.dataLeft
-    row.getCell(8).style = styles.data
-    row.getCell(9).style = styles.data
-    row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' }
-    row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' }
+    pickups.forEach((pickup, idx) => {
+      const stopLabel = [
+        capitalizeWords(pickup.pickupSite),
+        capitalizeWords(pickup.municipality)
+      ]
+        .filter(Boolean)
+        .join(', ')
+
+      const row = worksheet3.addRow([
+        '',
+        idx === 0 ? deployment.deploymentCode || '' : '',
+        idx === 0 ? destArrivalFmt : '',
+        idx === 0 ? destDepartureFmt : '',
+        idx === 0 ? unloadingTime : '',
+        stopLabel,
+        idx === 0 ? capitalizeWords(deployment.destination) : '',
+        idx === 0 ? currentPlateNo.toUpperCase() : '',
+        idx === 0 ? formatTruckType(currentTruckType) : '',
+        idx === 0 ? demurrageRate : '',
+        idx === 0 ? demurrageAmount : '',
+        ''
+      ])
+      row.height = 20
+      row.getCell(2).style = styles.data
+      row.getCell(3).style = styles.data
+      row.getCell(4).style = styles.data
+      row.getCell(5).style = styles.data
+      row.getCell(6).style = styles.data
+      row.getCell(7).style = styles.data
+      row.getCell(8).style = styles.data
+      row.getCell(9).style = styles.data
+      row.getCell(10).style = { ...styles.data, numFmt: '#,##0.00' }
+      row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' }
+    })
+
+    // Merge shared columns vertically when there are multiple pickup stops
+    if (pickups.length > 1) {
+      const endRow = startRow + pickups.length - 1
+      // B=DP Code, C=Dest Arrival, D=Dest Departure, E=Unloading Time, G=To, H=Plate, I=Truck Type, J=Rate, K=Amount
+      for (const col of [2, 3, 4, 5, 7, 8, 9, 10, 11]) {
+        worksheet3.mergeCells(startRow, col, endRow, col)
+      }
+      const topRow = worksheet3.getRow(startRow)
+      topRow.getCell(2).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(3).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(4).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(5).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(7).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(8).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(9).style = {
+        ...styles.data,
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(10).style = {
+        ...styles.data,
+        numFmt: '#,##0.00',
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+      topRow.getCell(11).style = {
+        ...styles.data,
+        numFmt: '#,##0.00',
+        alignment: { ...styles.data.alignment, vertical: 'middle' }
+      }
+    }
   })
 
-  // Add empty row if no data
   if (demurrageDeployments.length === 0) {
     const emptyRow = worksheet3.addRow([
       '',
@@ -725,14 +792,12 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
       ''
     ])
     emptyRow.height = 20
-    for (let col = 2; col <= 11; col++) {
+    for (let col = 2; col <= 11; col++)
       emptyRow.getCell(col).style = styles.data
-    }
   }
 
-  // Add subtotal row
   const lastDemurrageRow = worksheet3.rowCount
-  worksheet3.addRow([]) // Empty row
+  worksheet3.addRow([])
 
   const subtotalRow3 = worksheet3.addRow([
     '',
@@ -748,18 +813,17 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     { formula: `SUM(K${demurrageDataStartRow}:K${lastDemurrageRow})` },
     ''
   ])
-
   subtotalRow3.height = 25
   subtotalRow3.getCell(11).style = { ...styles.total, numFmt: '₱#,##0.00' }
 
-  // Store the subtotal row number for Sheet 4 reference
   const demurrageFeeSubtotalRow = worksheet3.rowCount
 
   // ======================= SHEET 4: Summary =======================
+
   const worksheet4 = workbook.addWorksheet('Summary', {
     views: [{ showGridLines: false }],
     pageSetup: {
-      paperSize: 9, // A4
+      paperSize: 9,
       orientation: 'landscape',
       fitToPage: true,
       fitToWidth: 1,
@@ -767,7 +831,6 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     }
   })
 
-  // Set column widths
   worksheet4.columns = [
     { width: 4 }, // A - Margin
     { width: 25 }, // B
@@ -778,7 +841,6 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     { width: 4 } // G - Margin
   ]
 
-  // Add title (row 2)
   worksheet4.mergeCells('B2:E2')
   const titleCell4 = worksheet4.getCell('B2')
   titleCell4.value = 'STATEMENT OF ACCOUNT'
@@ -789,10 +851,8 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
   titleCell4.alignment = { horizontal: 'center', vertical: 'middle' }
   worksheet4.getRow(2).height = 35
 
-  // Add empty row
   worksheet4.addRow([])
 
-  // PAID TO section (row 4)
   const paidToRow = worksheet4.getRow(4)
   paidToRow.values = ['', 'PAID TO:', companyName, '', '', '', '']
   paidToRow.height = 25
@@ -803,12 +863,9 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
   paidToRow.getCell(3).style = {
     font: { bold: true, size: 10, color: { argb: 'FF000000' } },
     alignment: { horizontal: 'left', vertical: 'middle' },
-    border: {
-      bottom: { style: 'thin', color: { argb: colors.border } }
-    }
+    border: { bottom: { style: 'thin', color: { argb: colors.border } } }
   }
 
-  // Date (row 5)
   const dateRow = worksheet4.getRow(5)
   dateRow.values = ['', 'DATE:', billingDate, '', '', '', '']
   dateRow.height = 20
@@ -819,16 +876,12 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
   dateRow.getCell(3).style = {
     font: { size: 10, color: { argb: 'FF000000' } },
     alignment: { horizontal: 'left', vertical: 'middle' },
-    border: {
-      bottom: { style: 'thin', color: { argb: colors.border } }
-    }
+    border: { bottom: { style: 'thin', color: { argb: colors.border } } }
   }
 
-  // Add TWO empty rows (rows 6 and 7)
   worksheet4.addRow([])
   worksheet4.addRow([])
 
-  // Breakdown section header (row 8)
   worksheet4.mergeCells('B8:E8')
   const breakdownHeader = worksheet4.getCell('B8')
   breakdownHeader.value = 'BILLING BREAKDOWN'
@@ -836,7 +889,6 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
   breakdownHeader.alignment = { horizontal: 'center', vertical: 'middle' }
   worksheet4.getRow(8).height = 25
 
-  // Regular Trips (row 9)
   const regularRow = worksheet4.getRow(9)
   regularRow.values = [
     '',
@@ -848,10 +900,9 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     ''
   ]
   regularRow.height = 22
-  regularRow.getCell(3).style = styles.dataLeft
+  regularRow.getCell(3).style = styles.data
   regularRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
 
-  // Underload Charges (row 10)
   const underloadRow = worksheet4.getRow(10)
   underloadRow.values = [
     '',
@@ -863,10 +914,9 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     ''
   ]
   underloadRow.height = 22
-  underloadRow.getCell(3).style = styles.dataLeft
+  underloadRow.getCell(3).style = styles.data
   underloadRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
 
-  // Demurrage Fee (row 11)
   const demurrageRow = worksheet4.getRow(11)
   demurrageRow.values = [
     '',
@@ -878,19 +928,17 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     ''
   ]
   demurrageRow.height = 22
-  demurrageRow.getCell(3).style = styles.dataLeft
+  demurrageRow.getCell(3).style = styles.data
   demurrageRow.getCell(4).style = { ...styles.data, numFmt: '₱#,##0.00' }
 
-  // Add empty row
   worksheet4.addRow([])
 
-  // Grand Total (row 13)
   const grandTotalRow = worksheet4.getRow(13)
   grandTotalRow.values = [
     '',
     '',
     'GRAND TOTAL',
-    { formula: 'SUM(D9:D11)' }, // Updated formula range
+    { formula: 'SUM(D9:D11)' },
     '',
     '',
     ''
@@ -908,7 +956,6 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     alignment: { horizontal: 'center', vertical: 'middle' }
   }
 
-  // Prepared by (row 16)
   const preparedRow = worksheet4.getRow(16)
   preparedRow.values = [
     '',
@@ -929,13 +976,11 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     alignment: { horizontal: 'left' }
   }
 
-  // Add empty rows for signature
   worksheet4.addRow([])
   worksheet4.addRow([])
 
   const adminName = `${userData?.data?.firstname} ${userData?.data?.lastname}`
 
-  // Name (row 19)
   const nameRow = worksheet4.getRow(19)
   nameRow.values = [
     '',
@@ -950,18 +995,13 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
   nameRow.getCell(2).style = {
     font: { bold: true, size: 10 },
     alignment: { horizontal: 'left' },
-    border: {
-      top: { style: 'thin', color: { argb: 'FF000000' } }
-    }
+    border: { top: { style: 'thin', color: { argb: 'FF000000' } } }
   }
   nameRow.getCell(5).style = {
     alignment: { horizontal: 'center' },
-    border: {
-      top: { style: 'thin', color: { argb: 'FF000000' } }
-    }
+    border: { top: { style: 'thin', color: { argb: 'FF000000' } } }
   }
 
-  // Title (row 20)
   const titleRowSig = worksheet4.getRow(20)
   titleRowSig.values = [
     '',
@@ -982,10 +1022,9 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     alignment: { horizontal: 'center' }
   }
 
-  // Generate Excel file
-  const timestamp = DateTime.now().toFormat('yyyy-MM-dd_HHmmss')
+  // ─── export ──────────────────────────────────────────────────────────────────
 
-  // Write to buffer and create download link
+  const timestamp = DateTime.now().toFormat('yyyy-MM-dd_HHmmss')
   const buffer = await workbook.xlsx.writeBuffer()
   const blob = new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
