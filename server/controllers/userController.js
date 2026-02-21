@@ -51,7 +51,7 @@ const createUser = async (req, res, next) => {
       confirmPassword
     } = req.body
 
-    // Force server-controlled values to prevent client tampering (e.g., via proxy/Burp)
+    // Force signup role and status server-side to prevent tampering
     const forcedRole = 'visitor'
     const forcedStatus = 'pending'
 
@@ -86,7 +86,8 @@ const createUser = async (req, res, next) => {
       confirmPassword
     })
 
-    // role and status are controlled by server for signup; no client-provided values allowed
+    // Do not trust client-supplied role/status on public signup
+    // role must always be 'visitor' and status 'pending' for self-signup
 
     // validate if password match
     if (password !== confirmPassword) {
@@ -104,12 +105,12 @@ const createUser = async (req, res, next) => {
       return next(createError(409, 'Email already exist'))
     }
 
-    // validate server-forced role/status for signup
+    // validate defaulted values
     validateRole(forcedRole)
     validateStatus(forcedStatus)
 
     // hash the password
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 12)
 
     // upload profile picture to cloudinary (if provided)
     let imageData = {
@@ -208,6 +209,8 @@ const createAdmin = async (req, res, next) => {
       phoneNo,
       password,
       confirmPassword,
+      role,
+      status,
       subcon
     } = req.body
 
@@ -243,20 +246,14 @@ const createAdmin = async (req, res, next) => {
       return next(createError(409, 'Email already exist'))
     }
 
-    // Determine role server-side to prevent client tampering.
-    // If `subcon` is provided, create a `subcon` user; otherwise create `admin`.
-    const role = subcon ? 'subcon' : 'admin'
-
     // validate role
     validateRole(role)
 
-    // Ignore any client-supplied status for admin creation to prevent tampering.
-    // Server determines status for newly created admin/subcon accounts.
-    const finalStatus = 'active'
-    validateStatus(finalStatus)
+    // validate status
+    validateStatus(status)
 
     // hash the password
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 12)
 
     // upload profile picture to cloudinary (if provided)
     let imageData = {
@@ -305,7 +302,7 @@ const createAdmin = async (req, res, next) => {
       }
     }
 
-    // create new user (admin/subcon) with server-controlled status
+    // create new user
     const newUser = await User.create({
       firstname,
       middlename,
@@ -314,7 +311,7 @@ const createAdmin = async (req, res, next) => {
       phoneNo,
       password: hashedPassword,
       role,
-      status: finalStatus,
+      status,
       subcon,
       imageUrl: imageData.url,
       imagePublicId: imageData.publicId
@@ -624,7 +621,7 @@ const updateUser = async (req, res, next) => {
       }
 
       // hash password
-      const hashedPassword = await bcrypt.hash(password, 10)
+      const hashedPassword = await bcrypt.hash(password, 12)
       existingUser.password = hashedPassword
     }
 
