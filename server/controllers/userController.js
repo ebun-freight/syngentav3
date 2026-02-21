@@ -48,10 +48,12 @@ const createUser = async (req, res, next) => {
       email,
       phoneNo,
       password,
-      confirmPassword,
-      role,
-      status
+      confirmPassword
     } = req.body
+
+    // Force signup role and status server-side to prevent tampering
+    const forcedRole = 'visitor'
+    const forcedStatus = 'pending'
 
     console.log(req.body)
 
@@ -84,12 +86,8 @@ const createUser = async (req, res, next) => {
       confirmPassword
     })
 
-    if (role === 'admin' || role === 'head_admin')
-      return next(createError(400, 'Invalid role type'))
-
-    if (status !== 'pending') {
-      return next(createError(400, 'Invalid status'))
-    }
+    // Do not trust client-supplied role/status on public signup
+    // role must always be 'visitor' and status 'pending' for self-signup
 
     // validate if password match
     if (password !== confirmPassword) {
@@ -107,14 +105,12 @@ const createUser = async (req, res, next) => {
       return next(createError(409, 'Email already exist'))
     }
 
-    // validate role
-    validateRole(role)
-
-    // validate status
-    validateStatus(status)
+    // validate defaulted values
+    validateRole(forcedRole)
+    validateStatus(forcedStatus)
 
     // hash the password
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 12)
 
     // upload profile picture to cloudinary (if provided)
     let imageData = {
@@ -146,9 +142,9 @@ const createUser = async (req, res, next) => {
           })
           .toBuffer()
 
-        // folder path
+        // folder path (use forced role for public signup)
         const folderPath =
-          role === 'head_admin' || role === 'admin'
+          forcedRole === 'head_admin' || forcedRole === 'admin'
             ? 'Ebun/admin'
             : 'Ebun/visitor'
 
@@ -167,7 +163,7 @@ const createUser = async (req, res, next) => {
       }
     }
 
-    // create new user
+    // create new user (use forced role/status)
     const newUser = await User.create({
       firstname,
       middlename,
@@ -175,8 +171,8 @@ const createUser = async (req, res, next) => {
       email,
       phoneNo,
       password: hashedPassword,
-      role,
-      status,
+      role: forcedRole,
+      status: forcedStatus,
       imageUrl: imageData.url,
       imagePublicId: imageData.publicId
     })
@@ -257,7 +253,7 @@ const createAdmin = async (req, res, next) => {
     validateStatus(status)
 
     // hash the password
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 12)
 
     // upload profile picture to cloudinary (if provided)
     let imageData = {
@@ -625,7 +621,7 @@ const updateUser = async (req, res, next) => {
       }
 
       // hash password
-      const hashedPassword = await bcrypt.hash(password, 10)
+      const hashedPassword = await bcrypt.hash(password, 12)
       existingUser.password = hashedPassword
     }
 
@@ -634,6 +630,13 @@ const updateUser = async (req, res, next) => {
 
     // Track if status is being changed
     const isStatusChanged = status && status !== existingUser.status
+
+    // Restrict who can change status: only head_admin may change another user's status
+    if (status && status !== existingUser.status) {
+      if (req.user.role !== 'head_admin') {
+        return next(createError(403, 'Only head admin can change user status'))
+      }
+    }
 
     // handle file upload if provided
     let imageUrl = existingUser.imageUrl
