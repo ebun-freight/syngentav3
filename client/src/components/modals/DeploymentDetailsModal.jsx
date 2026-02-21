@@ -1114,7 +1114,7 @@ const TimelineLabel = ({ isActive, label }) => (
         )}
       />
     </div>
-    <div className='pb-1 flex-1'>
+    <div className='mb-1 flex-1 bg-emerald-500/10 px-2 rounded-sm'>
       <span className='text-xs font-semibold text-emerald-600 uppercase tracking-wide'>
         {label}
       </span>
