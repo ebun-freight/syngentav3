@@ -1,11 +1,19 @@
 const createError = require('http-errors')
 const TimelineLog = require('../models/timelineLogsModel')
 
+// Helper: get active subcon from deployment (replacement truck takes priority)
+const getActiveSubcon = deployment => {
+  if (deployment?.replacement?.replacementTruckId?.subcon) {
+    return deployment.replacement.replacementTruckId.subcon
+  }
+  return deployment?.truckId?.subcon || ''
+}
+
 const getAllTimelineLogs = async (req, res, next) => {
   try {
     const { status, search, sort, perPage, page = 1, date, subcon } = req.query
 
-    // Build base query with population and filtering
+    // Build base query
     let baseQuery = TimelineLog.find()
 
     // Status filter
@@ -38,7 +46,7 @@ const getAllTimelineLogs = async (req, res, next) => {
     const skip = (parseInt(page) - 1) * limit
     baseQuery = baseQuery.skip(skip).limit(limit)
 
-    // Populate with deployment details
+    // Populate with deployment details including truckId for subcon
     baseQuery = baseQuery
       .populate({
         path: 'performedBy',
@@ -58,22 +66,20 @@ const getAllTimelineLogs = async (req, res, next) => {
     let timelineLogs = await baseQuery
 
     // Apply subcon filter AFTER population
-    // For subcon users: auto-filter by their subcon
-    // For non-subcon users: filter by subcon query parameter if provided
+    // subcon lives on truckId (Truck model), not on deployment directly
     if (req.user.role === 'subcon' && req.user.subcon) {
-      timelineLogs = timelineLogs.filter(log => {
-        // Check if log has a targetDeployment and if its subcon matches user's subcon
-        const deployment = log.targetDeployment
-        return deployment && deployment.subcon === req.user.subcon
-      })
+      timelineLogs = timelineLogs.filter(
+        log =>
+          getActiveSubcon(log.targetDeployment).toLowerCase() ===
+          req.user.subcon.toLowerCase()
+      )
     } else if (subcon && subcon !== '') {
-      // For non-subcon users: filter by subcon query parameter if provided
-      timelineLogs = timelineLogs.filter(log => {
-        const deployment = log.targetDeployment
-        return deployment && deployment.subcon === subcon
-      })
+      timelineLogs = timelineLogs.filter(
+        log =>
+          getActiveSubcon(log.targetDeployment).toLowerCase() ===
+          subcon.toLowerCase()
+      )
     }
-    // If not subcon and no subcon query parameter: no subcon filter applied
 
     // Apply search filter
     if (search && search !== '') {
@@ -81,18 +87,15 @@ const getAllTimelineLogs = async (req, res, next) => {
       timelineLogs = timelineLogs.filter(log => {
         const deployment = log.targetDeployment
 
-        // Check if replacement exists
         const hasReplacement =
           deployment?.replacement?.replacementTruckId ||
           deployment?.replacement?.replacementDriverId
 
-        // Search truck plate - only replacement if it exists, otherwise original
         const truckPlate =
           hasReplacement && deployment?.replacement?.replacementTruckId?.plateNo
             ? deployment.replacement.replacementTruckId.plateNo.toLowerCase()
             : (deployment?.truckId?.plateNo || '').toLowerCase()
 
-        // Search driver name - only replacement if it exists, otherwise original
         const driverFirstname =
           hasReplacement &&
           deployment?.replacement?.replacementDriverId?.firstname
@@ -113,7 +116,7 @@ const getAllTimelineLogs = async (req, res, next) => {
         const performedByLastname = (
           log.performedBy?.lastname || ''
         ).toLowerCase()
-        const subconValue = (deployment?.subcon || '').toLowerCase()
+        const subconValue = getActiveSubcon(deployment).toLowerCase()
 
         return (
           action.includes(searchLower) ||
@@ -128,10 +131,9 @@ const getAllTimelineLogs = async (req, res, next) => {
       })
     }
 
-    // Get total count (we need to query again for accurate count with filters)
+    // Count query — reapply same base filters
     let countQuery = TimelineLog.find()
 
-    // Apply same filters as above to count query
     if (status && status !== '') {
       countQuery = countQuery.where('status').equals(status)
     }
@@ -145,21 +147,23 @@ const getAllTimelineLogs = async (req, res, next) => {
       countQuery = countQuery.where('timestamp').gte(startOfDay).lt(endOfDay)
     }
 
-    // Handle total count based on subcon filtering
+    // For subcon user: filter count by user's subcon via truckId
     if (req.user.role === 'subcon' && req.user.subcon) {
-      // For subcon users: filter count by user's subcon
       const logsForCount = await countQuery
         .populate({
           path: 'targetDeployment',
-          select: 'subcon'
+          populate: [
+            { path: 'truckId', select: 'subcon' },
+            { path: 'replacement.replacementTruckId', select: 'subcon' }
+          ]
         })
         .lean()
 
-      // Filter by user's subcon after population
-      const filteredLogs = logsForCount.filter(log => {
-        const deployment = log.targetDeployment
-        return deployment && deployment.subcon === req.user.subcon
-      })
+      const filteredLogs = logsForCount.filter(
+        log =>
+          getActiveSubcon(log.targetDeployment).toLowerCase() ===
+          req.user.subcon.toLowerCase()
+      )
 
       const total = filteredLogs.length
 
@@ -170,19 +174,22 @@ const getAllTimelineLogs = async (req, res, next) => {
         timelineLogs
       })
     } else if (subcon && subcon !== '') {
-      // For non-subcon users with subcon query parameter: filter count by that subcon
+      // Non-subcon user with subcon filter: filter count via truckId
       const logsForCount = await countQuery
         .populate({
           path: 'targetDeployment',
-          select: 'subcon'
+          populate: [
+            { path: 'truckId', select: 'subcon' },
+            { path: 'replacement.replacementTruckId', select: 'subcon' }
+          ]
         })
         .lean()
 
-      // Filter by query parameter subcon after population
-      const filteredLogs = logsForCount.filter(log => {
-        const deployment = log.targetDeployment
-        return deployment && deployment.subcon === subcon
-      })
+      const filteredLogs = logsForCount.filter(
+        log =>
+          getActiveSubcon(log.targetDeployment).toLowerCase() ===
+          subcon.toLowerCase()
+      )
 
       const total = filteredLogs.length
 
@@ -193,7 +200,7 @@ const getAllTimelineLogs = async (req, res, next) => {
         timelineLogs
       })
     } else {
-      // For non-subcon users without subcon query parameter: use normal count
+      // No subcon filter: simple count
       const total = await countQuery.countDocuments()
 
       return res.status(200).json({

@@ -16,7 +16,7 @@ import { DateTime } from 'luxon'
 import TimelineLogDetailsModal from '../../components/modals/TimelineLogDetailsModal'
 import ReplacementHistoryModal from '../../components/modals/ReplacementHistoryModal'
 import { useUserContext } from '../../contexts/UserContext'
-import { SUBCON_OPTIONS } from '../../utils/generalOptions'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 
 const defaultFilters = {
   sort: 'latest',
@@ -47,6 +47,7 @@ function TimelineLogs () {
   const [tempFilters, setTempFilters] = useState(defaultFilters)
 
   const { userData } = useUserContext()
+  const { settings } = useSettingsContext()
 
   const handleChangeFilter = e => {
     const { name, value } = e.target
@@ -243,19 +244,19 @@ function TimelineLogs () {
                     </select>
                   </label>
 
-                  {userData.data.role !== 'subcon' && (
+                  {['head_admin', 'admin'].includes(userData.data.role) && (
                     <label className='col-span-full flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
                       <p className='font-semibold'>Subcon</p>
                       <select
                         name='subcon'
                         value={tempFilters.subcon}
                         onChange={handleChangeFilter}
-                        className='w-full focus:outline-none'
+                        className='w-full focus:outline-none capitalize'
                       >
                         <option value=''>All</option>
-                        {SUBCON_OPTIONS.map((item, index) => (
-                          <option key={index} value={item.value}>
-                            {item.label}
+                        {settings.trucksDrivers.subcon.map((item, index) => (
+                          <option key={index} value={item}>
+                            {item}
                           </option>
                         ))}
                       </select>

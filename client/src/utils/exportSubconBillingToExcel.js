@@ -69,6 +69,15 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     return blocks * rate
   }
 
+  // Returns the rate per kg based on truck type:
+  //   elf     → 0.80
+  //   forward → 0.75
+  //   others  → 0.80 (fallback)
+  const getRatePerKg = truckType => {
+    const rates = { elf: 0.8, forward: 0.75 }
+    return rates[truckType?.toLowerCase().trim()] ?? 0.8
+  }
+
   // ─── meta ────────────────────────────────────────────────────────────────────
 
   const billingDate = DateTime.now()
@@ -76,11 +85,11 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     .toFormat('MMMM dd, yyyy')
 
   const firstDeployment = allDeployments[0]
-  const companyName = (firstDeployment?.subcon || 'NO SUBCON COMPANY INDICATED')
+  const companyName = (
+    firstDeployment?.truckId?.subcon || 'NO SUBCON COMPANY INDICATED'
+  )
     .replace(/_/g, ' ')
     .toUpperCase()
-
-  const ratePerKg = 0.8
 
   // ─── workbook setup ──────────────────────────────────────────────────────────
 
@@ -251,7 +260,7 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     'DP Code',
     'TMO No.',
     'Billing Period',
-    'From (Pickup Stops)',
+    'From',
     'To',
     'Plate',
     'Truck Type',
@@ -276,6 +285,9 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     const currentTruckType = hasReplacement
       ? replacement.replacementTruckType
       : deployment.truckType
+
+    // Rate depends on truck type: elf → 0.80, forward → 0.75
+    const ratePerKg = getRatePerKg(currentTruckType)
 
     const billingPeriod = deployment.destDeparture
       ? DateTime.fromISO(deployment.destDeparture)
@@ -355,7 +367,7 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
       '',
       '',
       0,
-      ratePerKg,
+      0,
       0,
       ''
     ])
@@ -430,7 +442,7 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     'DP Code',
     'TMO No.',
     'Billing Period',
-    'From (Pickup Stops)',
+    'From',
     'To',
     'Plate',
     'Truck Type',
@@ -456,6 +468,9 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     const currentTruckType = hasReplacement
       ? replacement.replacementTruckType
       : deployment.truckType
+
+    // Rate depends on truck type: elf → 0.80, forward → 0.75
+    const ratePerKg = getRatePerKg(currentTruckType)
 
     const minLoad = getMinimumLoad(currentTruckType)
     const billingPeriod = deployment.destDeparture
@@ -565,7 +580,7 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
       '',
       0,
       0,
-      ratePerKg,
+      0,
       0,
       ''
     ])
@@ -641,7 +656,7 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
     'Dest Arrival',
     'Dest Departure',
     'Unloading Time',
-    'From (Pickup Stops)',
+    'From',
     'To',
     'Plate No',
     'Truck Type',
@@ -946,7 +961,7 @@ export const exportSubconBillingToExcel = async (allDeployments, userData) => {
   grandTotalRow.height = 28
   grandTotalRow.getCell(3).style = {
     ...styles.total,
-    alignment: { horizontal: 'left', vertical: 'middle' },
+    alignment: { horizontal: 'center', vertical: 'middle' },
     font: { ...styles.total.font, size: 12 }
   }
   grandTotalRow.getCell(4).style = {

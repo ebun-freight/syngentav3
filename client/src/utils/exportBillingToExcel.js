@@ -228,7 +228,7 @@ export const exportBillingToExcel = async allDeployments => {
     'DP Code',
     'TMO No.',
     'Billing Period',
-    'From (Pickup Stops)',
+    'From',
     'To',
     'Plate',
     'Truck Type',
@@ -396,7 +396,7 @@ export const exportBillingToExcel = async allDeployments => {
     'DP Code',
     'TMO No.',
     'Billing Period',
-    'From (Pickup Stops)',
+    'From',
     'To',
     'Plate',
     'Truck Type',
@@ -575,7 +575,7 @@ export const exportBillingToExcel = async allDeployments => {
     'Dest Arrival',
     'Dest Departure',
     'Unloading Time',
-    'From (Pickup Stops)',
+    'From',
     'To',
     'Plate No',
     'Truck Type',
@@ -654,7 +654,7 @@ export const exportBillingToExcel = async allDeployments => {
       row.getCell(11).style = { ...styles.data, numFmt: '#,##0.00' }
     })
 
-    // F=From (pickup stops) NOT merged. All other cols merged.
+    // F=From NOT merged. All other cols merged.
     if (pickups.length > 1) {
       const endRow = startRow + pickups.length - 1
       for (const col of [2, 3, 4, 5, 7, 8, 9, 10, 11]) {
@@ -864,7 +864,7 @@ export const exportBillingToExcel = async allDeployments => {
   subtotalRow4.height = 25
   subtotalRow4.getCell(3).style = {
     ...styles.total,
-    alignment: { horizontal: 'left', vertical: 'middle' }
+    alignment: { horizontal: 'center', vertical: 'middle' }
   }
   subtotalRow4.getCell(4).style = { ...styles.total, numFmt: '₱#,##0.00' }
 
@@ -897,7 +897,7 @@ export const exportBillingToExcel = async allDeployments => {
   grandTotalRow.height = 28
   grandTotalRow.getCell(3).style = {
     ...styles.total,
-    alignment: { horizontal: 'left', vertical: 'middle' },
+    alignment: { horizontal: 'center', vertical: 'middle' },
     font: { ...styles.total.font, size: 12 }
   }
   grandTotalRow.getCell(4).style = {

@@ -20,7 +20,7 @@ import { MdKeyboardArrowDown } from 'react-icons/md'
 import { USER_STATUS_TYPES } from '../../utils/userOptions'
 import { toast } from 'react-toastify'
 import { RiFolderUploadLine } from 'react-icons/ri'
-import { SUBCON_OPTIONS } from '../../utils/generalOptions'
+import { useSettingsContext } from '../../contexts/SettingsContext'
 
 function UserDetailsModal ({
   isOpen,
@@ -29,6 +29,8 @@ function UserDetailsModal ({
   onUpdate,
   openDeleteModal
 }) {
+  const { settings } = useSettingsContext()
+
   const [isEditMode, setIsEditMode] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [selectedFile, setSelectedFile] = useState(null)
@@ -38,16 +40,9 @@ function UserDetailsModal ({
 
   const { updateUserFunction, isLoading } = useUpdateUser()
 
-  // Filter SUBCON_OPTIONS based on query
-  const filteredSubcons = SUBCON_OPTIONS.filter(subcon =>
-    subcon.label.toLowerCase().includes(subconQuery.toLowerCase())
+  const filteredSubcons = settings.trucksDrivers.subcon.filter(subcon =>
+    subcon.toLowerCase().includes(subconQuery.toLowerCase())
   )
-
-  // Find the selected subcon for display
-  const selectedSubcon = SUBCON_OPTIONS.find(
-    subcon => subcon.value === editForm.subcon
-  )
-
   const handleChange = e => {
     const { name, value } = e.target
     setEditForm(prev => ({ ...prev, [name]: value }))
@@ -281,19 +276,17 @@ function UserDetailsModal ({
                         >
                           <div className='relative'>
                             <ComboboxInput
-                              className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400'
-                              displayValue={() =>
-                                selectedSubcon ? selectedSubcon.label : ''
-                              }
+                              className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
+                              displayValue={value => value || ''}
                               onChange={event =>
                                 setSubconQuery(event.target.value)
                               }
-                              placeholder='Search subcon'
+                              placeholder='Search'
                               required={false}
                               autoComplete='off'
                             />
                             <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                              <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
+                              <MdKeyboardArrowDown className='h-5 w-5 text-gray-400 pointer-events-none' />
                             </ComboboxButton>
                             <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
                               {filteredSubcons.length === 0 ? (
@@ -301,23 +294,23 @@ function UserDetailsModal ({
                                   Nothing found.
                                 </div>
                               ) : (
-                                filteredSubcons.map(subcon => (
+                                filteredSubcons.map((subcon, index) => (
                                   <ComboboxOption
-                                    key={subcon.value}
-                                    value={subcon.value}
+                                    key={index}
+                                    value={subcon}
                                     className={({ focus }) =>
                                       `relative cursor-default select-none py-2 px-4 text-base ${
                                         focus ? 'bg-gray-50' : 'text-gray-900'
                                       } ${
-                                        editForm?.subcon === subcon.value
+                                        editForm?.subcon === subcon
                                           ? 'bg-gray-100'
                                           : ''
                                       }`
                                     }
                                   >
                                     {({ selected }) => (
-                                      <span className='block truncate'>
-                                        {subcon.label}
+                                      <span className='block truncate capitalize'>
+                                        {subcon}
                                       </span>
                                     )}
                                   </ComboboxOption>
@@ -327,10 +320,8 @@ function UserDetailsModal ({
                           </div>
                         </Combobox>
                       ) : (
-                        <p className='outline outline-gray-200 px-3 py-2 rounded break-all'>
-                          {selectedSubcon
-                            ? selectedSubcon.label
-                            : 'Not assigned'}
+                        <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize overflow-x-auto text-nowrap scrollbar-none'>
+                          {editForm?.subcon || 'Not assigned'}
                         </p>
                       )}
                     </label>

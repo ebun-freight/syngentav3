@@ -963,23 +963,30 @@ function DeploymentDetailsModal ({
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                   />
+
                   <div className='ml-auto rounded-t-lg outline outline-gray-200 flex'>
                     <p className='px-3 py-2 text-sm text-gray-500'>
+                      {!['head_admin', 'admin'].includes(
+                        userData?.data?.role
+                      ) && <>Assigned At: </>}
                       {DateTime.fromISO(editForm?.createdAt)
                         .setZone('Asia/Manila')
                         .toFormat('MMM d, yyyy - hh:mm a')}
                     </p>
-                    <div className='px-4 py-2 text-sm font-medium text-gray-500 flex items-center justify-center gap-2 border-l border-gray-200'>
-                      {editForm?.isTMOPrinted
-                        ? 'TMO PRINTED'
-                        : 'TMO NOT PRINTED'}
-                      <div
-                        className={clsx('w-2 aspect-square rounded-full', {
-                          'bg-green-500': editForm?.isTMOPrinted,
-                          'bg-red-500': !editForm?.isTMOPrinted
-                        })}
-                      />
-                    </div>
+
+                    {['head_admin', 'admin'].includes(userData?.data?.role) && (
+                      <div className='px-4 py-2 text-sm font-medium text-gray-500 flex items-center justify-center gap-2 border-l border-gray-200'>
+                        {editForm?.isTMOPrinted
+                          ? 'TMO PRINTED'
+                          : 'TMO NOT PRINTED'}
+                        <div
+                          className={clsx('w-2 aspect-square rounded-full', {
+                            'bg-green-500': editForm?.isTMOPrinted,
+                            'bg-red-500': !editForm?.isTMOPrinted
+                          })}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
