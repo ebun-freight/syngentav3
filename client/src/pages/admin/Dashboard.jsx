@@ -43,13 +43,14 @@ import {
   TbActivity,
   TbUserPlus,
   TbLicense,
-  TbNumber
+  TbNumber,
+  TbCalendar,
+  TbCalendarWeek
 } from 'react-icons/tb'
 import { error_illustration } from '../../consts/images'
 import { useUserContext } from '../../contexts/UserContext'
 import clsx from 'clsx'
 
-// Register Chart.js components INCLUDING datalabels plugin
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -61,7 +62,7 @@ ChartJS.register(
   Tooltip,
   Legend,
   Filler,
-  ChartDataLabels // Register the datalabels plugin
+  ChartDataLabels
 )
 
 const Dashboard = () => {
@@ -70,8 +71,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
+  // NEW: toggle for deployment trend period
+  const [trendPeriod, setTrendPeriod] = useState('weekly')
 
-  // Enhanced color palette
   const colors = {
     green: '#10b981',
     blue: '#3b82f6',
@@ -91,21 +93,18 @@ const Dashboard = () => {
     gray: '#6b7280'
   }
 
-  // Truck status colors
   const truckStatusColors = {
     available: colors.green,
     deployed: colors.blue,
     unavailable: colors.red
   }
 
-  // Driver status colors
   const driverStatusColors = {
     available: colors.green,
     deployed: colors.blue,
     unavailable: colors.red
   }
 
-  // Deployment status colors
   const deploymentStatusColors = {
     completed: colors.blue,
     ongoing: colors.green,
@@ -115,7 +114,6 @@ const Dashboard = () => {
     canceled: colors.red
   }
 
-  // User role colors
   const userRoleColors = {
     head_admin: colors.red,
     admin: colors.blue,
@@ -123,7 +121,6 @@ const Dashboard = () => {
     subcon: colors.orange
   }
 
-  // Hybrid colors
   const hybridColors = {
     hybrid_a: '#3b82f6',
     hybrid_b: '#10b981',
@@ -132,7 +129,6 @@ const Dashboard = () => {
     hybrid_e: '#ef4444'
   }
 
-  // Flagging colors
   const flaggingColors = {
     red: '#ef4444',
     orange: '#f59e0b',
@@ -179,7 +175,6 @@ const Dashboard = () => {
         .trim()
     }
 
-    // Format various data fields
     const formatFields = [
       { path: 'charts?.subconPerformance?.data', field: 'name' },
       { path: 'topDrivers', field: 'name' },
@@ -232,7 +227,6 @@ const Dashboard = () => {
     })
   }
 
-  // BASE CHART OPTIONS WITH DATALABELS FOR ALL CHARTS
   const createBaseOptions = (showLegend = false) => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -255,25 +249,23 @@ const Dashboard = () => {
         cornerRadius: 6,
         padding: 12
       },
-      // DATALABELS CONFIGURATION - This adds text inside ALL charts
       datalabels: {
         display: true,
         color: '#ffffff',
         font: {
           weight: 'bold',
-          size: 16 // Increased from 11 to 12 for bigger text
+          size: 16
         },
         formatter: function (value, context) {
           return value.toLocaleString()
         },
-        anchor: 'center', // Center horizontally
-        align: 'center', // Center vertically
+        anchor: 'center',
+        align: 'center',
         clip: false
       }
     }
   })
 
-  // VERTICAL BAR CHART OPTIONS - TEXT CENTERED IN BAR
   const verticalBarOptions = {
     ...createBaseOptions(),
     plugins: {
@@ -282,7 +274,7 @@ const Dashboard = () => {
         ...createBaseOptions().plugins.legend,
         labels: {
           ...createBaseOptions().plugins.legend.labels,
-          sort: (a, b) => a.text.localeCompare(b.text) // Sort legend alphabetically
+          sort: (a, b) => a.text.localeCompare(b.text)
         }
       },
       datalabels: {
@@ -290,20 +282,14 @@ const Dashboard = () => {
         anchor: 'center',
         align: 'center',
         offset: 0,
-        font: {
-          weight: 'bold',
-          size: 16
-        }
+        font: { weight: 'bold', size: 16 }
       }
     },
     scales: {
       y: {
         beginAtZero: true,
         grid: { color: 'rgba(0, 0, 0, 0.05)' },
-        ticks: {
-          color: '#6b7280',
-          callback: value => value.toLocaleString()
-        }
+        ticks: { color: '#6b7280', callback: value => value.toLocaleString() }
       },
       x: {
         grid: { display: false },
@@ -312,7 +298,6 @@ const Dashboard = () => {
     }
   }
 
-  // HORIZONTAL BAR CHART OPTIONS - TEXT CENTERED IN BAR
   const horizontalBarOptions = {
     ...createBaseOptions(),
     indexAxis: 'y',
@@ -320,36 +305,25 @@ const Dashboard = () => {
       ...createBaseOptions().plugins,
       datalabels: {
         ...createBaseOptions().plugins.datalabels,
-        anchor: 'center', // Center horizontally
-        align: 'center', // Center vertically
-        offset: 0, // No offset
-        font: {
-          weight: 'bold',
-          size: 16 // Slightly bigger for horizontal bars
-        }
+        anchor: 'center',
+        align: 'center',
+        offset: 0,
+        font: { weight: 'bold', size: 16 }
       }
     },
     scales: {
       x: {
         beginAtZero: true,
         grid: { color: 'rgba(0, 0, 0, 0.05)' },
-        ticks: {
-          color: '#6b7280',
-          callback: value => value.toLocaleString()
-        }
+        ticks: { color: '#6b7280', callback: value => value.toLocaleString() }
       },
       y: {
         grid: { display: false },
-        ticks: {
-          color: '#6b7280',
-          font: { size: 11 },
-          maxRotation: 0
-        }
+        ticks: { color: '#6b7280', font: { size: 11 }, maxRotation: 0 }
       }
     }
   }
 
-  // PIE/DOUGHNUT CHART OPTIONS
   const pieDoughnutOptions = {
     ...createBaseOptions(true),
     plugins: {
@@ -358,7 +332,7 @@ const Dashboard = () => {
         ...createBaseOptions(true).plugins.legend,
         labels: {
           ...createBaseOptions(true).plugins.legend.labels,
-          sort: (a, b) => a.text.localeCompare(b.text), // Sort legend alphabetically
+          sort: (a, b) => a.text.localeCompare(b.text),
           generateLabels: function (chart) {
             const data = chart.data
             if (data.labels.length && data.datasets.length) {
@@ -375,20 +349,15 @@ const Dashboard = () => {
           }
         }
       },
-      // ADD THIS TOOLTIP CALLBACK FOR PERCENTAGES
       tooltip: {
         ...createBaseOptions(true).plugins.tooltip,
         callbacks: {
-          ...createBaseOptions(true).plugins.tooltip.callbacks,
           label: function (context) {
             const label = context.label || ''
             const value = context.raw || 0
-
-            // Calculate total of all data points in the dataset
             const dataset = context.dataset
             const total = dataset.data.reduce((a, b) => a + b, 0)
             const percentage = total > 0 ? Math.round((value / total) * 100) : 0
-
             return `${label}: ${value.toLocaleString()} (${percentage}%)`
           }
         }
@@ -397,10 +366,7 @@ const Dashboard = () => {
         ...createBaseOptions(true).plugins.datalabels,
         display: true,
         color: '#ffffff',
-        font: {
-          weight: 'bold',
-          size: 16
-        },
+        font: { weight: 'bold', size: 16 },
         formatter: function (value) {
           return value.toLocaleString()
         },
@@ -410,13 +376,11 @@ const Dashboard = () => {
     }
   }
 
-  // DOUGHNUT SPECIFIC OPTIONS
   const doughnutOptions = {
     ...pieDoughnutOptions,
     cutout: '50%'
   }
 
-  // STACKED BAR CHART OPTIONS - TEXT CENTERED IN EACH SEGMENT
   const stackedBarOptions = {
     ...createBaseOptions(true),
     plugins: {
@@ -429,10 +393,7 @@ const Dashboard = () => {
           padding: 15,
           boxWidth: 20,
           boxHeight: 12,
-          font: {
-            size: 12,
-            family: "'Inter', sans-serif"
-          },
+          font: { size: 12, family: "'Inter', sans-serif" },
           color: '#4b5563'
         }
       },
@@ -440,37 +401,26 @@ const Dashboard = () => {
         ...createBaseOptions().plugins.datalabels,
         display: true,
         color: '#ffffff',
-        font: {
-          weight: 'bold',
-          size: 16 // Slightly bigger
-        },
+        font: { weight: 'bold', size: 16 },
         formatter: function (value) {
           return value > 0 ? value.toLocaleString() : ''
         },
-        anchor: 'center', // Center horizontally
-        align: 'center', // Center vertically
-        offset: 0 // No offset
+        anchor: 'center',
+        align: 'center',
+        offset: 0
       }
     },
     scales: {
       x: {
         stacked: true,
-        grid: {
-          display: false,
-          drawBorder: false
-        },
+        grid: { display: false, drawBorder: false },
         ticks: {
           color: '#6b7280',
-          font: {
-            size: 11,
-            family: "'Inter', sans-serif"
-          },
+          font: { size: 11, family: "'Inter', sans-serif" },
           maxRotation: 45,
           padding: 8
         },
-        border: {
-          display: false
-        }
+        border: { display: false }
       },
       y: {
         stacked: true,
@@ -482,75 +432,43 @@ const Dashboard = () => {
         },
         ticks: {
           color: '#6b7280',
-          font: {
-            size: 11,
-            family: "'Inter', sans-serif"
-          },
+          font: { size: 11, family: "'Inter', sans-serif" },
           padding: 8,
           callback: value => value.toLocaleString()
         },
-        border: {
-          display: false
-        },
+        border: { display: false },
         title: {
           display: true,
           text: 'Number of Deployments',
           color: '#6b7280',
-          font: {
-            size: 12,
-            weight: '600',
-            family: "'Inter', sans-serif"
-          },
+          font: { size: 12, weight: '600', family: "'Inter', sans-serif" },
           padding: { top: 0, bottom: 10 }
         }
       }
     },
-    interaction: {
-      intersect: false,
-      mode: 'index'
-    },
-    elements: {
-      bar: {
-        borderRadius: 3
-      }
-    }
+    interaction: { intersect: false, mode: 'index' },
+    elements: { bar: { borderRadius: 3 } }
   }
 
-  // Replace the getLineChartData function with this:
+  // LINE CHART: only completed, supports daily or weekly
   const getLineChartData = () => {
-    if (!analytics?.charts?.weeklyDeployments)
-      return { labels: [], datasets: [] }
+    const chartKey =
+      trendPeriod === 'daily' ? 'dailyDeployments' : 'weeklyDeployments'
+    const chartData = analytics?.charts?.[chartKey]
+    if (!chartData) return { labels: [], datasets: [] }
 
     return {
-      labels: analytics.charts.weeklyDeployments.labels,
+      labels: chartData.labels,
       datasets: [
         {
           label: 'Completed',
-          data: analytics.charts.weeklyDeployments.completedData.map(val =>
-            Math.round(val)
-          ),
+          data: chartData.completedData.map(val => Math.round(val)),
           borderColor: colors.green,
           backgroundColor: `${colors.green}20`,
           borderWidth: 3,
-          fill: false,
+          fill: true,
           tension: 0.4,
           pointBackgroundColor: colors.green,
-          pointBorderColor: '#ffffff',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        },
-        {
-          label: 'Canceled',
-          data: analytics.charts.weeklyDeployments.canceledData.map(val =>
-            Math.round(val)
-          ),
-          borderColor: colors.red,
-          backgroundColor: `${colors.red}20`,
-          borderWidth: 3,
-          fill: false,
-          tension: 0.4,
-          pointBackgroundColor: colors.red,
           pointBorderColor: '#ffffff',
           pointBorderWidth: 2,
           pointRadius: 4,
@@ -560,14 +478,11 @@ const Dashboard = () => {
     }
   }
 
-  // Replace the lineChartOptions object with this:
   const lineChartOptions = {
     ...createBaseOptions(true),
     plugins: {
       ...createBaseOptions(true).plugins,
-      datalabels: {
-        display: false // NO TEXT for line chart
-      },
+      datalabels: { display: false },
       legend: {
         display: true,
         position: 'bottom',
@@ -597,12 +512,15 @@ const Dashboard = () => {
           color: '#6b7280',
           font: { size: 11 },
           callback: value => Math.round(value).toLocaleString(),
-          stepSize: 1 // Ensure whole numbers only
+          stepSize: 1
         }
       },
       x: {
         grid: { display: false },
-        ticks: { color: '#6b7280' }
+        ticks: {
+          color: '#6b7280',
+          maxTicksLimit: trendPeriod === 'daily' ? 15 : 12
+        }
       }
     }
   }
@@ -618,7 +536,6 @@ const Dashboard = () => {
         return colors[colorKeys[i % colorKeys.length]]
       })
 
-    // For Subcontractor Distribution specifically, sort alphabetically
     const isSubconDistribution =
       label === 'Users' &&
       chartData.labels.some(
@@ -628,29 +545,20 @@ const Dashboard = () => {
       )
 
     if (isSubconDistribution) {
-      // Create an array of objects with label, data, and color
       const items = chartData.labels.map((label, index) => ({
-        label: label,
+        label,
         data: chartData.data[index],
         color: backgroundColors[index]
       }))
-
-      // Sort alphabetically by label
       items.sort((a, b) => a.label.localeCompare(b.label))
-
-      // Extract sorted arrays
-      const sortedLabels = items.map(item => item.label)
-      const sortedData = items.map(item => item.data)
-      const sortedColors = items.map(item => item.color)
-
       return {
-        labels: sortedLabels,
+        labels: items.map(item => item.label),
         datasets: [
           {
-            label: label,
-            data: sortedData,
-            backgroundColor: sortedColors,
-            borderColor: sortedColors,
+            label,
+            data: items.map(item => item.data),
+            backgroundColor: items.map(item => item.color),
+            borderColor: items.map(item => item.color),
             borderWidth: 0,
             borderRadius: 4,
             borderSkipped: false
@@ -663,7 +571,7 @@ const Dashboard = () => {
       labels: chartData.labels,
       datasets: [
         {
-          label: label,
+          label,
           data: chartData.data,
           backgroundColor: backgroundColors,
           borderColor: backgroundColors,
@@ -1017,8 +925,6 @@ const Dashboard = () => {
   const getTerritoryDistributionPieData = () => {
     if (!analytics?.charts?.territoryDistribution)
       return { labels: [], datasets: [] }
-
-    // Get labels and data
     const labels = analytics.charts.territoryDistribution.labels
     const data = analytics.charts.territoryDistribution.data
     const sevenTerritoryColors = [
@@ -1030,29 +936,19 @@ const Dashboard = () => {
       '#06b6d4',
       '#f43f5e'
     ]
-
-    // Create an array of objects with label, data, and color
     const items = labels.map((label, index) => ({
-      label: label,
+      label,
       data: data[index],
       color: sevenTerritoryColors[index % 7] || colors.gray
     }))
-
-    // Sort alphabetically by label
     items.sort((a, b) => a.label.localeCompare(b.label))
-
-    // Extract sorted arrays
-    const sortedLabels = items.map(item => item.label)
-    const sortedData = items.map(item => item.data)
-    const sortedColors = items.map(item => item.color)
-
     return {
-      labels: sortedLabels,
+      labels: items.map(item => item.label),
       datasets: [
         {
           label: 'Deployments',
-          data: sortedData,
-          backgroundColor: sortedColors,
+          data: items.map(item => item.data),
+          backgroundColor: items.map(item => item.color),
           borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 15,
@@ -1061,6 +957,7 @@ const Dashboard = () => {
       ]
     }
   }
+
   const getHybridDistributionPieData = () => {
     if (!analytics?.charts?.hybridDistribution)
       return { labels: [], datasets: [] }
@@ -1120,25 +1017,16 @@ const Dashboard = () => {
   const getTerritoryPerformanceStackedData = () => {
     if (!analytics?.charts?.territoryPerformance?.data)
       return { labels: [], datasets: [] }
-
-    // Get top 10 territories
     const territories = analytics.charts.territoryPerformance.data.slice(0, 10)
-
-    // Create an array of objects with territory data and corresponding breakdown
     const territoryData = territories.map((territory, index) => ({
-      territory: territory,
+      territory,
       breakdown: analytics.charts.territoryPerformance.statusBreakdown[index]
     }))
-
-    // Sort alphabetically by territory name
     territoryData.sort((a, b) =>
       a.territory.name.localeCompare(b.territory.name)
     )
-
-    // Extract sorted arrays
     const sortedTerritories = territoryData.map(item => item.territory)
     const sortedBreakdowns = territoryData.map(item => item.breakdown)
-
     const statusOrder = ['preparing', 'ongoing', 'completed', 'canceled']
     const statusLabels = {
       preparing: 'Preparing',
@@ -1152,12 +1040,11 @@ const Dashboard = () => {
       completed: colors.blue,
       canceled: colors.red
     }
-
     const datasets = statusOrder.map(status => ({
       label: statusLabels[status],
-      data: sortedBreakdowns.map(breakdown => {
-        return breakdown ? breakdown[status] || 0 : 0
-      }),
+      data: sortedBreakdowns.map(breakdown =>
+        breakdown ? breakdown[status] || 0 : 0
+      ),
       backgroundColor: statusColors[status],
       borderColor: '#ffffff',
       borderWidth: 1,
@@ -1167,7 +1054,6 @@ const Dashboard = () => {
       categoryPercentage: 0.8,
       barPercentage: 0.9
     }))
-
     return {
       labels: sortedTerritories.map(territory => territory.name),
       datasets
@@ -1338,7 +1224,6 @@ const Dashboard = () => {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <>
-            {/* Metrics */}
             <div
               className={clsx('grid grid-cols-1 md:grid-cols-2 gap-4', {
                 'xl:grid-cols-6': isVisitor,
@@ -1406,7 +1291,6 @@ const Dashboard = () => {
                     } total trucks`}
                     color='text-indigo-600'
                   />
-
                   <MetricCard
                     icon={HiOutlineUser}
                     title='Available Drivers'
@@ -1438,7 +1322,6 @@ const Dashboard = () => {
                     } per trip`}
                     color='text-emerald-600'
                   />
-
                   <MetricCard
                     icon={HiOutlineScale}
                     title='Total Weight'
@@ -1456,7 +1339,6 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Performance Metrics for Admins */}
             {isAdmin && (
               <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4'>
                 <MetricCard
@@ -1481,7 +1363,6 @@ const Dashboard = () => {
                   }/${analytics.performanceMetrics.totalDrivers || 0} deployed`}
                   color='text-cyan-600'
                 />
-
                 <MetricCard
                   icon={HiOutlineCube}
                   title='Total Sacks'
@@ -1496,7 +1377,6 @@ const Dashboard = () => {
                   } per trip`}
                   color='text-emerald-600'
                 />
-
                 <MetricCard
                   icon={HiOutlineScale}
                   title='Total Weight'
@@ -1510,7 +1390,6 @@ const Dashboard = () => {
                   } kg per trip`}
                   color='text-violet-600'
                 />
-
                 <MetricCard
                   icon={HiOutlineTrendingUp}
                   title='Completion Rate'
@@ -1530,25 +1409,46 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Main Charts Grid */}
-            <div className='grid grid-cols-1 2xl:grid-cols-2 gap-6'>
-              {/* Weekly Deployment Trends - LINE CHART (NO TEXT) */}
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+            <div className='grid grid-cols-1 2xl:grid-cols-3 gap-6'>
+              {/* Deployment Trends - with Daily / Weekly toggle */}
+              <div className='col-span-2 bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4'>
                   <div>
                     <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                      Weekly Deployment Trends
+                      Completed Deployment Trends
                     </h2>
                     <p className='text-gray-500 text-xs md:text-sm'>
-                      Completed vs canceled deployments
+                      {trendPeriod === 'daily'
+                        ? 'Last 30 days'
+                        : 'Last 12 weeks'}
                     </p>
                   </div>
-                  <div className='flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg'>
-                    <TbTrendingUp className='text-green-600' />
-                    <span className='text-xs md:text-sm font-medium text-gray-700'>
-                      {analytics.performanceMetrics.successRate || 0}% success
-                      rate
-                    </span>
+                  <div className='flex items-center gap-2'>
+                    {/* Period toggle */}
+                    <div className='flex items-center bg-gray-100 rounded-lg p-1 gap-1'>
+                      <button
+                        onClick={() => setTrendPeriod('daily')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                          trendPeriod === 'daily'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <TbCalendar className='text-sm' />
+                        Daily
+                      </button>
+                      <button
+                        onClick={() => setTrendPeriod('weekly')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                          trendPeriod === 'weekly'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <TbCalendarWeek className='text-sm' />
+                        Weekly
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div className='h-80'>
@@ -1556,7 +1456,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Deployment Status Distribution - BAR CHART (WITH TEXT CENTERED) */}
+              {/* Deployment Status Distribution */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1575,10 +1475,8 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Fleet & Drivers Analysis - Only for Admins */}
             {isAdmin && (
               <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
-                {/* Truck Types - BAR CHART (WITH TEXT CENTERED) */}
                 <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                   <div className='mb-6'>
                     <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1599,7 +1497,6 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Truck Status - PIE CHART (WITH TEXT) */}
                 <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                   <div className='mb-6'>
                     <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1617,7 +1514,6 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Driver Status - DOUGHNUT CHART (WITH TEXT) */}
                 <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                   <div className='mb-6'>
                     <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1660,7 +1556,6 @@ const Dashboard = () => {
         {((activeTab === 'deploymentDetails' && isAdmin) ||
           (activeTab === 'deploymentDetails' && isVisitor)) && (
           <div className='space-y-6'>
-            {/* Territory, Hybrid, Flagging Metrics */}
             <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
               <MetricCard
                 icon={HiOutlineLocationMarker}
@@ -1694,9 +1589,7 @@ const Dashboard = () => {
               />
             </div>
 
-            {/* Distribution Charts - DOUGHNUT CHARTS (WITH TEXT) */}
             <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-              {/* Territory Distribution */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1714,7 +1607,6 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Hybrid Distribution */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1732,7 +1624,6 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Flagging Distribution */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1751,7 +1642,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Territory Performance Stacked Bar Chart - STACKED BAR (WITH TEXT CENTERED) */}
             <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1785,7 +1675,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Territory Details Table */}
             <div className='bg-white rounded-xl shadow-card3 border border-gray-200 overflow-hidden'>
               <div className='p-6 border-b border-gray-200'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1869,7 +1758,6 @@ const Dashboard = () => {
         {/* Users Tab */}
         {activeTab === 'users' && isAdmin && (
           <div className='space-y-6'>
-            {/* User Metrics */}
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
               <MetricCard
                 icon={HiOutlineUsers}
@@ -1912,8 +1800,6 @@ const Dashboard = () => {
                 color='text-purple-600'
               />
             </div>
-
-            {/* Login Analytics */}
             <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
               <MetricCard
                 icon={HiOutlineKey}
@@ -1945,10 +1831,7 @@ const Dashboard = () => {
                 color='text-emerald-600'
               />
             </div>
-
-            {/* User Charts */}
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              {/* User Role Distribution - DOUGHNUT CHART (WITH TEXT) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1965,8 +1848,6 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-
-              {/* User Status Distribution - PIE CHART (WITH TEXT) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1984,8 +1865,6 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-
-            {/* Subcon Distribution - BAR CHART (WITH TEXT CENTERED) */}
             <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div className='mb-6'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -2011,7 +1890,6 @@ const Dashboard = () => {
         {/* Subcons Tab */}
         {activeTab === 'subcons' && isAdmin && (
           <div className='space-y-6'>
-            {/* Subcon Deployment Status Stacked Bar Chart - STACKED BAR (WITH TEXT CENTERED) */}
             <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div className='mb-6'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -2028,8 +1906,6 @@ const Dashboard = () => {
                 />
               </div>
             </div>
-
-            {/* Subcon Details Table */}
             <div className='bg-white rounded-xl shadow-card3 border border-gray-200 overflow-hidden'>
               <div className='p-6 border-b border-gray-200'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -2110,10 +1986,9 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* My Resources Tab - For Subcon users */}
+        {/* My Resources Tab */}
         {activeTab === 'resources' && isSubcon && analytics?.subconAnalytics && (
           <div className='space-y-6'>
-            {/* Resource Summary Metrics */}
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
               <MetricCard
                 icon={HiOutlineTruck}
@@ -2165,9 +2040,7 @@ const Dashboard = () => {
               />
             </div>
 
-            {/* Driver Performance */}
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              {/* Driver Performance Bar Chart - HORIZONTAL BAR (WITH TEXT CENTERED) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -2184,8 +2057,6 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-
-              {/* Driver Status Distribution - DOUGHNUT CHART (WITH TEXT) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -2204,9 +2075,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Truck Performance */}
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              {/* Truck Performance Bar Chart - HORIZONTAL BAR (WITH TEXT CENTERED) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -2223,8 +2092,6 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-
-              {/* Truck Status Distribution - PIE CHART (WITH TEXT) */}
               <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -2243,7 +2110,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Truck Types Distribution - BAR CHART (WITH TEXT CENTERED) */}
             <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div className='mb-6'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>

@@ -20,7 +20,6 @@ const getDashboardAnalytics = async (req, res) => {
       truckAndDriverFilter.subcon = req.user.subcon
     }
 
-    // Helper: get truck IDs belonging to this subcon (for deployment filters)
     let subconTruckIds = null
     if (req.user.role === 'subcon' && req.user.subcon) {
       const subconTrucks = await Truck.find({ subcon: req.user.subcon })
@@ -34,7 +33,6 @@ const getDashboardAnalytics = async (req, res) => {
       : { ...baseFilter }
 
     const promises = {
-      // Basic counts
       totalTrucks: Truck.countDocuments(truckAndDriverFilter),
       totalDrivers: Driver.countDocuments(truckAndDriverFilter),
       activeDeployments: Deployment.countDocuments({
@@ -82,7 +80,6 @@ const getDashboardAnalytics = async (req, res) => {
         createdAt: { $gte: currentYearStart }
       }),
 
-      // Truck analytics
       truckStatusAnalytics: Truck.aggregate([
         { $match: truckAndDriverFilter },
         { $group: { _id: '$status', count: { $sum: 1 } } }
@@ -92,7 +89,6 @@ const getDashboardAnalytics = async (req, res) => {
         { $group: { _id: '$truckType', count: { $sum: 1 } } }
       ]),
 
-      // Driver analytics
       driverStatusAnalytics: Driver.aggregate([
         { $match: truckAndDriverFilter },
         { $group: { _id: '$status', count: { $sum: 1 } } }
@@ -114,7 +110,6 @@ const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
-      // Deployment status analytics
       deploymentStatusAnalytics: Deployment.aggregate([
         {
           $match: {
@@ -168,6 +163,23 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
       ]),
 
+      // Daily trends (last 30 days)
+      dailyDeploymentStatusAnalytics: Deployment.aggregate([
+        { $match: { ...deploymentFilter, createdAt: { $gte: last30Days } } },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' },
+              day: { $dayOfMonth: '$createdAt' },
+              status: '$status'
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+      ]),
+
       weeklySacksAnalytics: Deployment.aggregate([
         {
           $match: {
@@ -214,8 +226,6 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
       ]),
 
-      // ── Fixed: pickups is an array — must $unwind before grouping ──────────
-      // actualWeightKg is stored as String so we cast it with $toDouble
       topPickupSites: Deployment.aggregate([
         { $match: deploymentFilter },
         { $unwind: '$pickups' },
@@ -308,7 +318,6 @@ const getDashboardAnalytics = async (req, res) => {
         createdAt: { $gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) }
       }),
 
-      // User analytics
       totalUsers: User.countDocuments({ isSoftDeleted: { $ne: true } }),
       activeUsers: User.countDocuments({
         isSoftDeleted: { $ne: true },
@@ -358,7 +367,6 @@ const getDashboardAnalytics = async (req, res) => {
         }
       ]),
 
-      // Subcon performance — derived from truck's subcon via $lookup
       subconPerformance: Deployment.aggregate([
         { $match: deploymentFilter },
         {
@@ -445,7 +453,6 @@ const getDashboardAnalytics = async (req, res) => {
         { $group: { _id: '$truckType', count: { $sum: 1 } } }
       ]),
 
-      // Territory / Hybrid / Flagging analytics
       territoryAnalytics: Deployment.aggregate([
         { $match: deploymentFilter },
         { $group: { _id: '$territory', count: { $sum: 1 } } },
@@ -636,7 +643,6 @@ const getDashboardAnalytics = async (req, res) => {
       ])
     }
 
-    // Execute all promises
     const results = await Promise.all(Object.values(promises))
     const data = Object.keys(promises).reduce((acc, key, index) => {
       acc[key] = results[index]
@@ -924,6 +930,7 @@ const getDashboardAnalytics = async (req, res) => {
     const weeklyTrendsData = formatArrayData(
       data.weeklyDeploymentStatusAnalytics
     )
+    const dailyTrendsData = formatArrayData(data.dailyDeploymentStatusAnalytics)
     const weeklySacksData = formatArrayData(data.weeklySacksAnalytics)
     const weeklyWeightData = formatArrayData(data.weeklyWeightAnalytics)
 
@@ -938,22 +945,7 @@ const getDashboardAnalytics = async (req, res) => {
     }
 
     const userRoleData = formatArrayData(data.userRoleAnalytics)
-    const userRoleMap = {
-      head_admin: 'Head Admin',
-      admin: 'Admin',
-      visitor: 'Visitor',
-      subcon: 'Subcontractor'
-    }
-
     const userStatusData = formatArrayData(data.userStatusAnalytics)
-    const userStatusMap = {
-      active: 'Active',
-      inactive: 'Inactive',
-      pending: 'Pending',
-      rejected: 'Rejected',
-      revoked: 'Revoked'
-    }
-
     const subconData = formatArrayData(data.subconAnalytics)
 
     const totalOngoingDeployments =
@@ -983,25 +975,38 @@ const getDashboardAnalytics = async (req, res) => {
       return `${monthNames[month - 1]} ${startDay}-${endDay}`
     }
 
+    const formatDayLabel = (year, month, day) => {
+      const monthNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ]
+      return `${monthNames[month - 1]} ${day}`
+    }
+
     const processWeeklyDeploymentData = weeklyData => {
       if (!weeklyData || weeklyData.length === 0) return []
-
       const weeklyMap = {}
       weeklyData.forEach(item => {
         const { year, month, week, status } = item._id
         const count = item.count || 0
         const weekKey = `${year}-${month}-${week}`
-
         if (!weeklyMap[weekKey]) {
-          weeklyMap[weekKey] = { year, month, week, completed: 0, canceled: 0 }
+          weeklyMap[weekKey] = { year, month, week, completed: 0 }
         }
-
         if (status === 'completed') weeklyMap[weekKey].completed = count
-        else if (status === 'canceled') weeklyMap[weekKey].canceled = count
       })
-
       return Object.values(weeklyMap)
-        .filter(week => week.completed > 0 || week.canceled > 0)
+        .filter(week => week.completed > 0)
         .sort((a, b) => {
           if (a.year !== b.year) return a.year - b.year
           if (a.month !== b.month) return a.month - b.month
@@ -1010,6 +1015,30 @@ const getDashboardAnalytics = async (req, res) => {
         .map(week => ({
           ...week,
           label: formatWeekLabel(week.year, week.month, week.week)
+        }))
+    }
+
+    const processDailyDeploymentData = dailyData => {
+      if (!dailyData || dailyData.length === 0) return []
+      const dailyMap = {}
+      dailyData.forEach(item => {
+        const { year, month, day, status } = item._id
+        const count = item.count || 0
+        const dayKey = `${year}-${month}-${day}`
+        if (!dailyMap[dayKey]) {
+          dailyMap[dayKey] = { year, month, day, completed: 0 }
+        }
+        if (status === 'completed') dailyMap[dayKey].completed = count
+      })
+      return Object.values(dailyMap)
+        .sort((a, b) => {
+          if (a.year !== b.year) return a.year - b.year
+          if (a.month !== b.month) return a.month - b.month
+          return a.day - b.day
+        })
+        .map(day => ({
+          ...day,
+          label: formatDayLabel(day.year, day.month, day.day)
         }))
     }
 
@@ -1045,6 +1074,8 @@ const getDashboardAnalytics = async (req, res) => {
 
     const processedWeeklyDeployments =
       processWeeklyDeploymentData(weeklyTrendsData)
+    const processedDailyDeployments =
+      processDailyDeploymentData(dailyTrendsData)
     const processedWeeklySacks = processWeeklySacksData(weeklySacksData)
     const processedWeeklyWeight = processWeeklyWeightData(weeklyWeightData)
 
@@ -1126,9 +1157,12 @@ const getDashboardAnalytics = async (req, res) => {
           labels: processedWeeklyDeployments.map(item => item.label),
           completedData: processedWeeklyDeployments.map(
             item => item.completed || 0
-          ),
-          canceledData: processedWeeklyDeployments.map(
-            item => item.canceled || 0
+          )
+        },
+        dailyDeployments: {
+          labels: processedDailyDeployments.map(item => item.label),
+          completedData: processedDailyDeployments.map(
+            item => item.completed || 0
           )
         },
         weeklySacks: {
@@ -1189,15 +1223,28 @@ const getDashboardAnalytics = async (req, res) => {
           )
         },
         userRoles: {
-          labels: userRoleData.map(
-            item => userRoleMap[item._id] || item._id || 'Unknown'
-          ),
+          labels: userRoleData.map(item => {
+            const userRoleMap = {
+              head_admin: 'Head Admin',
+              admin: 'Admin',
+              visitor: 'Visitor',
+              subcon: 'Subcontractor'
+            }
+            return userRoleMap[item._id] || item._id || 'Unknown'
+          }),
           data: userRoleData.map(item => item.count || 0)
         },
         userStatus: {
-          labels: userStatusData.map(
-            item => userStatusMap[item._id] || item._id || 'Unknown'
-          ),
+          labels: userStatusData.map(item => {
+            const userStatusMap = {
+              active: 'Active',
+              inactive: 'Inactive',
+              pending: 'Pending',
+              rejected: 'Rejected',
+              revoked: 'Revoked'
+            }
+            return userStatusMap[item._id] || item._id || 'Unknown'
+          }),
           data: userStatusData.map(item => item.count || 0)
         },
         subconDistribution: {
