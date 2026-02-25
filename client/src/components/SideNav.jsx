@@ -100,7 +100,7 @@ function SideNav () {
       {isSideBarOpen && (
         <div
           onClick={() => setIsSideBarOpen(false)}
-          className='absolute bg-black/40 inset-0 z-40 backdrop-blur-xs lg:hidden'
+          className='absolute bg-black/40 inset-0 z-40 backdrop-blur-xs lg:hidden h-screen'
         ></div>
       )}
     </>
