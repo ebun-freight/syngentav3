@@ -32,8 +32,8 @@ function UserLayout () {
 
         {/* main content */}
         <div
-          className={clsx('m-8 flex-1 flex flex-col', {
-            'rounded bg-white shadow-card3 p-6':
+          className={clsx('sm:m-8 flex-1 flex flex-col', {
+            'bg-white sm:rounded sm:shadow-card3 p-4 sm:p-6':
               location.pathname !== '/secure/calendar'
           })}
         >

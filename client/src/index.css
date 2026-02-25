@@ -12,6 +12,12 @@
   /* colors */
   --color-primaryColor: #001e36;
 
+  /* font size */
+  --text-xxs: 0.625rem;
+
+  /* breakpoints */
+  --breakpoint-xs: 480px;
+
   /* shadows */
   --shadow-card3: rgba(0, 0, 0, 0.05) 0px 0px 0px 1px;
   --shadow-warning: 0px 2px 4px rgba(0, 0, 0, 0.2),

@@ -21,22 +21,14 @@ function TopBar () {
 
   return (
     <>
-      <header className='bg-white py-2 px-8 flex items-center shadow-card3'>
+      <header className='bg-white py-2 px-4 sm:px-8 flex items-center shadow-card3'>
         {/* big screen burger button */}
         <button
           onClick={handleOpenSideBar}
-          className='hover:bg-gray-100 p-0 rounded-md text-3xl cursor-pointer'
+          className='hover:bg-gray-100 p-0 rounded-md text-2xl sm:text-3xl cursor-pointer'
         >
           <HiOutlineMenuAlt2 />
         </button>
-
-        {/* small screen burger button */}
-        {/* <button
-          onClick={handleOpenSideBar}
-          className='hover:bg-gray-100 p-0 rounded-md text-3xl cursor-pointer block xl:hidden text-red-500'
-        >
-          <HiOutlineMenuAlt2 />
-        </button> */}
 
         <LiveClock />
 
@@ -48,12 +40,12 @@ function TopBar () {
             className='flex items-center gap-4 cursor-pointer'
           >
             <div className='flex flex-col items-end'>
-              <p className='text-sm font-semibold text-nowrap capitalize'>
+              <p className='text-xs sm:text-sm font-semibold text-nowrap capitalize'>
                 {userData.data._id
                   ? `${userData.data.firstname} ${userData.data.lastname}`
                   : ''}
               </p>
-              <span className='text-xs capitalize'>
+              <span className='text-xxs sm:text-xs capitalize max-sm:-mt-0.5'>
                 {userData.data.role !== 'subcon'
                   ? userData?.data?.role?.replace('_', ' ')
                   : userData?.data?.subcon?.replace('_', ' ')}
@@ -62,7 +54,7 @@ function TopBar () {
             <img
               src={userData.data.imageUrl || no_image}
               className={clsx(
-                'w-10 aspect-square mask mask-squircle object-cover object-center',
+                'w-8 sm:w-10 aspect-square mask mask-squircle object-cover object-center',
                 {
                   'opacity-100': userData?.data?.imageUrl,
                   'opacity-10': !userData?.data?.imageUrl

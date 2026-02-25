@@ -1068,14 +1068,14 @@ const Dashboard = () => {
     color,
     trend = null
   }) => (
-    <div className='bg-white p-4 rounded-lg shadow-card3 border border-gray-100 hover:shadow-md transition-all duration-200'>
+    <div className='bg-white p-2 sm:p-4 rounded-lg shadow-card3 border border-gray-100 hover:shadow-md transition-all duration-200'>
       <div className='flex items-start justify-between'>
         <div className='space-y-2'>
           <div className='flex items-center gap-2'>
             <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
-              <Icon className={`text-xl ${color}`} />
+              <Icon className={`text-lg sm:text-xl ${color}`} />
             </div>
-            <span className='text-xs md:text-sm font-medium text-gray-600'>
+            <span className='text-xxs sm:text-xs md:text-sm font-medium text-gray-600'>
               {title}
             </span>
           </div>
@@ -1083,7 +1083,9 @@ const Dashboard = () => {
             {value}
           </div>
           {subtitle && (
-            <div className='text-xs md:text-sm text-gray-500'>{subtitle}</div>
+            <div className='text-xxs sm:text-xs md:text-sm text-gray-500'>
+              {subtitle}
+            </div>
           )}
         </div>
         {trend && (
@@ -1093,7 +1095,7 @@ const Dashboard = () => {
             }`}
           >
             {trend > 0 ? <TbTrendingUp /> : <TbTrendingDown />}
-            <span className='text-xs md:text-sm font-medium'>
+            <span className='text-xxs sm:text-xs md:text-sm font-medium'>
               {Math.abs(trend)}%
             </span>
           </div>
@@ -1146,24 +1148,24 @@ const Dashboard = () => {
 
   return (
     <div className='flex-1 relative overflow-y-auto scrollbar-thin'>
-      <div className='absolute inset-0 space-y-6'>
+      <div className='absolute inset-0 space-y-4 sm:space-y-6'>
         {/* Header */}
         <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
           <div>
-            <h1 className='font-semibold text-xl md:text-2xl text-gray-900'>
+            <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-gray-900'>
               Analytics Dashboard
             </h1>
-            <p className='text-gray-600 mt-2 font-medium text-sm md:text-base'>
+            <p className='text-gray-600 mt-2 font-medium text-xs sm:text-sm md:text-base'>
               Real-time operational insights and performance metrics
             </p>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className='flex border-b border-gray-200'>
+        <div className='flex border-b border-gray-200 overflow-x-auto'>
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 font-medium text-xs md:text-sm transition-colors ${
+            className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
               activeTab === 'overview'
                 ? 'text-primaryColor border-b-2 border-primaryColor'
                 : 'text-gray-500 hover:text-gray-700'
@@ -1174,7 +1176,7 @@ const Dashboard = () => {
           {(isAdmin || isVisitor) && (
             <button
               onClick={() => setActiveTab('deploymentDetails')}
-              className={`px-4 py-2 font-medium text-xs md:text-sm transition-colors ${
+              className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
                 activeTab === 'deploymentDetails'
                   ? 'text-primaryColor border-b-2 border-primaryColor'
                   : 'text-gray-500 hover:text-gray-700'
@@ -1187,7 +1189,7 @@ const Dashboard = () => {
             <>
               <button
                 onClick={() => setActiveTab('users')}
-                className={`px-4 py-2 font-medium text-xs md:text-sm transition-colors ${
+                className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
                   activeTab === 'users'
                     ? 'text-primaryColor border-b-2 border-primaryColor'
                     : 'text-gray-500 hover:text-gray-700'
@@ -1197,7 +1199,7 @@ const Dashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab('subcons')}
-                className={`px-4 py-2 font-medium text-xs md:text-sm transition-colors ${
+                className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
                   activeTab === 'subcons'
                     ? 'text-primaryColor border-b-2 border-primaryColor'
                     : 'text-gray-500 hover:text-gray-700'
@@ -1210,7 +1212,7 @@ const Dashboard = () => {
           {isSubcon && (
             <button
               onClick={() => setActiveTab('resources')}
-              className={`px-4 py-2 font-medium text-xs md:text-sm transition-colors ${
+              className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
                 activeTab === 'resources'
                   ? 'text-primaryColor border-b-2 border-primaryColor'
                   : 'text-gray-500 hover:text-gray-700'
@@ -1225,7 +1227,7 @@ const Dashboard = () => {
         {activeTab === 'overview' && (
           <>
             <div
-              className={clsx('grid grid-cols-1 md:grid-cols-2 gap-4', {
+              className={clsx('grid grid-cols-2 gap-4', {
                 'xl:grid-cols-6': isVisitor,
                 'xl:grid-cols-4': !isVisitor
               })}
@@ -1340,7 +1342,7 @@ const Dashboard = () => {
             </div>
 
             {isAdmin && (
-              <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4'>
+              <div className='grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4'>
                 <MetricCard
                   icon={HiOutlineTruck}
                   title='Truck Utilization'
@@ -1411,7 +1413,7 @@ const Dashboard = () => {
 
             <div className='grid grid-cols-1 2xl:grid-cols-3 gap-6'>
               {/* Deployment Trends - with Daily / Weekly toggle */}
-              <div className='col-span-2 bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4'>
                   <div>
                     <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
@@ -1425,10 +1427,10 @@ const Dashboard = () => {
                   </div>
                   <div className='flex items-center gap-2'>
                     {/* Period toggle */}
-                    <div className='flex items-center bg-gray-100 rounded-lg p-1 gap-1'>
+                    <div className='flex items-center bg-gray-100 rounded-lg p-0.5 gap-1'>
                       <button
                         onClick={() => setTrendPeriod('daily')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                           trendPeriod === 'daily'
                             ? 'bg-white text-gray-900 shadow-sm'
                             : 'text-gray-500 hover:text-gray-700'
@@ -1439,7 +1441,7 @@ const Dashboard = () => {
                       </button>
                       <button
                         onClick={() => setTrendPeriod('weekly')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                           trendPeriod === 'weekly'
                             ? 'bg-white text-gray-900 shadow-sm'
                             : 'text-gray-500 hover:text-gray-700'
@@ -1457,7 +1459,7 @@ const Dashboard = () => {
               </div>
 
               {/* Deployment Status Distribution */}
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Deployment Status
@@ -1477,7 +1479,7 @@ const Dashboard = () => {
 
             {isAdmin && (
               <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
-                <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                   <div className='mb-6'>
                     <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                       Fleet Composition
@@ -1497,7 +1499,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                   <div className='mb-6'>
                     <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                       Truck Status
@@ -1514,7 +1516,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                   <div className='mb-6'>
                     <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                       Driver Status
@@ -1531,7 +1533,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className='col-span-full bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+                <div className='col-span-full bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                   <div className='mb-6'>
                     <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                       Top Drivers Performance
@@ -1556,7 +1558,7 @@ const Dashboard = () => {
         {((activeTab === 'deploymentDetails' && isAdmin) ||
           (activeTab === 'deploymentDetails' && isVisitor)) && (
           <div className='space-y-6'>
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
               <MetricCard
                 icon={HiOutlineLocationMarker}
                 title='Territories'
@@ -1590,7 +1592,7 @@ const Dashboard = () => {
             </div>
 
             <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Territory Distribution
@@ -1607,7 +1609,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Hybrid Distribution
@@ -1624,7 +1626,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Flagging Distribution
@@ -1642,7 +1644,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Territory Performance
@@ -1832,7 +1834,7 @@ const Dashboard = () => {
               />
             </div>
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     User Role Distribution
@@ -1848,7 +1850,7 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     User Status Distribution
@@ -1865,7 +1867,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div className='mb-6'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Subcontractor Distribution
@@ -1890,7 +1892,7 @@ const Dashboard = () => {
         {/* Subcons Tab */}
         {activeTab === 'subcons' && isAdmin && (
           <div className='space-y-6'>
-            <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div className='mb-6'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Subcontractor Deployment Status
@@ -2041,7 +2043,7 @@ const Dashboard = () => {
             </div>
 
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Driver Performance
@@ -2057,7 +2059,7 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Driver Status
@@ -2076,7 +2078,7 @@ const Dashboard = () => {
             </div>
 
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Truck Performance
@@ -2092,7 +2094,7 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-              <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Truck Status
@@ -2110,7 +2112,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className='bg-white p-6 rounded-xl shadow-card3 border border-gray-200'>
+            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
               <div className='mb-6'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Fleet Composition
