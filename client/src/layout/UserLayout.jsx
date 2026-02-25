@@ -33,7 +33,7 @@ function UserLayout () {
         {/* main content */}
         <div
           className={clsx('sm:m-8 flex-1 flex flex-col', {
-            'bg-white sm:rounded sm:shadow-card3 p-4 sm:p-6':
+            'bg-white sm:rounded sm:shadow-card3 px-4 pb-4 sm:p-6':
               location.pathname !== '/secure/calendar'
           })}
         >

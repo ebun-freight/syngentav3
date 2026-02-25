@@ -231,7 +231,7 @@ function TimelineLogs () {
 
             <div className='flex max-sm:justify-between gap-4'>
               {/* filters */}
-              <div className='dropdown dropdown-center'>
+              <div className='dropdown dropdown-start sm:dropdown-center'>
                 {/* button */}
                 <div
                   tabIndex={0}
@@ -245,10 +245,11 @@ function TimelineLogs () {
                 {/* menu */}
                 <div
                   tabIndex='0'
-                  className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-sm ring-1 ring-gray-300'
+                  className='dropdown-content menu mt-3 bg-white shadow-sm rounded ring-1 ring-gray-300
+           w-[calc(100vw-2rem)] max-w-sm'
                 >
-                  <div className='grid grid-cols-2 gap-4 p-4'>
-                    <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                  <div className='grid grid-cols-2 gap-4 p-2 sm:p-4'>
+                    <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
                       <p className='font-semibold'>Sort</p>
                       <select
                         name='sort'
@@ -261,7 +262,7 @@ function TimelineLogs () {
                       </select>
                     </label>
 
-                    <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                    <label className='flex items-center text-xxs xs:text-sm  outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
                       <p className='font-semibold'>Status</p>
                       <select
                         name='status'
@@ -278,7 +279,7 @@ function TimelineLogs () {
                     </label>
 
                     {['head_admin', 'admin'].includes(userData.data.role) && (
-                      <label className='col-span-full flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                      <label className='col-span-full flex items-center text-xxs xs:text-sm  outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
                         <p className='font-semibold'>Subcon</p>
                         <select
                           name='subcon'
@@ -296,7 +297,7 @@ function TimelineLogs () {
                       </label>
                     )}
 
-                    <label className='col-span-2 flex items-center justify-between text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                    <label className='col-span-2 flex items-center justify-between text-xxs xs:text-sm  outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
                       <p className='font-semibold whitespace-nowrap'>Date</p>
                       <input
                         type='date'
@@ -310,7 +311,7 @@ function TimelineLogs () {
                     <button
                       onClick={handleResetFilters}
                       disabled={isLoading}
-                      className='bg-linear-to-b from-gray-100 to-gray-200  text-gray-600  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                      className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95 max-xs:text-xs'
                     >
                       Reset
                     </button>
@@ -318,7 +319,7 @@ function TimelineLogs () {
                     <button
                       onClick={handleApplyFilters}
                       disabled={isLoading}
-                      className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                      className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95 max-xs:text-xs'
                     >
                       Apply
                     </button>
@@ -400,13 +401,13 @@ function TimelineLogs () {
               <table className='table table-sm sm:table-md table-pin-rows table-pin-cols'>
                 <thead>
                   <tr className='bg-white border-b border-gray-200 text-gray-800'>
-                    <td className='max-xs:text-xs'>{total}</td>
-                    <td className='max-xs:text-xs'>Code</td>
-                    <td className='max-xs:text-xs'>Action Details</td>
-                    <td className='max-xs:text-xs'>Status</td>
-                    <td className='max-xs:text-xs'>Truck Plate</td>
-                    <td className='max-xs:text-xs'>Driver</td>
-                    <td className='max-xs:text-xs'>Timestamp</td>
+                    <td className='max-sm:text-xs'>{total}</td>
+                    <td className='max-sm:text-xs'>Code</td>
+                    <td className='max-sm:text-xs'>Action Details</td>
+                    <td className='max-sm:text-xs'>Status</td>
+                    <td className='max-sm:text-xs'>Truck Plate</td>
+                    <td className='max-sm:text-xs'>Driver</td>
+                    <td className='max-sm:text-xs'>Timestamp</td>
                   </tr>
                 </thead>
                 <tbody>
@@ -414,13 +415,13 @@ function TimelineLogs () {
                     <tr
                       key={log._id || index}
                       onClick={() => handleShowTimelineLogDetailsModal(log)}
-                      className='border-b border-gray-200 last:border-none hover:bg-gray-50 cursor-pointer'
+                      className='border-b border-gray-200 last:border-none hover:bg-gray-50 cursor-pointer '
                     >
                       <td className='text-xxs sm:text-xs font-bold text-gray-600'>
                         {(page - 1) * filters.perPage + index + 1}
                       </td>
 
-                      <td className='p-0 relative max-xs:text-xxs'>
+                      <td className='p-0 relative max-sm:text-xxs'>
                         <div
                           className='cursor-copy h-full w-fit p-2 hover:bg-gray-100 transition-colors rounded relative group'
                           onClick={e => {
@@ -452,7 +453,7 @@ function TimelineLogs () {
 
                       <td>
                         <p
-                          className='max-xs:text-xxs text-sm max-w-xs'
+                          className='max-sm:text-xxs text-sm max-w-xs line-clamp-2 min-w-40'
                           title={log.action}
                         >
                           {log.action}
@@ -461,7 +462,7 @@ function TimelineLogs () {
 
                       <td>
                         <span
-                          className={`px-2 py-1 rounded-full max-xs:text-xxs text-xs capitalize ${getStatusBadgeColor(
+                          className={`px-2 py-1 rounded-full max-sm:text-xxs text-xs capitalize ${getStatusBadgeColor(
                             log.status
                           )}`}
                         >
@@ -470,19 +471,19 @@ function TimelineLogs () {
                       </td>
 
                       <td>
-                        <div className='max-xs:text-xxs text-sm uppercase'>
+                        <div className='max-sm:text-xxs text-sm uppercase line-clamp-2'>
                           {getTruckPlate(log)}
                         </div>
                       </td>
 
                       <td>
-                        <p className='max-xs:text-xxs text-nowrap capitalize'>
+                        <p className='max-sm:text-xxs text-nowrap capitalize line-clamp-2'>
                           {getDriverName(log)}
                         </p>
                       </td>
 
                       <td>
-                        <div className='max-xs:text-xxs text-sm text-gray-600'>
+                        <div className='max-sm:text-xxs text-sm text-gray-600 text-nowrap'>
                           {getActionTimestamp(log)}
                         </div>
                       </td>
