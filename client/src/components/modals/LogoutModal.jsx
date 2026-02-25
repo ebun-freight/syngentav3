@@ -36,6 +36,8 @@ function LogoutModal ({ isOpen, onClose }) {
     } catch (error) {
       console.log(error)
       toast.success('Logged out successfully')
+      sessionStorage.removeItem('userToken')
+      navigate('/')
       setIsLogoutLoading(false)
     }
   }
