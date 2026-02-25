@@ -49,8 +49,6 @@ const formatISO = iso =>
 
 /**
  * Renders a stacked list of pickup stop timestamps for either pickupIn or pickupOut.
- * Shows "Stop #N  <time>" for each stop that has a value, and a single "Pending /
- * Canceled" fallback if none of the stops have a value.
  */
 const PickupStopsCell = ({ pickups = [], field, status }) => {
   const stopsWithValue = pickups.filter(p => p[field])
@@ -67,7 +65,6 @@ const PickupStopsCell = ({ pickups = [], field, status }) => {
     <div className='space-y-1'>
       {pickups.map((stop, i) => (
         <div key={i} className='flex items-center gap-1.5 text-nowrap'>
-          {/* stop badge — always visible so rows align across cells */}
           <span className='text-[10px] font-semibold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full leading-none shrink-0'>
             S{i + 1}
           </span>
@@ -112,6 +109,41 @@ function Deployments () {
   const [total, setTotal] = useState(null)
   const [totalPages, setTotalPages] = useState(null)
   const [selectedDeployment, setSelectedDeployment] = useState({})
+
+  // ─── checkbox selection state ────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState(new Set())
+
+  const isAllSelected =
+    allDeployments.length > 0 &&
+    allDeployments.every(d => selectedIds.has(d._id))
+
+  const isIndeterminate = selectedIds.size > 0 && !isAllSelected
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(allDeployments.map(d => d._id)))
+    }
+  }
+
+  const handleToggleSelect = (e, id) => {
+    e.stopPropagation()
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleClearSelection = () => setSelectedIds(new Set())
+
+  /** Returns only the checked deployments, or all if nothing is checked. */
+  const deploymentsForExport =
+    selectedIds.size > 0
+      ? allDeployments.filter(d => selectedIds.has(d._id))
+      : allDeployments
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const [filters, setFilters] = useState(defaultFilters)
   const [tempFilters, setTempFilters] = useState(defaultFilters)
@@ -158,11 +190,14 @@ function Deployments () {
     }
   }
 
-  const handleExportToExcel = () => exportDeploymentToExcel(allDeployments)
+  // ─── export handlers now use deploymentsForExport ────────────────────────────
+  const handleExportToExcel = () =>
+    exportDeploymentToExcel(deploymentsForExport)
   const handleExportToBillingToExcel = async () =>
-    await exportBillingToExcel(allDeployments)
+    await exportBillingToExcel(deploymentsForExport)
   const handleExportToSubconBillingToExcel = async () =>
-    await exportSubconBillingToExcel(allDeployments, userData)
+    await exportSubconBillingToExcel(deploymentsForExport, userData)
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const handleAddNewDeployment = newDeployment => {
     setAllDeployments(prev => [newDeployment, ...prev])
@@ -181,6 +216,11 @@ function Deployments () {
 
   const handleRemoveDeletedDeployment = deletedDeployment => {
     setAllDeployments(prev => prev.filter(d => d._id !== deletedDeployment))
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.delete(deletedDeployment)
+      return next
+    })
     setIsDeleteDeploymentModalOpen(false)
     setIsDeploymentDetailsModalOpen(false)
   }
@@ -194,6 +234,8 @@ function Deployments () {
       setTotal(total)
       setPage(page)
       setTotalPages(totalPages)
+      // Clear selection when the result set changes
+      setSelectedIds(new Set())
     }
 
     const handleGetAllTrucks = async () => {
@@ -415,17 +457,45 @@ function Deployments () {
                 <div
                   tabIndex={0}
                   role='button'
-                  className='flex items-center gap-4 bg-linear-to-b from-blue-500 to-blue-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed'
+                  className='flex items-center gap-2 bg-linear-to-b from-blue-500 to-blue-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed'
                   disabled={isDeploymentLoading || allDeployments.length === 0}
                 >
                   <BiExport className='text-lg' />
                   <p>Export</p>
+                  {/* selection badge */}
+                  {selectedIds.size > 0 && (
+                    <span className='bg-white text-blue-600 text-xs font-bold px-1.5 py-0.5 rounded-full leading-none'>
+                      {selectedIds.size}
+                    </span>
+                  )}
                 </div>
 
                 <div
                   tabIndex='0'
                   className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-64 ring-1 ring-gray-300'
                 >
+                  {/* selection context hint */}
+                  {selectedIds.size > 0 ? (
+                    <div className='px-4 py-2 flex items-center justify-between'>
+                      <p className='text-xs text-blue-600 font-semibold'>
+                        {selectedIds.size} row{selectedIds.size > 1 ? 's' : ''}{' '}
+                        selected
+                      </p>
+                      <button
+                        onClick={handleClearSelection}
+                        className='text-xs text-gray-400 hover:text-gray-600 cursor-pointer'
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  ) : (
+                    <p className='px-4 pt-2 pb-1 text-xs text-gray-400'>
+                      Exporting all {allDeployments.length} rows
+                    </p>
+                  )}
+
+                  <div className='border-t border-gray-200 my-1' />
+
                   <button
                     onClick={handleExportToExcel}
                     disabled={
@@ -539,6 +609,20 @@ function Deployments () {
               <table className='table table-sm table-pin-rows table-pin-cols'>
                 <thead>
                   <tr className='bg-white border-b border-gray-200 text-gray-800'>
+                    {/* ── select-all checkbox ── */}
+                    {['head_admin', 'admin'].includes(userData.data.role) && (
+                      <td className='w-8'>
+                        <input
+                          type='checkbox'
+                          className='checkbox checkbox-sm'
+                          checked={isAllSelected}
+                          ref={el => {
+                            if (el) el.indeterminate = isIndeterminate
+                          }}
+                          onChange={handleToggleSelectAll}
+                        />
+                      </td>
+                    )}
                     <td>{total}</td>
                     <td>Code</td>
                     <td>Truck Details</td>
@@ -556,8 +640,30 @@ function Deployments () {
                     <tr
                       key={index}
                       onClick={() => handleShowTruckDetailsModal(deployment)}
-                      className='border-b border-gray-200 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top'
+                      className={clsx(
+                        'border-b border-gray-200 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top',
+                        {
+                          'bg-blue-50 hover:bg-blue-100': selectedIds.has(
+                            deployment._id
+                          )
+                        }
+                      )}
                     >
+                      {/* ── per-row checkbox ── */}
+                      {['head_admin', 'admin'].includes(userData.data.role) && (
+                        <td
+                          onClick={e => handleToggleSelect(e, deployment._id)}
+                          className='cursor-default'
+                        >
+                          <input
+                            type='checkbox'
+                            className='checkbox checkbox-sm'
+                            checked={selectedIds.has(deployment._id)}
+                            onChange={() => {}} // controlled via td onClick
+                          />
+                        </td>
+                      )}
+
                       {/* # */}
                       <td className='text-xs font-bold text-gray-600'>
                         {(filters.page - 1) * filters.perPage + index + 1}
@@ -658,7 +764,7 @@ function Deployments () {
                         )}
                       </td>
 
-                      {/* Pick-up In — one row per stop */}
+                      {/* Pick-up In */}
                       <td>
                         <PickupStopsCell
                           pickups={deployment.pickups}
@@ -667,7 +773,7 @@ function Deployments () {
                         />
                       </td>
 
-                      {/* Pick-up Out — one row per stop */}
+                      {/* Pick-up Out */}
                       <td>
                         <PickupStopsCell
                           pickups={deployment.pickups}
