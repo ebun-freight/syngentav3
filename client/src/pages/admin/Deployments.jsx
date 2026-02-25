@@ -263,14 +263,14 @@ function Deployments () {
     <>
       <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
         {/* header */}
-        <div className='flex flex-wrap justify-between max-xs:gap-x-26 gap-x-16 gap-y-4'>
+        <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-16 gap-y-4'>
           {/* left side */}
           <div className='flex justify-between flex-1'>
             <h1 className='font-semibold text-lg sm:text-xl md:text-2xl'>
               Deployments
             </h1>
 
-            <div className='flex gap-6 max-sm:hidden lg:hidden'>
+            <div className='flex gap-4 max-sm:hidden xl:hidden'>
               {/* Export dropdown */}
               {['head_admin', 'admin'].includes(userData.data.role) && (
                 <div className='dropdown dropdown-end sm:dropdown-center'>
@@ -388,7 +388,7 @@ function Deployments () {
           </div>
 
           {/* right side */}
-          <div className='flex justify-between max-sm:flex-col gap-2 sm:gap-4 max-xs:flex-1 w-full'>
+          <div className='flex justify-between max-sm:flex-col gap-2 sm:gap-4 max-xs:flex-1 w-full xl:w-auto'>
             {/* search */}
             <form
               onSubmit={handleApplyFilters}
@@ -582,7 +582,7 @@ function Deployments () {
 
               {/* Export dropdown */}
               {['head_admin', 'admin'].includes(userData.data.role) && (
-                <div className='dropdown dropdown-end sm:dropdown-center max-lg:hidden'>
+                <div className='dropdown dropdown-end sm:dropdown-center max-xl:hidden'>
                   <div
                     tabIndex={0}
                     role='button'
@@ -687,7 +687,7 @@ function Deployments () {
                 <button
                   onClick={() => setIsCreateDeploymentModalOpen(true)}
                   disabled={isDeploymentLoading}
-                  className='flex items-center gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed max-lg:hidden'
+                  className='flex items-center gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed max-xl:hidden'
                 >
                   <FaPlus className='text-sm' />
                   <p>Deploy Truck</p>

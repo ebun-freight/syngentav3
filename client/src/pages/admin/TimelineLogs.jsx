@@ -192,17 +192,17 @@ function TimelineLogs () {
     <>
       <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
         {/* header */}
-        <div className='flex flex-col lg:flex-row justify-between gap-x-12 gap-y-4'>
+        <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-16 gap-y-4'>
           <h1 className='font-semibold text-lg sm:text-xl md:text-2xl'>
             Deployment Logs
           </h1>
 
           {/* right side */}
-          <div className='flex max-sm:flex-col gap-2 sm:gap-4 max-xs:flex-1'>
+          <div className='flex justify-between max-sm:flex-col gap-2 sm:gap-4 max-xs:flex-1 w-full xl:w-auto'>
             {/* search */}
             <form
               onSubmit={handleApplyFilters}
-              className='flex flex-1 items-center outline outline-gray-200 rounded pl-3 pr-1 focus-within:outline-gray-300 transition-all'
+              className='flex max-md:flex-1 items-center outline outline-gray-200 rounded pl-3 pr-1 focus-within:outline-gray-300 transition-all'
             >
               <FaSearch className='text-xs sm:text-sm' />
               <input
@@ -279,7 +279,7 @@ function TimelineLogs () {
                     </label>
 
                     {['head_admin', 'admin'].includes(userData.data.role) && (
-                      <label className='col-span-full flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2 inset-ring-teal-200'>
+                      <label className='col-span-full flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
                         <p className='font-semibold'>Subcon</p>
                         <select
                           name='subcon'

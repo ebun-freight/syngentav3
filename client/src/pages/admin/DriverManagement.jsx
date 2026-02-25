@@ -136,109 +136,36 @@ function DriverManagement () {
 
   return (
     <>
-      <div className='flex-1 flex flex-col gap-10'>
+      <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
         {/* header */}
-        <div className='flex items-center flex-wrap gap-x-12 gap-y-4'>
-          <h1 className='font-semibold text-2xl mr-auto'>Manage Drivers</h1>
+        <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-16 gap-y-4'>
+          {/* left side */}
+          <div className='flex justify-between flex-1'>
+            <h1 className='font-semibold text-lg sm:text-xl md:text-2xl'>
+              Manage Drivers
+            </h1>
+
+            <div className='flex gap-4 max-sm:hidden xl:hidden'>
+              {/* create button */}
+              {['head_admin', 'admin'].includes(userData.data.role) && (
+                <button
+                  onClick={() => setIsCreateDriverModalOpen(true)}
+                  disabled={isLoading}
+                  className='flex items-center gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white text-nowrap rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95'
+                >
+                  <FaPlus className='text-sm' />
+                  <p>Create New</p>
+                </button>
+              )}
+            </div>
+          </div>
 
           {/* right side */}
-          <div className='flex flex-wrap gap-4'>
-            {/* filters */}
-            <div className='dropdown dropdown-center'>
-              {/* button */}
-              <div
-                tabIndex={0}
-                role='button'
-                className='flex items-center gap-4 ring-1 ring-gray-200 hover:bg-gray-50 rounded px-3 py-1 cursor-pointer active:scale-95 transition-all'
-              >
-                <FaFilter className='text-sm' />
-                <p>Filter</p>
-              </div>
-
-              {/* menu */}
-              <div
-                tabIndex='0'
-                className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-sm ring-1 ring-gray-300'
-              >
-                <div className='grid grid-cols-2 gap-4 p-4'>
-                  <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
-                    <p className='font-semibold'>Sort</p>
-                    <select
-                      name='sort'
-                      value={tempFilters.sort}
-                      onChange={handleChangeFilter}
-                      className='w-full focus:outline-none'
-                    >
-                      <option value='latest'>Latest</option>
-                      <option value='oldest'>Oldest</option>
-                      <option value='a-z'>A to Z</option>
-                      <option value='z-a'>Z to A</option>
-                      <option value='trips-asc'>Trip-asc</option>
-                      <option value='trips-desc'>Trip-desc</option>
-                      <option value='subcon-asc'>Subcon-asc</option>
-                      <option value='subcon-desc'>Subcon-desc</option>
-                    </select>
-                  </label>
-
-                  <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
-                    <p className='font-semibold'>Status</p>
-                    <select
-                      name='status'
-                      value={tempFilters.status}
-                      onChange={handleChangeFilter}
-                      className='w-full focus:outline-none capitalize'
-                    >
-                      <option value=''>All</option>
-                      {settings.trucksDrivers.status.map((item, index) => (
-                        <option key={index} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  {userData.data.role !== 'subcon' && (
-                    <label className='col-span-full flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
-                      <p className='font-semibold'>Subcon</p>
-                      <select
-                        name='subcon'
-                        value={tempFilters.subcon}
-                        onChange={handleChangeFilter}
-                        className='w-full focus:outline-none capitalize'
-                      >
-                        <option value=''>All</option>
-                        {settings.trucksDrivers.subcon.map((item, index) => (
-                          <option key={index} value={item}>
-                            {item}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-
-                  <button
-                    onClick={handleResetFilters}
-                    disabled={isLoading}
-                    className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
-                  >
-                    Reset
-                  </button>
-
-                  <button
-                    onClick={handleApplyFilters}
-                    disabled={isLoading}
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </div>
-
+          <div className='flex justify-between max-sm:flex-col gap-2 sm:gap-4 max-xs:flex-1 w-full xl:w-auto'>
             {/* search */}
             <form
               onSubmit={handleApplyFilters}
-              className='flex items-center outline outline-gray-200 rounded pl-3 pr-1 focus-within:outline-gray-300 transition-all max-xl:mr-auto'
+              className='flex max-md:flex-1 items-center outline outline-gray-200 rounded pl-3 pr-1 focus-within:outline-gray-300 transition-all'
             >
               <FaSearch className='text-sm' />
               <input
@@ -265,42 +192,136 @@ function DriverManagement () {
               </button>
             </form>
 
-            {/* pagination */}
-            <div className='flex gap-4 items-center outline outline-gray-200 rounded'>
-              <button
-                onClick={() => handleChangePage('prev')}
-                disabled={isLoading}
-                className='p-1 text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200'
-              >
-                <MdOutlineKeyboardArrowLeft />
-              </button>
+            <div className='flex justify-between gap-2 sm:gap-4'>
+              {/* filters */}
+              <div className='dropdown dropdown-center'>
+                {/* button */}
+                <div
+                  tabIndex={0}
+                  role='button'
+                  className='flex items-center gap-4 ring-1 ring-gray-200 hover:bg-gray-50 rounded px-3 py-1 cursor-pointer active:scale-95 transition-all'
+                >
+                  <FaFilter className='text-sm' />
+                  <p>Filter</p>
+                </div>
 
-              <p className='text-sm min-w-22 text-center'>
-                {!isLoading &&
-                  allDrivers &&
-                  `Page ${total > 0 ? page : total} of ${totalPages}`}
-              </p>
+                {/* menu */}
+                <div
+                  tabIndex='0'
+                  className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-sm ring-1 ring-gray-300'
+                >
+                  <div className='grid grid-cols-2 gap-4 p-4'>
+                    <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                      <p className='font-semibold'>Sort</p>
+                      <select
+                        name='sort'
+                        value={tempFilters.sort}
+                        onChange={handleChangeFilter}
+                        className='w-full focus:outline-none'
+                      >
+                        <option value='latest'>Latest</option>
+                        <option value='oldest'>Oldest</option>
+                        <option value='a-z'>A to Z</option>
+                        <option value='z-a'>Z to A</option>
+                        <option value='trips-asc'>Trip-asc</option>
+                        <option value='trips-desc'>Trip-desc</option>
+                        <option value='subcon-asc'>Subcon-asc</option>
+                        <option value='subcon-desc'>Subcon-desc</option>
+                      </select>
+                    </label>
 
-              <button
-                onClick={() => handleChangePage('next')}
-                disabled={isLoading}
-                className='p-1 text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200'
-              >
-                <MdOutlineKeyboardArrowRight />
-              </button>
+                    <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                      <p className='font-semibold'>Status</p>
+                      <select
+                        name='status'
+                        value={tempFilters.status}
+                        onChange={handleChangeFilter}
+                        className='w-full focus:outline-none capitalize'
+                      >
+                        <option value=''>All</option>
+                        {settings.trucksDrivers.status.map((item, index) => (
+                          <option key={index} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    {userData.data.role !== 'subcon' && (
+                      <label className='col-span-full flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                        <p className='font-semibold'>Subcon</p>
+                        <select
+                          name='subcon'
+                          value={tempFilters.subcon}
+                          onChange={handleChangeFilter}
+                          className='w-full focus:outline-none capitalize'
+                        >
+                          <option value=''>All</option>
+                          {settings.trucksDrivers.subcon.map((item, index) => (
+                            <option key={index} value={item}>
+                              {item}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+
+                    <button
+                      onClick={handleResetFilters}
+                      disabled={isLoading}
+                      className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                    >
+                      Reset
+                    </button>
+
+                    <button
+                      onClick={handleApplyFilters}
+                      disabled={isLoading}
+                      className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* pagination */}
+              <div className='flex gap-4 items-center outline outline-gray-200 rounded'>
+                <button
+                  onClick={() => handleChangePage('prev')}
+                  disabled={isLoading}
+                  className='p-1 text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200'
+                >
+                  <MdOutlineKeyboardArrowLeft />
+                </button>
+
+                <p className='text-sm min-w-22 text-center'>
+                  {!isLoading &&
+                    allDrivers &&
+                    `Page ${total > 0 ? page : total} of ${totalPages}`}
+                </p>
+
+                <button
+                  onClick={() => handleChangePage('next')}
+                  disabled={isLoading}
+                  className='p-1 text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200'
+                >
+                  <MdOutlineKeyboardArrowRight />
+                </button>
+              </div>
+
+              {/* create button */}
+              {['head_admin', 'admin'].includes(userData.data.role) && (
+                <button
+                  onClick={() => setIsCreateDriverModalOpen(true)}
+                  disabled={isLoading}
+                  className='flex items-center gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white text-nowrap rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 max-xl:hidden'
+                >
+                  <FaPlus className='text-sm' />
+                  <p>Create New</p>
+                </button>
+              )}
             </div>
-
-            {/* create button */}
-            {['head_admin', 'admin'].includes(userData.data.role) && (
-              <button
-                onClick={() => setIsCreateDriverModalOpen(true)}
-                disabled={isLoading}
-                className='flex items-center gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white text-nowrap rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95'
-              >
-                <FaPlus className='text-sm' />
-                <p>Create New</p>
-              </button>
-            )}
           </div>
         </div>
 
