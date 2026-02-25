@@ -38,18 +38,18 @@ function SideNav () {
         className={clsx(
           'w-full min-h-screen bg-linear-to-b from-primaryColor to-slate-950 shadow-card3 flex flex-col transition-all overflow-hidden z-50 absolute lg:static',
           {
-            'max-w-68': isSideBarOpen,
+            'max-w-56 sm:max-w-68': isSideBarOpen,
             'max-w-0': !isSideBarOpen
           }
         )}
       >
-        <div className='flex items-center justify-center gap-3 p-6 border-b border-white/10'>
-          <img src={ebun_logo_light} alt='' className='w-14' />
+        <div className='flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10'>
+          <img src={ebun_logo_light} alt='' className='w-10 sm:w-14' />
           <div>
-            <h1 className='font-semibold text-4xl tracking-widest text-white uppercase'>
+            <h1 className='font-semibold text-3xl sm:text-4xl tracking-widest text-white uppercase'>
               EBUN
             </h1>
-            <p className='text-white -mt-1.5 uppercase tracking-wider ml-0.5 text-nowrap whitespace-nowrap'>
+            <p className='max-sm:text-xs text-white -mt-1.5 uppercase tracking-widest sm:tracking-wider sm:ml-0.5 text-nowrap whitespace-nowrap'>
               Freight OPC
             </p>
           </div>
@@ -62,7 +62,7 @@ function SideNav () {
                 return (
                   <p
                     key={index}
-                    className='uppercase text-xs font-semibold px-6 py-3 text-white/30 not-first:mt-4 text-nowrap whitespace-nowrap'
+                    className='uppercase text-xxs sm:text-xs font-semibold px-6 py-3 text-white/30 not-first:mt-4 text-nowrap whitespace-nowrap'
                   >
                     {content.name}
                   </p>
@@ -75,7 +75,7 @@ function SideNav () {
                   to={content.path}
                   onClick={handleNavigate}
                   className={clsx(
-                    'flex items-center gap-4 px-6 py-3 active:scale-95 transition-transform rounded-sm ',
+                    'flex items-center gap-4 px-4 sm:px-6 py-2 sm:py-3 active:scale-95 transition-transform rounded-sm',
                     {
                       'bg-white/90 text-primaryColor font-medium':
                         location.pathname === content.path ||
@@ -86,8 +86,8 @@ function SideNav () {
                     }
                   )}
                 >
-                  <p className='text-xl'>{content.icon}</p>
-                  <p className='text-sm text-nowrap whitespace-nowrap'>
+                  <p className='text-lg sm:text-xl'>{content.icon}</p>
+                  <p className='text-xs sm:text-sm text-nowrap whitespace-nowrap'>
                     {content.name}
                   </p>
                 </Link>

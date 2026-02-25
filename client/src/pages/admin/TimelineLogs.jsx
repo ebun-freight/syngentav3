@@ -279,7 +279,7 @@ function TimelineLogs () {
                     </label>
 
                     {['head_admin', 'admin'].includes(userData.data.role) && (
-                      <label className='col-span-full flex items-center text-xxs xs:text-sm  outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
+                      <label className='col-span-full flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2 inset-ring-teal-200'>
                         <p className='font-semibold'>Subcon</p>
                         <select
                           name='subcon'
@@ -332,7 +332,7 @@ function TimelineLogs () {
                 <button
                   onClick={() => handleChangePage('prev')}
                   disabled={isLoading}
-                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200'
+                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   <MdOutlineKeyboardArrowLeft />
                 </button>
@@ -346,7 +346,7 @@ function TimelineLogs () {
                 <button
                   onClick={() => handleChangePage('next')}
                   disabled={isLoading}
-                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200'
+                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   <MdOutlineKeyboardArrowRight />
                 </button>
