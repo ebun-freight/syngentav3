@@ -484,7 +484,7 @@ const Dashboard = () => {
       ...createBaseOptions(true).plugins,
       datalabels: { display: false },
       legend: {
-        display: true,
+        display: false,
         position: 'bottom',
         labels: {
           usePointStyle: true,
@@ -1104,6 +1104,25 @@ const Dashboard = () => {
     </div>
   )
 
+  const MetricCardMobile = ({ icon: Icon, title, value, subtitle, color }) => (
+    <div className='bg-white p-2 rounded shadow-card3'>
+      <div className='flex items-start gap-1.5'>
+        <div className={`p-1.5 rounded ${color} bg-opacity-10 shrink-0`}>
+          <Icon className={`text-sm ${color}`} />
+        </div>
+        <div className='min-w-0 flex-1'>
+          <div className='flex items-center justify-between gap-1'>
+            <span className='text-[10px] font-medium text-gray-600 truncate'>
+              {title}
+            </span>
+            <span className='text-xs font-bold text-gray-900'>{value}</span>
+          </div>
+          <p className='text-[9px] text-gray-500 truncate'>{subtitle}</p>
+        </div>
+      </div>
+    </div>
+  )
+
   if (loading || userData.isLoading) {
     return (
       <div className='flex-1 flex items-center justify-center'>
@@ -1227,7 +1246,7 @@ const Dashboard = () => {
         {activeTab === 'overview' && (
           <>
             <div
-              className={clsx('grid grid-cols-2 gap-4', {
+              className={clsx('grid grid-cols-2 gap-4 max-sm:hidden', {
                 'xl:grid-cols-6': isVisitor,
                 'xl:grid-cols-4': !isVisitor
               })}
@@ -1341,8 +1360,188 @@ const Dashboard = () => {
               )}
             </div>
 
+            {/* Mobile View Metric Cards - Compact Grid */}
+            <div className='grid grid-cols-2 gap-4 sm:hidden'>
+              <MetricCardMobile
+                icon={TbRocket}
+                title='Total'
+                value={
+                  analytics.performanceMetrics.totalDeployments?.toLocaleString() ||
+                  '0'
+                }
+                subtitle={`${
+                  analytics.performanceMetrics.monthlyDeployments || 0
+                } mo`}
+                color='text-blue-600'
+              />
+              <MetricCardMobile
+                icon={TbChecklist}
+                title='Completed'
+                value={
+                  analytics.performanceMetrics.completedDeployments?.toLocaleString() ||
+                  '0'
+                }
+                subtitle={`${analytics.performanceMetrics.successRate || 0}%`}
+                color='text-green-600'
+              />
+              <MetricCardMobile
+                icon={TbRefresh}
+                title='In Progress'
+                value={
+                  analytics.performanceMetrics.ongoingDeployments?.toLocaleString() ||
+                  '0'
+                }
+                subtitle={`${
+                  analytics.performanceMetrics.activeDeployments || 0
+                } act`}
+                color='text-amber-600'
+              />
+              <MetricCardMobile
+                icon={TbActivity}
+                title='Recent'
+                value={
+                  analytics.performanceMetrics.recentActivity?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='24h'
+                color='text-purple-600'
+              />
+
+              {isSubcon && analytics?.subconAnalytics && (
+                <>
+                  <MetricCardMobile
+                    icon={HiOutlineTruck}
+                    title='Trucks'
+                    value={
+                      analytics.subconAnalytics.trucks?.available?.toLocaleString() ||
+                      '0'
+                    }
+                    subtitle={`${
+                      analytics.subconAnalytics.trucks?.total || 0
+                    } tot`}
+                    color='text-indigo-600'
+                  />
+                  <MetricCardMobile
+                    icon={HiOutlineUser}
+                    title='Drivers'
+                    value={
+                      analytics.subconAnalytics.drivers?.available?.toLocaleString() ||
+                      '0'
+                    }
+                    subtitle={`${
+                      analytics.subconAnalytics.drivers?.total || 0
+                    } tot`}
+                    color='text-cyan-600'
+                  />
+                </>
+              )}
+
+              {isVisitor && (
+                <>
+                  <MetricCardMobile
+                    icon={HiOutlineCube}
+                    title='Sacks'
+                    value={
+                      analytics.performanceMetrics.totalCompletedSacks?.toLocaleString() ||
+                      '0'
+                    }
+                    subtitle={`Avg ${
+                      analytics.performanceMetrics.avgCompletedSacks?.toFixed(
+                        1
+                      ) || '0'
+                    }`}
+                    color='text-emerald-600'
+                  />
+                  <MetricCardMobile
+                    icon={HiOutlineScale}
+                    title='Weight'
+                    value={`${
+                      analytics.performanceMetrics.totalCompletedWeight?.toLocaleString() ||
+                      '0'
+                    }kg`}
+                    subtitle={`Avg ${
+                      analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
+                      '0'
+                    }kg`}
+                    color='text-violet-600'
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Admin Mobile Metrics */}
             {isAdmin && (
-              <div className='grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4'>
+              <div className='grid grid-cols-2 gap-4 sm:hidden'>
+                <MetricCardMobile
+                  icon={HiOutlineTruck}
+                  title='Truck Util'
+                  value={`${
+                    analytics.performanceMetrics.utilizationRate || 0
+                  }%`}
+                  subtitle={`${
+                    analytics.performanceMetrics.deployedTrucks || 0
+                  }/${analytics.performanceMetrics.totalTrucks || 0}`}
+                  color='text-indigo-600'
+                />
+                <MetricCardMobile
+                  icon={HiOutlineUser}
+                  title='Driver Util'
+                  value={`${
+                    analytics.performanceMetrics.driverUtilizationRate || 0
+                  }%`}
+                  subtitle={`${
+                    analytics.performanceMetrics.deployedDrivers || 0
+                  }/${analytics.performanceMetrics.totalDrivers || 0}`}
+                  color='text-cyan-600'
+                />
+                <MetricCardMobile
+                  icon={HiOutlineCube}
+                  title='Sacks'
+                  value={
+                    analytics.performanceMetrics.totalCompletedSacks?.toLocaleString() ||
+                    '0'
+                  }
+                  subtitle={`Avg ${
+                    analytics.performanceMetrics.avgCompletedSacks?.toFixed(
+                      1
+                    ) || '0'
+                  }`}
+                  color='text-emerald-600'
+                />
+                <MetricCardMobile
+                  icon={HiOutlineScale}
+                  title='Weight'
+                  value={`${
+                    analytics.performanceMetrics.totalCompletedWeight?.toLocaleString() ||
+                    '0'
+                  }kg`}
+                  subtitle={`Avg ${
+                    analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
+                    '0'
+                  }kg`}
+                  color='text-violet-600'
+                />
+                <MetricCardMobile
+                  icon={HiOutlineTrendingUp}
+                  title='Complete'
+                  value={`${analytics.performanceMetrics.completionRate || 0}%`}
+                  subtitle='of all'
+                  color='text-green-600'
+                />
+                <MetricCardMobile
+                  icon={HiOutlineChartBar}
+                  title='Cancel'
+                  value={`${
+                    analytics.performanceMetrics.cancellationRate || 0
+                  }%`}
+                  subtitle='of all'
+                  color='text-red-600'
+                />
+              </div>
+            )}
+
+            {isAdmin && (
+              <div className='grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4 max-sm:hidden'>
                 <MetricCard
                   icon={HiOutlineTruck}
                   title='Truck Utilization'
@@ -1413,13 +1612,13 @@ const Dashboard = () => {
 
             <div className='grid grid-cols-1 2xl:grid-cols-3 gap-6'>
               {/* Deployment Trends - with Daily / Weekly toggle */}
-              <div className='col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-card3'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4'>
                   <div>
-                    <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
+                    <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
                       Completed Deployment Trends
                     </h2>
-                    <p className='text-gray-500 text-xs md:text-sm'>
+                    <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
                       {trendPeriod === 'daily'
                         ? 'Last 30 days'
                         : 'Last 12 weeks'}
@@ -1427,48 +1626,48 @@ const Dashboard = () => {
                   </div>
                   <div className='flex items-center gap-2'>
                     {/* Period toggle */}
-                    <div className='flex items-center bg-gray-100 rounded-lg p-0.5 gap-1'>
+                    <div className='flex items-center bg-gray-100 rounded-md p-0.5 gap-1'>
                       <button
                         onClick={() => setTrendPeriod('daily')}
-                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-sm text-xxs sm:text-xs font-medium transition-all ${
                           trendPeriod === 'daily'
                             ? 'bg-white text-gray-900 shadow-sm'
                             : 'text-gray-500 hover:text-gray-700'
                         }`}
                       >
-                        <TbCalendar className='text-sm' />
+                        <TbCalendar className='text-xs sm:text-sm' />
                         Daily
                       </button>
                       <button
                         onClick={() => setTrendPeriod('weekly')}
-                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xxs sm:text-xs font-medium transition-all ${
                           trendPeriod === 'weekly'
                             ? 'bg-white text-gray-900 shadow-sm'
                             : 'text-gray-500 hover:text-gray-700'
                         }`}
                       >
-                        <TbCalendarWeek className='text-sm' />
+                        <TbCalendarWeek className='text-xs sm:text-sm' />
                         Weekly
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className='h-80'>
+                <div className='h-60 sm:h-80'>
                   <Line data={getLineChartData()} options={lineChartOptions} />
                 </div>
               </div>
 
               {/* Deployment Status Distribution */}
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                 <div className='mb-6'>
-                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
+                  <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
                     Deployment Status
                   </h2>
-                  <p className='text-gray-500 text-xs md:text-sm'>
+                  <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
                     Current status distribution
                   </p>
                 </div>
-                <div className='h-80'>
+                <div className='h-60 sm:h-80'>
                   <Bar
                     data={getDeploymentStatusData()}
                     options={verticalBarOptions}
@@ -1479,16 +1678,16 @@ const Dashboard = () => {
 
             {isAdmin && (
               <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
-                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                   <div className='mb-6'>
-                    <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
+                    <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
                       Fleet Composition
                     </h2>
-                    <p className='text-gray-500 text-xs md:text-sm'>
+                    <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
                       Truck types distribution
                     </p>
                   </div>
-                  <div className='h-64'>
+                  <div className='h-60 sm:h-64'>
                     <Bar
                       data={getBarChartData(
                         analytics.charts.truckTypes,
@@ -1499,16 +1698,16 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                   <div className='mb-6'>
-                    <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
+                    <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
                       Truck Status
                     </h2>
-                    <p className='text-gray-500 text-xs md:text-sm'>
+                    <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
                       Operational status
                     </p>
                   </div>
-                  <div className='h-64'>
+                  <div className='h-60 sm:h-64'>
                     <Doughnut
                       data={getTruckStatusData()}
                       options={pieDoughnutOptions}
@@ -1516,16 +1715,16 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                   <div className='mb-6'>
-                    <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
+                    <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
                       Driver Status
                     </h2>
-                    <p className='text-gray-500 text-xs md:text-sm'>
+                    <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
                       Availability distribution
                     </p>
                   </div>
-                  <div className='h-64'>
+                  <div className='h-60 sm:h-64'>
                     <Doughnut
                       data={getDriverStatusData()}
                       options={doughnutOptions}
@@ -1533,12 +1732,12 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className='col-span-full bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+                <div className='col-span-full bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                   <div className='mb-6'>
-                    <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
+                    <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
                       Top Drivers Performance
                     </h2>
-                    <p className='text-gray-500 text-xs md:text-sm'>
+                    <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
                       Ranked by completed trips
                     </p>
                   </div>
@@ -1592,7 +1791,7 @@ const Dashboard = () => {
             </div>
 
             <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Territory Distribution
@@ -1601,7 +1800,7 @@ const Dashboard = () => {
                     Deployments by territory
                   </p>
                 </div>
-                <div className='h-64'>
+                <div className='h-60 sm:h-64'>
                   <Doughnut
                     data={getTerritoryDistributionPieData()}
                     options={doughnutOptions}
@@ -1609,7 +1808,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Hybrid Distribution
@@ -1618,7 +1817,7 @@ const Dashboard = () => {
                     Deployments by hybrid type
                   </p>
                 </div>
-                <div className='h-64'>
+                <div className='h-60 sm:h-64'>
                   <Doughnut
                     data={getHybridDistributionPieData()}
                     options={doughnutOptions}
@@ -1626,7 +1825,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Flagging Distribution
@@ -1635,7 +1834,7 @@ const Dashboard = () => {
                     Deployments by flagging level
                   </p>
                 </div>
-                <div className='h-64'>
+                <div className='h-60 sm:h-64'>
                   <Doughnut
                     data={getFlaggingDistributionPieData()}
                     options={doughnutOptions}
@@ -1644,7 +1843,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
               <div>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Territory Performance
@@ -1677,7 +1876,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className='bg-white rounded-xl shadow-card3 border border-gray-200 overflow-hidden'>
+            <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
               <div className='p-6 border-b border-gray-200'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Territory Performance Details
@@ -1834,7 +2033,7 @@ const Dashboard = () => {
               />
             </div>
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     User Role Distribution
@@ -1843,14 +2042,14 @@ const Dashboard = () => {
                     Breakdown by user roles
                   </p>
                 </div>
-                <div className='h-80'>
+                <div className='h-60 sm:h-80'>
                   <Doughnut
                     data={getUserRoleData()}
                     options={doughnutOptions}
                   />
                 </div>
               </div>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     User Status Distribution
@@ -1859,7 +2058,7 @@ const Dashboard = () => {
                     Breakdown by account status
                   </p>
                 </div>
-                <div className='h-80'>
+                <div className='h-60 sm:h-80'>
                   <Doughnut
                     data={getUserStatusData()}
                     options={pieDoughnutOptions}
@@ -1867,7 +2066,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
               <div className='mb-6'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Subcontractor Distribution
@@ -1876,7 +2075,7 @@ const Dashboard = () => {
                   Breakdown by subcontractor
                 </p>
               </div>
-              <div className='h-80'>
+              <div className='h-60 sm:h-80'>
                 <Bar
                   data={getBarChartData(
                     analytics.charts.subconDistribution,
@@ -1892,7 +2091,7 @@ const Dashboard = () => {
         {/* Subcons Tab */}
         {activeTab === 'subcons' && isAdmin && (
           <div className='space-y-6'>
-            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
               <div className='mb-6'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Subcontractor Deployment Status
@@ -1908,7 +2107,7 @@ const Dashboard = () => {
                 />
               </div>
             </div>
-            <div className='bg-white rounded-xl shadow-card3 border border-gray-200 overflow-hidden'>
+            <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
               <div className='p-6 border-b border-gray-200'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Subcontractor Details
@@ -2043,7 +2242,7 @@ const Dashboard = () => {
             </div>
 
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Driver Performance
@@ -2059,7 +2258,7 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Driver Status
@@ -2078,7 +2277,7 @@ const Dashboard = () => {
             </div>
 
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Truck Performance
@@ -2094,7 +2293,7 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
                 <div className='mb-6'>
                   <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                     Truck Status
@@ -2112,7 +2311,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-200'>
+            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
               <div className='mb-6'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Fleet Composition
@@ -2121,7 +2320,7 @@ const Dashboard = () => {
                   Truck types in your fleet
                 </p>
               </div>
-              <div className='h-80'>
+              <div className='h-60 sm:h-80'>
                 <Bar
                   data={getSubconTruckTypesData()}
                   options={verticalBarOptions}
@@ -2130,7 +2329,7 @@ const Dashboard = () => {
             </div>
 
             {/* Drivers List */}
-            <div className='bg-white rounded-xl shadow-card3 border border-gray-200 overflow-hidden'>
+            <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
               <div className='p-6 border-b border-gray-200'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   All Drivers
@@ -2206,7 +2405,7 @@ const Dashboard = () => {
             </div>
 
             {/* Trucks List */}
-            <div className='bg-white rounded-xl shadow-card3 border border-gray-200 overflow-hidden'>
+            <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
               <div className='p-6 border-b border-gray-200'>
                 <h2 className='text-xl font-semibold text-gray-900'>
                   All Trucks
