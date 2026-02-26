@@ -57,7 +57,7 @@ function LoginPage () {
   }, [])
 
   return (
-    <div className='min-h-screen flex flex-col lg:flex-row bg-gray-50'>
+    <div className='min-h-screen flex flex-col lg:flex-row bg-gray-50 overflow-x-hidden'>
       {/* ── Brand Panel (left on desktop, top banner on mobile) ─────────── */}
       <div
         className='relative flex flex-col justify-between overflow-hidden
@@ -94,7 +94,7 @@ function LoginPage () {
             <h1 className='font-semibold text-3xl sm:text-4xl tracking-widest text-white uppercase'>
               EBUN
             </h1>
-            <p className='max-sm:text-xs text-white -mt-1.5 uppercase tracking-widest sm:tracking-wider sm:ml-0.5 text-nowrap whitespace-nowrap'>
+            <p className='max-sm:text-xs text-white -mt-1.5 uppercase tracking-widest sm:tracking-wider sm:ml-0.5'>
               Freight OPC
             </p>
           </div>
@@ -157,7 +157,7 @@ function LoginPage () {
                 Email Address
               </label>
               <div
-                className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5
+                className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 min-w-0
                               focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20
                               transition-all duration-200 shadow-sm'
               >
@@ -169,7 +169,7 @@ function LoginPage () {
                   onChange={handleChange}
                   placeholder='you@example.com'
                   required
-                  className='flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none'
+                  className='min-w-0 flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none'
                 />
               </div>
             </div>
@@ -182,7 +182,7 @@ function LoginPage () {
                 </label>
               </div>
               <div
-                className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5
+                className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 min-w-0
                               focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20
                               transition-all duration-200 shadow-sm'
               >
@@ -194,7 +194,7 @@ function LoginPage () {
                   onChange={handleChange}
                   placeholder='••••••••'
                   required
-                  className='flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none'
+                  className='min-w-0 flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none'
                 />
                 <button
                   type='button'
