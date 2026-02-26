@@ -353,7 +353,7 @@ const Dashboard = () => {
                 fillStyle: data.datasets[0].backgroundColor[i],
                 strokeStyle: data.datasets[0].borderColor[i],
                 lineWidth: 0,
-                hidden: false,
+                hidden: !chart.getDataVisibility(i), // ← was hardcoded `false`
                 index: i
               }))
             }
@@ -1090,7 +1090,7 @@ const Dashboard = () => {
               {value}
             </span>
             {subtitle && (
-              <p className='text-[10px] text-gray-500 truncate mt-0.5'>
+              <p className='text-xxs text-gray-500 truncate mt-0.5'>
                 {subtitle}
               </p>
             )}
