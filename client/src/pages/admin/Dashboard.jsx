@@ -66,27 +66,20 @@ ChartJS.register(
 )
 
 // ─── Shared class tokens ─────────────────────────────────────────────────────
-// Keep these in one place so every card is automatically uniform.
 const CLS = {
-  // Standard chart / info card
   card: 'bg-white p-4 sm:p-6 rounded-xl shadow-card3 sm:border sm:border-gray-100',
-  // Card that needs overflow-hidden (tables, stacked charts)
   cardOverflow:
     'bg-white rounded-xl shadow-card3 sm:border sm:border-gray-100 overflow-hidden',
-  // Section header inside a card
   cardHeader: 'mb-4 sm:mb-6',
-  cardTitle: 'text-sm sm:text-base md:text-lg font-semibold text-gray-900',
-  cardSubtitle: 'text-xs sm:text-sm text-gray-500 mt-0.5',
-  // Table header cell
+  cardTitle: 'text-xs sm:text-base md:text-lg font-semibold text-gray-900',
+  cardSubtitle: 'text-xxs sm:text-sm text-gray-500 mt-0.5',
   thCell:
-    'px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider',
-  tdCell: 'px-4 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm',
-  // Uniform chart heights
-  chartSm: 'h-56 sm:h-64', // small paired charts (pie / doughnut side-by-side)
-  chartMd: 'h-64 sm:h-72', // medium single charts
-  chartLine: 'h-60 sm:h-80', // line trend chart
-  chartLg: 'h-80 sm:h-96', // full-width performance charts
-  // Tab content wrapper
+    'px-4 sm:px-6 py-1 sm:py-3 text-left text-xxs sm:text-sm  font-medium text-gray-500 uppercase tracking-wider',
+  tdCell: 'px-4 sm:px-6 py-4 whitespace-nowrap text-xxs sm:text-sm',
+  chartSm: 'h-56 sm:h-64',
+  chartMd: 'h-64 sm:h-72',
+  chartLine: 'h-60 sm:h-80',
+  chartLg: 'h-80 sm:h-96',
   tabSection: 'space-y-2 sm:space-y-6'
 }
 
@@ -1037,7 +1030,6 @@ const Dashboard = () => {
   }
 
   // ─── MetricCard (desktop) ─────────────────────────────────────────────────
-  // rounded-xl to match chart cards; uniform padding and text scale
   const MetricCard = ({
     icon: Icon,
     title,
@@ -1082,7 +1074,6 @@ const Dashboard = () => {
   }
 
   // ─── MetricCard (mobile) ──────────────────────────────────────────────────
-  // Matches MetricCard's rounded-xl and border for visual consistency
   const MetricCardMobile = ({ icon: Icon, title, value, subtitle, color }) => {
     const c = colorMap[color] || { text: 'text-gray-600', bg: 'bg-gray-100' }
     return (
@@ -1114,6 +1105,21 @@ const Dashboard = () => {
     <div className={CLS.cardHeader}>
       <h2 className={CLS.cardTitle}>{title}</h2>
       {subtitle && <p className={CLS.cardSubtitle}>{subtitle}</p>}
+    </div>
+  )
+
+  // ─── ScrollableChart ──────────────────────────────────────────────────────
+  // Only used for the deployment trends line chart.
+  const ScrollableChart = ({
+    heightClass,
+    minWidth = '500px',
+    className = '',
+    children
+  }) => (
+    <div className={`overflow-x-auto -mx-4 sm:mx-0 ${className}`}>
+      <div style={{ minWidth }} className='px-4 sm:px-0'>
+        <div className={heightClass}>{children}</div>
+      </div>
     </div>
   )
 
@@ -1594,7 +1600,7 @@ const Dashboard = () => {
 
             {/* Trend + Status */}
             <div className='grid grid-cols-1 xl:grid-cols-3 gap-2 sm:gap-6'>
-              {/* Deployment Trends */}
+              {/* Deployment Trends — kept scrollable */}
               <div className={`xl:col-span-2 ${CLS.card}`}>
                 <div
                   className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${CLS.cardHeader}`}
@@ -1634,16 +1640,10 @@ const Dashboard = () => {
                     </button>
                   </div>
                 </div>
-                <div className='overflow-x-auto -mx-4 sm:mx-0'>
-                  <div className='min-w-200 px-4 sm:px-0'>
-                    <div className={CLS.chartLine}>
-                      <Line
-                        data={getLineChartData()}
-                        options={lineChartOptions}
-                      />
-                    </div>
-                  </div>
-                </div>
+                {/* Line chart — only chart that stays scrollable on mobile */}
+                <ScrollableChart heightClass={CLS.chartLine} minWidth='500px'>
+                  <Line data={getLineChartData()} options={lineChartOptions} />
+                </ScrollableChart>
               </div>
 
               {/* Deployment Status */}
@@ -1706,6 +1706,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
+                {/* Top Drivers */}
                 <div className={`col-span-full ${CLS.card}`}>
                   <CardHeader
                     title='Top Drivers Performance'
@@ -1728,7 +1729,8 @@ const Dashboard = () => {
         ════════════════════════════════════════════════════════════════ */}
         {activeTab === 'deploymentDetails' && (isAdmin || isVisitor) && (
           <div className={CLS.tabSection}>
-            <div className='grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4'>
+            {/* Metrics — desktop */}
+            <div className='grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 max-xs:hidden'>
               <MetricCard
                 icon={HiOutlineLocationMarker}
                 title='Territories'
@@ -1750,6 +1752,40 @@ const Dashboard = () => {
                 color='green-600'
               />
               <MetricCard
+                icon={HiOutlineFlag}
+                title='Flaggings'
+                value={
+                  analytics.performanceMetrics.flaggingCount?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='Flagging levels'
+                color='purple-600'
+              />
+            </div>
+
+            {/* Metrics — mobile */}
+            <div className='grid grid-cols-2 gap-2 xs:hidden'>
+              <MetricCardMobile
+                icon={HiOutlineLocationMarker}
+                title='Territories'
+                value={
+                  analytics.performanceMetrics.territoryCount?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='Active'
+                color='blue-600'
+              />
+              <MetricCardMobile
+                icon={HiOutlineBeaker}
+                title='Hybrids'
+                value={
+                  analytics.performanceMetrics.hybridCount?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='Hybrid types'
+                color='green-600'
+              />
+              <MetricCardMobile
                 icon={HiOutlineFlag}
                 title='Flaggings'
                 value={
@@ -1800,6 +1836,7 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Territory Performance stacked bar */}
             <div className={CLS.card}>
               <CardHeader
                 title='Territory Performance'
@@ -1874,7 +1911,7 @@ const Dashboard = () => {
                           </td>
                           <td className={CLS.tdCell}>
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${completionBadge(
+                              className={`px-2 py-1 rounded-full text-xxs sm:text-xs font-medium ${completionBadge(
                                 territory.completionRate
                               )}`}
                             >
@@ -1901,7 +1938,8 @@ const Dashboard = () => {
         ════════════════════════════════════════════════════════════════ */}
         {activeTab === 'users' && isAdmin && (
           <div className={CLS.tabSection}>
-            <div className='grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4'>
+            {/* Top row metrics — desktop */}
+            <div className='grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 max-xs:hidden'>
               <MetricCard
                 icon={HiOutlineUsers}
                 title='Total Users'
@@ -1944,7 +1982,8 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4'>
+            {/* Bottom row metrics — desktop */}
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 max-xs:hidden'>
               <MetricCard
                 icon={HiOutlineKey}
                 title='Total Logins'
@@ -1976,6 +2015,79 @@ const Dashboard = () => {
               />
             </div>
 
+            {/* All metrics — mobile */}
+            <div className='grid grid-cols-2 gap-2 xs:hidden'>
+              <MetricCardMobile
+                icon={HiOutlineUsers}
+                title='Total Users'
+                value={
+                  analytics.performanceMetrics.totalUsers?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='All system users'
+                color='blue-600'
+              />
+              <MetricCardMobile
+                icon={HiOutlineUserGroup}
+                title='Active Users'
+                value={
+                  analytics.performanceMetrics.activeUsers?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='Currently active'
+                color='green-600'
+              />
+              <MetricCardMobile
+                icon={TbUserPlus}
+                title='Pending'
+                value={
+                  analytics.performanceMetrics.pendingUsers?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='Awaiting approval'
+                color='amber-600'
+              />
+              <MetricCardMobile
+                icon={HiOutlineDocumentAdd}
+                title='Registrations'
+                value={
+                  analytics.performanceMetrics.recentRegistrations?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='Last 30 days'
+                color='purple-600'
+              />
+              <MetricCardMobile
+                icon={HiOutlineKey}
+                title='Total Logins'
+                value={
+                  analytics.performanceMetrics.totalLogins?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='All time'
+                color='indigo-600'
+              />
+              <MetricCardMobile
+                icon={HiOutlineTrendingUp}
+                title='Avg Logins'
+                value={
+                  analytics.performanceMetrics.avgLoginCount?.toFixed(1) || '0'
+                }
+                subtitle='Per user'
+                color='cyan-600'
+              />
+              <MetricCardMobile
+                icon={HiOutlineChartBar}
+                title='Max Logins'
+                value={
+                  analytics.performanceMetrics.maxLoginCount?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='Highest count'
+                color='emerald-600'
+              />
+            </div>
+
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-6'>
               <div className={CLS.card}>
                 <CardHeader
@@ -2003,6 +2115,7 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Subcontractor Distribution bar */}
             <div className={CLS.card}>
               <CardHeader
                 title='Subcontractor Distribution'
@@ -2026,6 +2139,7 @@ const Dashboard = () => {
         ════════════════════════════════════════════════════════════════ */}
         {activeTab === 'subcons' && isAdmin && (
           <div className={CLS.tabSection}>
+            {/* Subcon stacked bar */}
             <div className={CLS.card}>
               <CardHeader
                 title='Subcontractor Deployment Status'
@@ -2087,7 +2201,7 @@ const Dashboard = () => {
                           </td>
                           <td className={CLS.tdCell}>
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${completionBadge(
+                              className={`px-2 py-1 rounded-full text-xxs sm:text-xs font-medium ${completionBadge(
                                 subcon.completionRate
                               )}`}
                             >
@@ -2114,7 +2228,8 @@ const Dashboard = () => {
         ════════════════════════════════════════════════════════════════ */}
         {activeTab === 'resources' && isSubcon && analytics?.subconAnalytics && (
           <div className={CLS.tabSection}>
-            <div className='grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4'>
+            {/* Metrics — desktop */}
+            <div className='grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 max-xs:hidden'>
               <MetricCard
                 icon={HiOutlineTruck}
                 title='Total Trucks'
@@ -2165,7 +2280,60 @@ const Dashboard = () => {
               />
             </div>
 
+            {/* Metrics — mobile */}
+            <div className='grid grid-cols-2 gap-2 xs:hidden'>
+              <MetricCardMobile
+                icon={HiOutlineTruck}
+                title='Total Trucks'
+                value={
+                  analytics.subconAnalytics.trucks?.total?.toLocaleString() ||
+                  '0'
+                }
+                subtitle={`${
+                  analytics.subconAnalytics.trucks?.available || 0
+                } available`}
+                color='indigo-600'
+              />
+              <MetricCardMobile
+                icon={HiOutlineUser}
+                title='Total Drivers'
+                value={
+                  analytics.subconAnalytics.drivers?.total?.toLocaleString() ||
+                  '0'
+                }
+                subtitle={`${
+                  analytics.subconAnalytics.drivers?.available || 0
+                } available`}
+                color='cyan-600'
+              />
+              <MetricCardMobile
+                icon={TbLicense}
+                title='Deployed Trucks'
+                value={
+                  analytics.subconAnalytics.trucks?.deployed?.toLocaleString() ||
+                  '0'
+                }
+                subtitle={`${
+                  analytics.performanceMetrics.deployedTrucks || 0
+                } deployed`}
+                color='blue-600'
+              />
+              <MetricCardMobile
+                icon={TbUserPlus}
+                title='Deployed Drivers'
+                value={
+                  analytics.subconAnalytics.drivers?.deployed?.toLocaleString() ||
+                  '0'
+                }
+                subtitle={`${
+                  analytics.performanceMetrics.deployedDrivers || 0
+                } deployed`}
+                color='green-600'
+              />
+            </div>
+
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-6'>
+              {/* Driver Performance */}
               <div className={CLS.card}>
                 <CardHeader
                   title='Driver Performance'
@@ -2193,6 +2361,7 @@ const Dashboard = () => {
             </div>
 
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-6'>
+              {/* Truck Performance */}
               <div className={CLS.card}>
                 <CardHeader
                   title='Truck Performance'
@@ -2219,6 +2388,7 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Fleet Composition */}
             <div className={CLS.card}>
               <CardHeader
                 title='Fleet Composition'
