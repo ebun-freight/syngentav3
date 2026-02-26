@@ -65,13 +65,37 @@ ChartJS.register(
   ChartDataLabels
 )
 
+// ─── Shared class tokens ─────────────────────────────────────────────────────
+// Keep these in one place so every card is automatically uniform.
+const CLS = {
+  // Standard chart / info card
+  card: 'bg-white p-4 sm:p-6 rounded-xl shadow-card3 sm:border sm:border-gray-100',
+  // Card that needs overflow-hidden (tables, stacked charts)
+  cardOverflow:
+    'bg-white rounded-xl shadow-card3 sm:border sm:border-gray-100 overflow-hidden',
+  // Section header inside a card
+  cardHeader: 'mb-4 sm:mb-6',
+  cardTitle: 'text-sm sm:text-base md:text-lg font-semibold text-gray-900',
+  cardSubtitle: 'text-xs sm:text-sm text-gray-500 mt-0.5',
+  // Table header cell
+  thCell:
+    'px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider',
+  tdCell: 'px-4 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm',
+  // Uniform chart heights
+  chartSm: 'h-56 sm:h-64', // small paired charts (pie / doughnut side-by-side)
+  chartMd: 'h-64 sm:h-72', // medium single charts
+  chartLine: 'h-60 sm:h-80', // line trend chart
+  chartLg: 'h-80 sm:h-96', // full-width performance charts
+  // Tab content wrapper
+  tabSection: 'space-y-2 sm:space-y-6'
+}
+
 const Dashboard = () => {
   const { userData } = useUserContext()
   const [analytics, setAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
-  // NEW: toggle for deployment trend period
   const [trendPeriod, setTrendPeriod] = useState('weekly')
 
   const colors = {
@@ -252,13 +276,8 @@ const Dashboard = () => {
       datalabels: {
         display: true,
         color: '#ffffff',
-        font: {
-          weight: 'bold',
-          size: 16
-        },
-        formatter: function (value, context) {
-          return value.toLocaleString()
-        },
+        font: { weight: 'bold', size: 16 },
+        formatter: value => value.toLocaleString(),
         anchor: 'center',
         align: 'center',
         clip: false
@@ -355,8 +374,7 @@ const Dashboard = () => {
           label: function (context) {
             const label = context.label || ''
             const value = context.raw || 0
-            const dataset = context.dataset
-            const total = dataset.data.reduce((a, b) => a + b, 0)
+            const total = context.dataset.data.reduce((a, b) => a + b, 0)
             const percentage = total > 0 ? Math.round((value / total) * 100) : 0
             return `${label}: ${value.toLocaleString()} (${percentage}%)`
           }
@@ -367,19 +385,14 @@ const Dashboard = () => {
         display: true,
         color: '#ffffff',
         font: { weight: 'bold', size: 16 },
-        formatter: function (value) {
-          return value.toLocaleString()
-        },
+        formatter: value => value.toLocaleString(),
         anchor: 'center',
         align: 'center'
       }
     }
   }
 
-  const doughnutOptions = {
-    ...pieDoughnutOptions,
-    cutout: '50%'
-  }
+  const doughnutOptions = { ...pieDoughnutOptions, cutout: '50%' }
 
   const stackedBarOptions = {
     ...createBaseOptions(true),
@@ -402,9 +415,7 @@ const Dashboard = () => {
         display: true,
         color: '#ffffff',
         font: { weight: 'bold', size: 16 },
-        formatter: function (value) {
-          return value > 0 ? value.toLocaleString() : ''
-        },
+        formatter: value => (value > 0 ? value.toLocaleString() : ''),
         anchor: 'center',
         align: 'center',
         offset: 0
@@ -450,7 +461,6 @@ const Dashboard = () => {
     elements: { bar: { borderRadius: 3 } }
   }
 
-  // LINE CHART: only completed, supports daily or weekly
   const getLineChartData = () => {
     const chartKey =
       trendPeriod === 'daily' ? 'dailyDeployments' : 'weeklyDeployments'
@@ -483,23 +493,14 @@ const Dashboard = () => {
     plugins: {
       ...createBaseOptions(true).plugins,
       datalabels: { display: false },
-      legend: {
-        display: false,
-        position: 'bottom',
-        labels: {
-          usePointStyle: true,
-          padding: 15,
-          boxWidth: 12,
-          font: { size: 12 }
-        }
-      },
+      legend: { display: false },
       tooltip: {
         ...createBaseOptions(true).plugins.tooltip,
         callbacks: {
           label: function (context) {
-            const label = context.dataset.label || ''
-            const value = context.raw || 0
-            return `${label}: ${Math.round(value).toLocaleString()}`
+            return `${context.dataset.label || ''}: ${Math.round(
+              context.raw || 0
+            ).toLocaleString()}`
           }
         }
       }
@@ -539,18 +540,19 @@ const Dashboard = () => {
     const isSubconDistribution =
       label === 'Users' &&
       chartData.labels.some(
-        label =>
-          label.toLowerCase().includes('subcontractor') ||
-          label.toLowerCase().includes('subcon')
+        l =>
+          l.toLowerCase().includes('subcontractor') ||
+          l.toLowerCase().includes('subcon')
       )
 
     if (isSubconDistribution) {
-      const items = chartData.labels.map((label, index) => ({
-        label,
-        data: chartData.data[index],
-        color: backgroundColors[index]
-      }))
-      items.sort((a, b) => a.label.localeCompare(b.label))
+      const items = chartData.labels
+        .map((lbl, index) => ({
+          label: lbl,
+          data: chartData.data[index],
+          color: backgroundColors[index]
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label))
       return {
         labels: items.map(item => item.label),
         datasets: [
@@ -584,21 +586,18 @@ const Dashboard = () => {
   }
 
   const getAllDriversBarData = () => {
-    if (!analytics?.topDrivers || analytics.topDrivers.length === 0)
-      return { labels: [], datasets: [] }
-    const sortedDrivers = [...analytics.topDrivers]
+    if (!analytics?.topDrivers?.length) return { labels: [], datasets: [] }
+    const sorted = [...analytics.topDrivers]
       .sort((a, b) => (b.tripCount || 0) - (a.tripCount || 0))
       .slice(0, 15)
     return {
-      labels: sortedDrivers.map(driver =>
-        driver.name
-          ? driver.name.replace(/\b\w/g, char => char.toUpperCase())
-          : 'Unknown Driver'
+      labels: sorted.map(
+        d => d.name?.replace(/\b\w/g, c => c.toUpperCase()) || 'Unknown Driver'
       ),
       datasets: [
         {
           label: 'Completed Trips',
-          data: sortedDrivers.map(driver => driver.tripCount || 0),
+          data: sorted.map(d => d.tripCount || 0),
           backgroundColor: colors.blue,
           borderColor: colors.blue,
           borderWidth: 0,
@@ -611,31 +610,23 @@ const Dashboard = () => {
   const getDeploymentStatusData = () => {
     if (!analytics?.charts?.deploymentStatus)
       return { labels: [], datasets: [] }
-    const backgroundColors = analytics.charts.deploymentStatus.labels.map(
-      label => {
-        const lowerLabel = label.toLowerCase()
-        if (lowerLabel.includes('complete'))
-          return deploymentStatusColors.completed
-        if (lowerLabel.includes('ongoing'))
-          return deploymentStatusColors.ongoing
-        if (lowerLabel.includes('progress'))
-          return deploymentStatusColors['in-progress']
-        if (lowerLabel.includes('preparing'))
-          return deploymentStatusColors.preparing
-        if (lowerLabel.includes('pending'))
-          return deploymentStatusColors.pending
-        if (lowerLabel.includes('cancel'))
-          return deploymentStatusColors.canceled
-        return colors.gray
-      }
-    )
+    const bgColors = analytics.charts.deploymentStatus.labels.map(label => {
+      const l = label.toLowerCase()
+      if (l.includes('complete')) return deploymentStatusColors.completed
+      if (l.includes('ongoing')) return deploymentStatusColors.ongoing
+      if (l.includes('progress')) return deploymentStatusColors['in-progress']
+      if (l.includes('preparing')) return deploymentStatusColors.preparing
+      if (l.includes('pending')) return deploymentStatusColors.pending
+      if (l.includes('cancel')) return deploymentStatusColors.canceled
+      return colors.gray
+    })
     return {
       labels: analytics.charts.deploymentStatus.labels,
       datasets: [
         {
           label: 'Deployments',
           data: analytics.charts.deploymentStatus.data,
-          backgroundColor: backgroundColors,
+          backgroundColor: bgColors,
           borderColor: '#ffffff',
           borderWidth: 2,
           borderRadius: 4,
@@ -647,16 +638,12 @@ const Dashboard = () => {
 
   const getTruckStatusData = () => {
     if (!analytics?.charts?.truckStatus) return { labels: [], datasets: [] }
-    const backgroundColors = analytics.charts.truckStatus.labels.map(label => {
-      const lowerLabel = label.toLowerCase()
-      if (
-        lowerLabel.includes('available') &&
-        !lowerLabel.includes('unavailable')
-      )
+    const bgColors = analytics.charts.truckStatus.labels.map(label => {
+      const l = label.toLowerCase()
+      if (l.includes('available') && !l.includes('unavailable'))
         return truckStatusColors.available
-      if (lowerLabel.includes('deployed')) return truckStatusColors.deployed
-      if (lowerLabel.includes('unavailable'))
-        return truckStatusColors.unavailable
+      if (l.includes('deployed')) return truckStatusColors.deployed
+      if (l.includes('unavailable')) return truckStatusColors.unavailable
       return colors.gray
     })
     return {
@@ -664,7 +651,7 @@ const Dashboard = () => {
       datasets: [
         {
           data: analytics.charts.truckStatus.data,
-          backgroundColor: backgroundColors,
+          backgroundColor: bgColors,
           borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 8
@@ -675,12 +662,11 @@ const Dashboard = () => {
 
   const getDriverStatusData = () => {
     if (!analytics?.charts?.driverStatus) return { labels: [], datasets: [] }
-    const backgroundColors = analytics.charts.driverStatus.labels.map(label => {
-      const lowerLabel = label.toLowerCase()
-      if (lowerLabel.includes('available')) return driverStatusColors.available
-      if (lowerLabel.includes('deployed')) return driverStatusColors.deployed
-      if (lowerLabel.includes('unavailable'))
-        return driverStatusColors.unavailable
+    const bgColors = analytics.charts.driverStatus.labels.map(label => {
+      const l = label.toLowerCase()
+      if (l.includes('available')) return driverStatusColors.available
+      if (l.includes('deployed')) return driverStatusColors.deployed
+      if (l.includes('unavailable')) return driverStatusColors.unavailable
       return colors.gray
     })
     return {
@@ -688,7 +674,7 @@ const Dashboard = () => {
       datasets: [
         {
           data: analytics.charts.driverStatus.data,
-          backgroundColor: backgroundColors,
+          backgroundColor: bgColors,
           borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 8
@@ -699,12 +685,12 @@ const Dashboard = () => {
 
   const getUserRoleData = () => {
     if (!analytics?.charts?.userRoles) return { labels: [], datasets: [] }
-    const backgroundColors = analytics.charts.userRoles.labels.map(label => {
-      const lowerLabel = label.toLowerCase()
-      if (lowerLabel.includes('head admin')) return userRoleColors.head_admin
-      if (lowerLabel.includes('admin')) return userRoleColors.admin
-      if (lowerLabel.includes('visitor')) return userRoleColors.visitor
-      if (lowerLabel.includes('subcontractor')) return userRoleColors.subcon
+    const bgColors = analytics.charts.userRoles.labels.map(label => {
+      const l = label.toLowerCase()
+      if (l.includes('head admin')) return userRoleColors.head_admin
+      if (l.includes('admin')) return userRoleColors.admin
+      if (l.includes('visitor')) return userRoleColors.visitor
+      if (l.includes('subcontractor')) return userRoleColors.subcon
       return colors.gray
     })
     return {
@@ -712,7 +698,7 @@ const Dashboard = () => {
       datasets: [
         {
           data: analytics.charts.userRoles.data,
-          backgroundColor: backgroundColors,
+          backgroundColor: bgColors,
           borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 8
@@ -723,14 +709,12 @@ const Dashboard = () => {
 
   const getUserStatusData = () => {
     if (!analytics?.charts?.userStatus) return { labels: [], datasets: [] }
-    const backgroundColors = analytics.charts.userStatus.labels.map(label => {
-      const lowerLabel = label.toLowerCase()
-      if (lowerLabel.includes('active') && !lowerLabel.includes('inactive'))
-        return colors.green
-      if (lowerLabel.includes('inactive')) return colors.red
-      if (lowerLabel.includes('pending')) return colors.orange
-      if (lowerLabel.includes('revoked') || lowerLabel.includes('rejected'))
-        return colors.gray
+    const bgColors = analytics.charts.userStatus.labels.map(label => {
+      const l = label.toLowerCase()
+      if (l.includes('active') && !l.includes('inactive')) return colors.green
+      if (l.includes('inactive')) return colors.red
+      if (l.includes('pending')) return colors.orange
+      if (l.includes('revoked') || l.includes('rejected')) return colors.gray
       return colors.blue
     })
     return {
@@ -738,7 +722,7 @@ const Dashboard = () => {
       datasets: [
         {
           data: analytics.charts.userStatus.data,
-          backgroundColor: backgroundColors,
+          backgroundColor: bgColors,
           borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 8
@@ -766,9 +750,9 @@ const Dashboard = () => {
     }
     const datasets = statusOrder.map(status => ({
       label: statusLabels[status],
-      data: subcons.map((subcon, index) => {
+      data: subcons.map((_, index) => {
         const breakdown = analytics.charts.subconPerformance.statusBreakdown
-        return breakdown && breakdown[index] ? breakdown[index][status] || 0 : 0
+        return breakdown?.[index]?.[status] || 0
       }),
       backgroundColor: statusColors[status],
       borderColor: '#ffffff',
@@ -779,25 +763,23 @@ const Dashboard = () => {
       categoryPercentage: 0.8,
       barPercentage: 0.9
     }))
-    return { labels: subcons.map(subcon => subcon.name), datasets }
+    return { labels: subcons.map(s => s.name), datasets }
   }
 
   const getSubconDriverPerformanceData = () => {
     if (!analytics?.subconAnalytics?.drivers?.performance)
       return { labels: [], datasets: [] }
-    const drivers = analytics.subconAnalytics.drivers.performance
+    const drivers = [...analytics.subconAnalytics.drivers.performance]
       .sort((a, b) => (b.tripCount || 0) - (a.tripCount || 0))
       .slice(0, 15)
     return {
-      labels: drivers.map(driver =>
-        driver.name
-          ? driver.name.replace(/\b\w/g, char => char.toUpperCase())
-          : 'Unknown Driver'
+      labels: drivers.map(
+        d => d.name?.replace(/\b\w/g, c => c.toUpperCase()) || 'Unknown Driver'
       ),
       datasets: [
         {
           label: 'Completed Trips',
-          data: drivers.map(driver => driver.tripCount || 0),
+          data: drivers.map(d => d.tripCount || 0),
           backgroundColor: colors.blue,
           borderColor: colors.blue,
           borderWidth: 0,
@@ -810,15 +792,15 @@ const Dashboard = () => {
   const getSubconTruckPerformanceData = () => {
     if (!analytics?.subconAnalytics?.trucks?.performance)
       return { labels: [], datasets: [] }
-    const trucks = analytics.subconAnalytics.trucks.performance
+    const trucks = [...analytics.subconAnalytics.trucks.performance]
       .sort((a, b) => (b.tripCount || 0) - (a.tripCount || 0))
       .slice(0, 15)
     return {
-      labels: trucks.map(truck => truck.plateNo || 'Unknown Truck'),
+      labels: trucks.map(t => t.plateNo || 'Unknown Truck'),
       datasets: [
         {
           label: 'Completed Trips',
-          data: trucks.map(truck => truck.tripCount || 0),
+          data: trucks.map(t => t.tripCount || 0),
           backgroundColor: colors.green,
           borderColor: colors.green,
           borderWidth: 0,
@@ -831,17 +813,13 @@ const Dashboard = () => {
   const getSubconDriverStatusData = () => {
     if (!analytics?.subconAnalytics?.drivers?.status)
       return { labels: [], datasets: [] }
-    const backgroundColors = analytics.subconAnalytics.drivers.status.map(
-      item => {
-        const lowerLabel = (item._id || '').toLowerCase()
-        if (lowerLabel.includes('available'))
-          return driverStatusColors.available
-        if (lowerLabel.includes('deployed')) return driverStatusColors.deployed
-        if (lowerLabel.includes('unavailable'))
-          return driverStatusColors.unavailable
-        return colors.gray
-      }
-    )
+    const bgColors = analytics.subconAnalytics.drivers.status.map(item => {
+      const l = (item._id || '').toLowerCase()
+      if (l.includes('available')) return driverStatusColors.available
+      if (l.includes('deployed')) return driverStatusColors.deployed
+      if (l.includes('unavailable')) return driverStatusColors.unavailable
+      return colors.gray
+    })
     return {
       labels: analytics.subconAnalytics.drivers.status.map(item =>
         item._id
@@ -853,7 +831,7 @@ const Dashboard = () => {
           data: analytics.subconAnalytics.drivers.status.map(
             item => item.count || 0
           ),
-          backgroundColor: backgroundColors,
+          backgroundColor: bgColors,
           borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 8
@@ -865,16 +843,13 @@ const Dashboard = () => {
   const getSubconTruckStatusData = () => {
     if (!analytics?.subconAnalytics?.trucks?.status)
       return { labels: [], datasets: [] }
-    const backgroundColors = analytics.subconAnalytics.trucks.status.map(
-      item => {
-        const lowerLabel = (item._id || '').toLowerCase()
-        if (lowerLabel.includes('available')) return truckStatusColors.available
-        if (lowerLabel.includes('deployed')) return truckStatusColors.deployed
-        if (lowerLabel.includes('unavailable'))
-          return truckStatusColors.unavailable
-        return colors.gray
-      }
-    )
+    const bgColors = analytics.subconAnalytics.trucks.status.map(item => {
+      const l = (item._id || '').toLowerCase()
+      if (l.includes('available')) return truckStatusColors.available
+      if (l.includes('deployed')) return truckStatusColors.deployed
+      if (l.includes('unavailable')) return truckStatusColors.unavailable
+      return colors.gray
+    })
     return {
       labels: analytics.subconAnalytics.trucks.status.map(item =>
         item._id
@@ -886,7 +861,7 @@ const Dashboard = () => {
           data: analytics.subconAnalytics.trucks.status.map(
             item => item.count || 0
           ),
-          backgroundColor: backgroundColors,
+          backgroundColor: bgColors,
           borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 8
@@ -901,9 +876,7 @@ const Dashboard = () => {
     return {
       labels: analytics.subconAnalytics.trucks.types.map(item =>
         item._id
-          ? item._id
-              .replace('-', ' ')
-              .replace(/\b\w/g, char => char.toUpperCase())
+          ? item._id.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())
           : 'Unknown'
       ),
       datasets: [
@@ -925,9 +898,8 @@ const Dashboard = () => {
   const getTerritoryDistributionPieData = () => {
     if (!analytics?.charts?.territoryDistribution)
       return { labels: [], datasets: [] }
-    const labels = analytics.charts.territoryDistribution.labels
-    const data = analytics.charts.territoryDistribution.data
-    const sevenTerritoryColors = [
+    const { labels, data } = analytics.charts.territoryDistribution
+    const palette = [
       '#3b82f6',
       '#10b981',
       '#f59e0b',
@@ -936,19 +908,20 @@ const Dashboard = () => {
       '#06b6d4',
       '#f43f5e'
     ]
-    const items = labels.map((label, index) => ({
-      label,
-      data: data[index],
-      color: sevenTerritoryColors[index % 7] || colors.gray
-    }))
-    items.sort((a, b) => a.label.localeCompare(b.label))
+    const items = labels
+      .map((label, i) => ({
+        label,
+        data: data[i],
+        color: palette[i % 7] || colors.gray
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
     return {
-      labels: items.map(item => item.label),
+      labels: items.map(i => i.label),
       datasets: [
         {
           label: 'Deployments',
-          data: items.map(item => item.data),
-          backgroundColor: items.map(item => item.color),
+          data: items.map(i => i.data),
+          backgroundColor: items.map(i => i.color),
           borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 15,
@@ -961,13 +934,9 @@ const Dashboard = () => {
   const getHybridDistributionPieData = () => {
     if (!analytics?.charts?.hybridDistribution)
       return { labels: [], datasets: [] }
-    const backgroundColors = analytics.charts.hybridDistribution.labels.map(
-      (label, index) => {
-        const hybridKeys = Object.keys(hybridColors)
-        return (
-          hybridColors[hybridKeys[index % hybridKeys.length]] || colors.gray
-        )
-      }
+    const hybridKeys = Object.keys(hybridColors)
+    const bgColors = analytics.charts.hybridDistribution.labels.map(
+      (_, i) => hybridColors[hybridKeys[i % hybridKeys.length]] || colors.gray
     )
     return {
       labels: analytics.charts.hybridDistribution.labels,
@@ -975,7 +944,7 @@ const Dashboard = () => {
         {
           label: 'Deployments',
           data: analytics.charts.hybridDistribution.data,
-          backgroundColor: backgroundColors,
+          backgroundColor: bgColors,
           borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 15,
@@ -988,23 +957,21 @@ const Dashboard = () => {
   const getFlaggingDistributionPieData = () => {
     if (!analytics?.charts?.flaggingDistribution)
       return { labels: [], datasets: [] }
-    const backgroundColors = analytics.charts.flaggingDistribution.labels.map(
-      label => {
-        const lowerLabel = label.toLowerCase()
-        if (lowerLabel.includes('green')) return flaggingColors.green
-        if (lowerLabel.includes('red')) return flaggingColors.red
-        if (lowerLabel.includes('orange')) return flaggingColors.orange
-        if (lowerLabel.includes('yellow')) return flaggingColors.yellow
-        return colors.gray
-      }
-    )
+    const bgColors = analytics.charts.flaggingDistribution.labels.map(label => {
+      const l = label.toLowerCase()
+      if (l.includes('green')) return flaggingColors.green
+      if (l.includes('red')) return flaggingColors.red
+      if (l.includes('orange')) return flaggingColors.orange
+      if (l.includes('yellow')) return flaggingColors.yellow
+      return colors.gray
+    })
     return {
       labels: analytics.charts.flaggingDistribution.labels,
       datasets: [
         {
           label: 'Deployments',
           data: analytics.charts.flaggingDistribution.data,
-          backgroundColor: backgroundColors,
+          backgroundColor: bgColors,
           borderColor: '#ffffff',
           borderWidth: 2,
           hoverOffset: 15,
@@ -1018,14 +985,12 @@ const Dashboard = () => {
     if (!analytics?.charts?.territoryPerformance?.data)
       return { labels: [], datasets: [] }
     const territories = analytics.charts.territoryPerformance.data.slice(0, 10)
-    const territoryData = territories.map((territory, index) => ({
-      territory,
-      breakdown: analytics.charts.territoryPerformance.statusBreakdown[index]
-    }))
-    territoryData.sort((a, b) =>
-      a.territory.name.localeCompare(b.territory.name)
-    )
-    const sortedTerritories = territoryData.map(item => item.territory)
+    const territoryData = territories
+      .map((territory, index) => ({
+        territory,
+        breakdown: analytics.charts.territoryPerformance.statusBreakdown[index]
+      }))
+      .sort((a, b) => a.territory.name.localeCompare(b.territory.name))
     const sortedBreakdowns = territoryData.map(item => item.breakdown)
     const statusOrder = ['preparing', 'ongoing', 'completed', 'canceled']
     const statusLabels = {
@@ -1042,9 +1007,7 @@ const Dashboard = () => {
     }
     const datasets = statusOrder.map(status => ({
       label: statusLabels[status],
-      data: sortedBreakdowns.map(breakdown =>
-        breakdown ? breakdown[status] || 0 : 0
-      ),
+      data: sortedBreakdowns.map(b => b?.[status] || 0),
       backgroundColor: statusColors[status],
       borderColor: '#ffffff',
       borderWidth: 1,
@@ -1055,11 +1018,12 @@ const Dashboard = () => {
       barPercentage: 0.9
     }))
     return {
-      labels: sortedTerritories.map(territory => territory.name),
+      labels: territoryData.map(item => item.territory.name),
       datasets
     }
   }
 
+  // ─── Color map for MetricCard ─────────────────────────────────────────────
   const colorMap = {
     'blue-600': { text: 'text-blue-600', bg: 'bg-blue-100/50' },
     'green-600': { text: 'text-green-600', bg: 'bg-green-100/50' },
@@ -1072,6 +1036,8 @@ const Dashboard = () => {
     'red-600': { text: 'text-red-600', bg: 'bg-red-100/50' }
   }
 
+  // ─── MetricCard (desktop) ─────────────────────────────────────────────────
+  // rounded-xl to match chart cards; uniform padding and text scale
   const MetricCard = ({
     icon: Icon,
     title,
@@ -1082,36 +1048,32 @@ const Dashboard = () => {
   }) => {
     const c = colorMap[color] || { text: 'text-gray-600', bg: 'bg-gray-100' }
     return (
-      <div className='bg-white p-2 sm:p-4 rounded-lg shadow-card3 border border-gray-100 hover:shadow-md transition-all duration-200'>
-        <div className='flex items-start justify-between'>
-          <div className='space-y-2'>
+      <div className='bg-white p-3 sm:p-4 rounded-xl shadow-card3 border border-gray-100 hover:shadow-md transition-all duration-200'>
+        <div className='flex items-start justify-between gap-2'>
+          <div className='space-y-1.5 min-w-0'>
             <div className='flex items-center gap-2'>
-              <div className={`p-2 rounded-lg ${c.bg}`}>
-                <Icon className={`text-lg sm:text-xl ${c.text}`} />
+              <div className={`p-1.5 sm:p-2 rounded-lg ${c.bg} shrink-0`}>
+                <Icon className={`text-base sm:text-lg ${c.text}`} />
               </div>
-              <span className='text-xxs sm:text-xs md:text-sm font-medium text-gray-600'>
+              <span className='text-xs sm:text-sm font-medium text-gray-600 leading-tight'>
                 {title}
               </span>
             </div>
-            <div className='text-xl md:text-2xl font-bold text-gray-900'>
+            <div className='text-xl sm:text-2xl font-bold text-gray-900 tabular-nums'>
               {value}
             </div>
             {subtitle && (
-              <div className='text-xxs sm:text-xs md:text-sm text-gray-500'>
-                {subtitle}
-              </div>
+              <div className='text-xs text-gray-500'>{subtitle}</div>
             )}
           </div>
           {trend && (
             <div
-              className={`flex items-center gap-1 ${
+              className={`flex items-center gap-1 shrink-0 ${
                 trend > 0 ? 'text-green-600' : 'text-red-600'
               }`}
             >
               {trend > 0 ? <TbTrendingUp /> : <TbTrendingDown />}
-              <span className='text-xxs sm:text-xs md:text-sm font-medium'>
-                {Math.abs(trend)}%
-              </span>
+              <span className='text-xs font-medium'>{Math.abs(trend)}%</span>
             </div>
           )}
         </div>
@@ -1119,35 +1081,64 @@ const Dashboard = () => {
     )
   }
 
+  // ─── MetricCard (mobile) ──────────────────────────────────────────────────
+  // Matches MetricCard's rounded-xl and border for visual consistency
   const MetricCardMobile = ({ icon: Icon, title, value, subtitle, color }) => {
     const c = colorMap[color] || { text: 'text-gray-600', bg: 'bg-gray-100' }
     return (
-      <div className='bg-white p-2 rounded shadow-card3'>
+      <div className='bg-white p-2.5 rounded-sm shadow-card3 sm:border sm:border-gray-100'>
         <div className='flex items-start gap-2'>
-          <div className={`p-1.5 rounded ${c.bg} shrink-0`}>
+          <div className={`p-1.5 rounded-lg ${c.bg} shrink-0`}>
             <Icon className={`text-sm ${c.text}`} />
           </div>
           <div className='min-w-0 flex-1'>
-            <div className='flex items-center justify-between gap-1'>
-              <span className='text-xxs font-medium text-gray-600 truncate'>
-                {title}
-              </span>
-              <p className='text-[9px] text-gray-500 truncate'>{subtitle}</p>
-            </div>
-            <span className='text-xs font-bold text-gray-900'>{value}</span>
+            <span className='block text-xs font-medium text-gray-600 truncate'>
+              {title}
+            </span>
+            <span className='block text-sm font-bold text-gray-900 tabular-nums'>
+              {value}
+            </span>
+            {subtitle && (
+              <p className='text-[10px] text-gray-500 truncate mt-0.5'>
+                {subtitle}
+              </p>
+            )}
           </div>
         </div>
       </div>
     )
   }
 
+  // ─── Reusable CardHeader ──────────────────────────────────────────────────
+  const CardHeader = ({ title, subtitle }) => (
+    <div className={CLS.cardHeader}>
+      <h2 className={CLS.cardTitle}>{title}</h2>
+      {subtitle && <p className={CLS.cardSubtitle}>{subtitle}</p>}
+    </div>
+  )
+
+  // ─── Shared Table Styles ──────────────────────────────────────────────────
+  const statusBadge = status => {
+    const map = {
+      available: 'bg-green-100 text-green-800',
+      deployed: 'bg-blue-100 text-blue-800'
+    }
+    return map[status] || 'bg-red-100 text-red-800'
+  }
+
+  const completionBadge = rate => {
+    const n = parseFloat(rate)
+    if (n >= 80) return 'bg-green-100 text-green-800'
+    if (n >= 60) return 'bg-yellow-100 text-yellow-800'
+    return 'bg-red-100 text-red-800'
+  }
+
+  // ─── Loading / Error states ───────────────────────────────────────────────
   if (loading || userData.isLoading) {
     return (
       <div className='flex-1 flex items-center justify-center'>
-        <div className='flex flex-col items-center justify-center gap-4 text-center'>
-          <div className='relative'>
-            <span className='loading loading-spinner loading-lg text-primaryColor'></span>
-          </div>
+        <div className='flex flex-col items-center gap-4 text-center'>
+          <span className='loading loading-spinner loading-lg text-primaryColor'></span>
           <p className='text-gray-600 font-medium'>Loading analytics...</p>
         </div>
       </div>
@@ -1158,7 +1149,7 @@ const Dashboard = () => {
     return (
       <div className='flex-1 flex justify-center items-center'>
         <div className='flex flex-col justify-center items-center gap-4 px-4 text-center'>
-          <img src={error_illustration} alt='empty list' className='w-56' />
+          <img src={error_illustration} alt='error' className='w-56' />
           <div className='space-y-2'>
             <h1 className='text-xl font-semibold text-gray-700'>
               Something went wrong
@@ -1185,86 +1176,56 @@ const Dashboard = () => {
 
   return (
     <div className='flex-1 relative overflow-y-auto scrollbar-thin'>
-      <div className='absolute inset-0 space-y-4 sm:space-y-6 px-0.5'>
-        {/* Header */}
-        <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
+      <div className='absolute inset-0 space-y-2 sm:space-y-6 px-0.5'>
+        {/* ── Page Header ────────────────────────────────────────────────── */}
+        <div className='flex flex-col md:flex-row md:items-center justify-between gap-3'>
           <div>
             <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-gray-900'>
               Analytics Dashboard
             </h1>
-            <p className='text-gray-600 mt-2 font-medium text-xs sm:text-sm md:text-base'>
+            <p className='text-gray-500 mt-1 text-xs sm:text-sm md:text-base'>
               Real-time operational insights and performance metrics
             </p>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className='flex border-b border-gray-100 overflow-x-auto'>
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
-              activeTab === 'overview'
-                ? 'text-primaryColor border-b-2 border-primaryColor'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Overview
-          </button>
-          {(isAdmin || isVisitor) && (
-            <button
-              onClick={() => setActiveTab('deploymentDetails')}
-              className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
-                activeTab === 'deploymentDetails'
-                  ? 'text-primaryColor border-b-2 border-primaryColor'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Deployment Details
-            </button>
-          )}
-          {isAdmin && (
-            <>
+        {/* ── Tabs ───────────────────────────────────────────────────────── */}
+        <div className='flex border-b border-gray-100 overflow-x-auto scrollbar-hide'>
+          {[
+            { key: 'overview', label: 'Overview', show: true },
+            {
+              key: 'deploymentDetails',
+              label: 'Deployment Details',
+              show: isAdmin || isVisitor
+            },
+            { key: 'users', label: 'Users', show: isAdmin },
+            { key: 'subcons', label: 'Subcontractors', show: isAdmin },
+            { key: 'resources', label: 'My Resources', show: isSubcon }
+          ]
+            .filter(t => t.show)
+            .map(t => (
               <button
-                onClick={() => setActiveTab('users')}
-                className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
-                  activeTab === 'users'
+                key={t.key}
+                onClick={() => setActiveTab(t.key)}
+                className={`px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
+                  activeTab === t.key
                     ? 'text-primaryColor border-b-2 border-primaryColor'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Users
+                {t.label}
               </button>
-              <button
-                onClick={() => setActiveTab('subcons')}
-                className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
-                  activeTab === 'subcons'
-                    ? 'text-primaryColor border-b-2 border-primaryColor'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Subcontractors
-              </button>
-            </>
-          )}
-          {isSubcon && (
-            <button
-              onClick={() => setActiveTab('resources')}
-              className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
-                activeTab === 'resources'
-                  ? 'text-primaryColor border-b-2 border-primaryColor'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              My Resources
-            </button>
-          )}
+            ))}
         </div>
 
-        {/* Overview Tab */}
+        {/* ════════════════════════════════════════════════════════════════
+            OVERVIEW TAB
+        ════════════════════════════════════════════════════════════════ */}
         {activeTab === 'overview' && (
           <>
+            {/* Core metrics — desktop */}
             <div
-              className={clsx('grid grid-cols-2 gap-4 max-sm:hidden', {
+              className={clsx('grid grid-cols-2 gap-2 sm:gap-4 max-xs:hidden', {
                 'xl:grid-cols-6': isVisitor,
                 'xl:grid-cols-4': !isVisitor
               })}
@@ -1378,188 +1339,9 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Mobile View Metric Cards - Compact Grid */}
-            <div className='grid grid-cols-2 gap-4 sm:hidden'>
-              <MetricCardMobile
-                icon={TbRocket}
-                title='Total'
-                value={
-                  analytics.performanceMetrics.totalDeployments?.toLocaleString() ||
-                  '0'
-                }
-                subtitle={`${
-                  analytics.performanceMetrics.monthlyDeployments || 0
-                } mo`}
-                color='blue-600'
-              />
-              <MetricCardMobile
-                icon={TbChecklist}
-                title='Completed'
-                value={
-                  analytics.performanceMetrics.completedDeployments?.toLocaleString() ||
-                  '0'
-                }
-                subtitle={`${analytics.performanceMetrics.successRate || 0}%`}
-                color='green-600'
-              />
-              <MetricCardMobile
-                icon={TbRefresh}
-                title='In Progress'
-                value={
-                  analytics.performanceMetrics.ongoingDeployments?.toLocaleString() ||
-                  '0'
-                }
-                subtitle={`${
-                  analytics.performanceMetrics.activeDeployments || 0
-                } act`}
-                color='amber-600'
-              />
-              <MetricCardMobile
-                icon={TbActivity}
-                title='Recent'
-                value={
-                  analytics.performanceMetrics.recentActivity?.toLocaleString() ||
-                  '0'
-                }
-                subtitle='24h'
-                color='purple-600'
-              />
-
-              {isSubcon && analytics?.subconAnalytics && (
-                <>
-                  <MetricCardMobile
-                    icon={HiOutlineTruck}
-                    title='Trucks'
-                    value={
-                      analytics.subconAnalytics.trucks?.available?.toLocaleString() ||
-                      '0'
-                    }
-                    subtitle={`${
-                      analytics.subconAnalytics.trucks?.total || 0
-                    } tot`}
-                    color='indigo-600'
-                  />
-                  <MetricCardMobile
-                    icon={HiOutlineUser}
-                    title='Drivers'
-                    value={
-                      analytics.subconAnalytics.drivers?.available?.toLocaleString() ||
-                      '0'
-                    }
-                    subtitle={`${
-                      analytics.subconAnalytics.drivers?.total || 0
-                    } tot`}
-                    color='cyan-600'
-                  />
-                </>
-              )}
-
-              {isVisitor && (
-                <>
-                  <MetricCardMobile
-                    icon={HiOutlineCube}
-                    title='Sacks'
-                    value={
-                      analytics.performanceMetrics.totalCompletedSacks?.toLocaleString() ||
-                      '0'
-                    }
-                    subtitle={`Avg ${
-                      analytics.performanceMetrics.avgCompletedSacks?.toFixed(
-                        1
-                      ) || '0'
-                    }`}
-                    color='emerald-600'
-                  />
-                  <MetricCardMobile
-                    icon={HiOutlineScale}
-                    title='Weight'
-                    value={`${
-                      analytics.performanceMetrics.totalCompletedWeight?.toLocaleString() ||
-                      '0'
-                    }kg`}
-                    subtitle={`Avg ${
-                      analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
-                      '0'
-                    }kg`}
-                    color='violet-600'
-                  />
-                </>
-              )}
-            </div>
-
-            {/* Admin Mobile Metrics */}
+            {/* Admin extra metrics — desktop */}
             {isAdmin && (
-              <div className='grid grid-cols-2 gap-4 sm:hidden'>
-                <MetricCardMobile
-                  icon={HiOutlineTruck}
-                  title='Truck Util'
-                  value={`${
-                    analytics.performanceMetrics.utilizationRate || 0
-                  }%`}
-                  subtitle={`${
-                    analytics.performanceMetrics.deployedTrucks || 0
-                  }/${analytics.performanceMetrics.totalTrucks || 0}`}
-                  color='indigo-600'
-                />
-                <MetricCardMobile
-                  icon={HiOutlineUser}
-                  title='Driver Util'
-                  value={`${
-                    analytics.performanceMetrics.driverUtilizationRate || 0
-                  }%`}
-                  subtitle={`${
-                    analytics.performanceMetrics.deployedDrivers || 0
-                  }/${analytics.performanceMetrics.totalDrivers || 0}`}
-                  color='cyan-600'
-                />
-                <MetricCardMobile
-                  icon={HiOutlineCube}
-                  title='Sacks'
-                  value={
-                    analytics.performanceMetrics.totalCompletedSacks?.toLocaleString() ||
-                    '0'
-                  }
-                  subtitle={`Avg ${
-                    analytics.performanceMetrics.avgCompletedSacks?.toFixed(
-                      1
-                    ) || '0'
-                  }`}
-                  color='emerald-600'
-                />
-                <MetricCardMobile
-                  icon={HiOutlineScale}
-                  title='Weight'
-                  value={`${
-                    analytics.performanceMetrics.totalCompletedWeight?.toLocaleString() ||
-                    '0'
-                  }kg`}
-                  subtitle={`Avg ${
-                    analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
-                    '0'
-                  }kg`}
-                  color='violet-600'
-                />
-                <MetricCardMobile
-                  icon={HiOutlineTrendingUp}
-                  title='Complete'
-                  value={`${analytics.performanceMetrics.completionRate || 0}%`}
-                  subtitle='of all'
-                  color='green-600'
-                />
-                <MetricCardMobile
-                  icon={HiOutlineChartBar}
-                  title='Cancel'
-                  value={`${
-                    analytics.performanceMetrics.cancellationRate || 0
-                  }%`}
-                  subtitle='of all'
-                  color='red-600'
-                />
-              </div>
-            )}
-
-            {isAdmin && (
-              <div className='grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4 max-sm:hidden'>
+              <div className='grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-2 sm:gap-4 max-xs:hidden'>
                 <MetricCard
                   icon={HiOutlineTruck}
                   title='Truck Utilization'
@@ -1628,64 +1410,249 @@ const Dashboard = () => {
               </div>
             )}
 
-            <div className='grid grid-cols-1 xl:grid-cols-3 gap-6'>
-              {/* Deployment Trends - with Daily / Weekly toggle */}
-              <div className='xl:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-card3'>
-                <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4'>
+            {/* Core metrics — mobile */}
+            <div className='grid grid-cols-2 gap-2 xs:hidden'>
+              <MetricCardMobile
+                icon={TbRocket}
+                title='Total'
+                value={
+                  analytics.performanceMetrics.totalDeployments?.toLocaleString() ||
+                  '0'
+                }
+                subtitle={`${
+                  analytics.performanceMetrics.monthlyDeployments || 0
+                } this month`}
+                color='blue-600'
+              />
+              <MetricCardMobile
+                icon={TbChecklist}
+                title='Completed'
+                value={
+                  analytics.performanceMetrics.completedDeployments?.toLocaleString() ||
+                  '0'
+                }
+                subtitle={`${
+                  analytics.performanceMetrics.successRate || 0
+                }% rate`}
+                color='green-600'
+              />
+              <MetricCardMobile
+                icon={TbRefresh}
+                title='In Progress'
+                value={
+                  analytics.performanceMetrics.ongoingDeployments?.toLocaleString() ||
+                  '0'
+                }
+                subtitle={`${
+                  analytics.performanceMetrics.activeDeployments || 0
+                } active`}
+                color='amber-600'
+              />
+              <MetricCardMobile
+                icon={TbActivity}
+                title='Recent'
+                value={
+                  analytics.performanceMetrics.recentActivity?.toLocaleString() ||
+                  '0'
+                }
+                subtitle='Last 24h'
+                color='purple-600'
+              />
+
+              {isSubcon && analytics?.subconAnalytics && (
+                <>
+                  <MetricCardMobile
+                    icon={HiOutlineTruck}
+                    title='Trucks'
+                    value={
+                      analytics.subconAnalytics.trucks?.available?.toLocaleString() ||
+                      '0'
+                    }
+                    subtitle={`${
+                      analytics.subconAnalytics.trucks?.total || 0
+                    } total`}
+                    color='indigo-600'
+                  />
+                  <MetricCardMobile
+                    icon={HiOutlineUser}
+                    title='Drivers'
+                    value={
+                      analytics.subconAnalytics.drivers?.available?.toLocaleString() ||
+                      '0'
+                    }
+                    subtitle={`${
+                      analytics.subconAnalytics.drivers?.total || 0
+                    } total`}
+                    color='cyan-600'
+                  />
+                </>
+              )}
+
+              {isVisitor && (
+                <>
+                  <MetricCardMobile
+                    icon={HiOutlineCube}
+                    title='Sacks'
+                    value={
+                      analytics.performanceMetrics.totalCompletedSacks?.toLocaleString() ||
+                      '0'
+                    }
+                    subtitle={`Avg ${
+                      analytics.performanceMetrics.avgCompletedSacks?.toFixed(
+                        1
+                      ) || '0'
+                    }`}
+                    color='emerald-600'
+                  />
+                  <MetricCardMobile
+                    icon={HiOutlineScale}
+                    title='Weight'
+                    value={`${
+                      analytics.performanceMetrics.totalCompletedWeight?.toLocaleString() ||
+                      '0'
+                    }kg`}
+                    subtitle={`Avg ${
+                      analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
+                      '0'
+                    }kg`}
+                    color='violet-600'
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Admin extra metrics — mobile */}
+            {isAdmin && (
+              <div className='grid grid-cols-2 gap-2 xs:hidden'>
+                <MetricCardMobile
+                  icon={HiOutlineTruck}
+                  title='Truck Util.'
+                  value={`${
+                    analytics.performanceMetrics.utilizationRate || 0
+                  }%`}
+                  subtitle={`${
+                    analytics.performanceMetrics.deployedTrucks || 0
+                  }/${analytics.performanceMetrics.totalTrucks || 0}`}
+                  color='indigo-600'
+                />
+                <MetricCardMobile
+                  icon={HiOutlineUser}
+                  title='Driver Util.'
+                  value={`${
+                    analytics.performanceMetrics.driverUtilizationRate || 0
+                  }%`}
+                  subtitle={`${
+                    analytics.performanceMetrics.deployedDrivers || 0
+                  }/${analytics.performanceMetrics.totalDrivers || 0}`}
+                  color='cyan-600'
+                />
+                <MetricCardMobile
+                  icon={HiOutlineCube}
+                  title='Sacks'
+                  value={
+                    analytics.performanceMetrics.totalCompletedSacks?.toLocaleString() ||
+                    '0'
+                  }
+                  subtitle={`Avg ${
+                    analytics.performanceMetrics.avgCompletedSacks?.toFixed(
+                      1
+                    ) || '0'
+                  }`}
+                  color='emerald-600'
+                />
+                <MetricCardMobile
+                  icon={HiOutlineScale}
+                  title='Weight'
+                  value={`${
+                    analytics.performanceMetrics.totalCompletedWeight?.toLocaleString() ||
+                    '0'
+                  }kg`}
+                  subtitle={`Avg ${
+                    analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
+                    '0'
+                  }kg`}
+                  color='violet-600'
+                />
+                <MetricCardMobile
+                  icon={HiOutlineTrendingUp}
+                  title='Completion'
+                  value={`${analytics.performanceMetrics.completionRate || 0}%`}
+                  subtitle='of all'
+                  color='green-600'
+                />
+                <MetricCardMobile
+                  icon={HiOutlineChartBar}
+                  title='Cancellation'
+                  value={`${
+                    analytics.performanceMetrics.cancellationRate || 0
+                  }%`}
+                  subtitle='of all'
+                  color='red-600'
+                />
+              </div>
+            )}
+
+            {/* Trend + Status */}
+            <div className='grid grid-cols-1 xl:grid-cols-3 gap-2 sm:gap-6'>
+              {/* Deployment Trends */}
+              <div className={`xl:col-span-2 ${CLS.card}`}>
+                <div
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${CLS.cardHeader}`}
+                >
                   <div>
-                    <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
+                    <h2 className={CLS.cardTitle}>
                       Completed Deployment Trends
                     </h2>
-                    <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
+                    <p className={CLS.cardSubtitle}>
                       {trendPeriod === 'daily'
                         ? 'Last 30 days'
                         : 'Last 12 weeks'}
                     </p>
                   </div>
-                  <div className='flex items-center gap-2'>
-                    {/* Period toggle */}
-                    <div className='flex items-center bg-gray-100 rounded-md p-0.5 gap-1'>
-                      <button
-                        onClick={() => setTrendPeriod('daily')}
-                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-sm text-xxs sm:text-xs font-medium transition-all ${
-                          trendPeriod === 'daily'
-                            ? 'bg-white text-gray-900 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        <TbCalendar className='text-xs sm:text-sm' />
-                        Daily
-                      </button>
-                      <button
-                        onClick={() => setTrendPeriod('weekly')}
-                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xxs sm:text-xs font-medium transition-all ${
-                          trendPeriod === 'weekly'
-                            ? 'bg-white text-gray-900 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        <TbCalendarWeek className='text-xs sm:text-sm' />
-                        Weekly
-                      </button>
+                  <div className='flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5 self-start sm:self-auto'>
+                    <button
+                      onClick={() => setTrendPeriod('daily')}
+                      className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        trendPeriod === 'daily'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      <TbCalendar className='text-sm' />
+                      Daily
+                    </button>
+                    <button
+                      onClick={() => setTrendPeriod('weekly')}
+                      className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        trendPeriod === 'weekly'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      <TbCalendarWeek className='text-sm' />
+                      Weekly
+                    </button>
+                  </div>
+                </div>
+                <div className='overflow-x-auto -mx-4 sm:mx-0'>
+                  <div className='min-w-200 px-4 sm:px-0'>
+                    <div className={CLS.chartLine}>
+                      <Line
+                        data={getLineChartData()}
+                        options={lineChartOptions}
+                      />
                     </div>
                   </div>
                 </div>
-                <div className='h-60 sm:h-80'>
-                  <Line data={getLineChartData()} options={lineChartOptions} />
-                </div>
               </div>
 
-              {/* Deployment Status Distribution */}
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                <div className='mb-6'>
-                  <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
-                    Deployment Status
-                  </h2>
-                  <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
-                    Current status distribution
-                  </p>
-                </div>
-                <div className='h-60 sm:h-80'>
+              {/* Deployment Status */}
+              <div className={CLS.card}>
+                <CardHeader
+                  title='Deployment Status'
+                  subtitle='Current status distribution'
+                />
+                <div className={CLS.chartLine}>
                   <Bar
                     data={getDeploymentStatusData()}
                     options={verticalBarOptions}
@@ -1694,18 +1661,15 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Admin fleet charts */}
             {isAdmin && (
-              <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
-                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                  <div className='mb-6'>
-                    <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
-                      Fleet Composition
-                    </h2>
-                    <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
-                      Truck types distribution
-                    </p>
-                  </div>
-                  <div className='h-60 sm:h-64'>
+              <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-6'>
+                <div className={CLS.card}>
+                  <CardHeader
+                    title='Fleet Composition'
+                    subtitle='Truck types distribution'
+                  />
+                  <div className={CLS.chartSm}>
                     <Bar
                       data={getBarChartData(
                         analytics.charts.truckTypes,
@@ -1716,16 +1680,12 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                  <div className='mb-6'>
-                    <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
-                      Truck Status
-                    </h2>
-                    <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
-                      Operational status
-                    </p>
-                  </div>
-                  <div className='h-60 sm:h-64'>
+                <div className={CLS.card}>
+                  <CardHeader
+                    title='Truck Status'
+                    subtitle='Operational status'
+                  />
+                  <div className={CLS.chartSm}>
                     <Doughnut
                       data={getTruckStatusData()}
                       options={pieDoughnutOptions}
@@ -1733,16 +1693,12 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                  <div className='mb-6'>
-                    <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
-                      Driver Status
-                    </h2>
-                    <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
-                      Availability distribution
-                    </p>
-                  </div>
-                  <div className='h-60 sm:h-64'>
+                <div className={CLS.card}>
+                  <CardHeader
+                    title='Driver Status'
+                    subtitle='Availability distribution'
+                  />
+                  <div className={CLS.chartSm}>
                     <Doughnut
                       data={getDriverStatusData()}
                       options={doughnutOptions}
@@ -1750,16 +1706,12 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className='col-span-full bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                  <div className='mb-6'>
-                    <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
-                      Top Drivers Performance
-                    </h2>
-                    <p className='text-gray-500 text-xxs sm:text-xs md:text-sm'>
-                      Ranked by completed trips
-                    </p>
-                  </div>
-                  <div className='h-96'>
+                <div className={`col-span-full ${CLS.card}`}>
+                  <CardHeader
+                    title='Top Drivers Performance'
+                    subtitle='Ranked by completed trips'
+                  />
+                  <div className={CLS.chartLg}>
                     <Bar
                       data={getAllDriversBarData()}
                       options={horizontalBarOptions}
@@ -1771,11 +1723,12 @@ const Dashboard = () => {
           </>
         )}
 
-        {/* Deployment Details Tab */}
-        {((activeTab === 'deploymentDetails' && isAdmin) ||
-          (activeTab === 'deploymentDetails' && isVisitor)) && (
-          <div className='space-y-6'>
-            <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
+        {/* ════════════════════════════════════════════════════════════════
+            DEPLOYMENT DETAILS TAB
+        ════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'deploymentDetails' && (isAdmin || isVisitor) && (
+          <div className={CLS.tabSection}>
+            <div className='grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4'>
               <MetricCard
                 icon={HiOutlineLocationMarker}
                 title='Territories'
@@ -1808,51 +1761,37 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                <div className='mb-6'>
-                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                    Territory Distribution
-                  </h2>
-                  <p className='text-gray-500 text-xs md:text-sm'>
-                    Deployments by territory
-                  </p>
-                </div>
-                <div className='h-60 sm:h-64'>
+            <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-6'>
+              <div className={CLS.card}>
+                <CardHeader
+                  title='Territory Distribution'
+                  subtitle='Deployments by territory'
+                />
+                <div className={CLS.chartSm}>
                   <Doughnut
                     data={getTerritoryDistributionPieData()}
                     options={doughnutOptions}
                   />
                 </div>
               </div>
-
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                <div className='mb-6'>
-                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                    Hybrid Distribution
-                  </h2>
-                  <p className='text-gray-500 text-xs md:text-sm'>
-                    Deployments by hybrid type
-                  </p>
-                </div>
-                <div className='h-60 sm:h-64'>
+              <div className={CLS.card}>
+                <CardHeader
+                  title='Hybrid Distribution'
+                  subtitle='Deployments by hybrid type'
+                />
+                <div className={CLS.chartSm}>
                   <Doughnut
                     data={getHybridDistributionPieData()}
                     options={doughnutOptions}
                   />
                 </div>
               </div>
-
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                <div className='mb-6'>
-                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                    Flagging Distribution
-                  </h2>
-                  <p className='text-gray-500 text-xs md:text-sm'>
-                    Deployments by flagging level
-                  </p>
-                </div>
-                <div className='h-60 sm:h-64'>
+              <div className={CLS.card}>
+                <CardHeader
+                  title='Flagging Distribution'
+                  subtitle='Deployments by flagging level'
+                />
+                <div className={CLS.chartSm}>
                   <Doughnut
                     data={getFlaggingDistributionPieData()}
                     options={doughnutOptions}
@@ -1861,31 +1800,24 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-              <div>
-                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                  Territory Performance
-                </h2>
-                <p className='text-gray-500 text-xs md:text-sm'>
-                  Deployment status breakdown by territory (stacked view)
-                </p>
-              </div>
-              <div className='h-96 relative'>
+            <div className={CLS.card}>
+              <CardHeader
+                title='Territory Performance'
+                subtitle='Deployment status breakdown by territory (stacked view)'
+              />
+              <div className={`relative ${CLS.chartLg}`}>
                 <Bar
                   data={getTerritoryPerformanceStackedData()}
                   options={stackedBarOptions}
                 />
-                {(!analytics?.charts?.territoryPerformance?.data ||
-                  analytics.charts.territoryPerformance.data.length === 0) && (
-                  <div className='absolute inset-0 flex items-center justify-center bg-white bg-opacity-90'>
+                {!analytics?.charts?.territoryPerformance?.data?.length && (
+                  <div className='absolute inset-0 flex items-center justify-center bg-white/90'>
                     <div className='text-center'>
-                      <div className='text-gray-400 mb-2'>
-                        <HiOutlineChartBar className='text-3xl md:text-4xl mx-auto' />
-                      </div>
-                      <p className='text-gray-500 font-medium'>
+                      <HiOutlineChartBar className='text-3xl text-gray-400 mx-auto mb-2' />
+                      <p className='text-sm font-medium text-gray-500'>
                         No territory data available
                       </p>
-                      <p className='text-gray-400 text-xs md:text-sm mt-1'>
+                      <p className='text-xs text-gray-400 mt-1'>
                         Deployments will appear here
                       </p>
                     </div>
@@ -1894,12 +1826,10 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
-              <div className='p-6 border-b border-gray-100'>
-                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                  Territory Performance Details
-                </h2>
-                <p className='text-gray-500 text-xs md:text-sm'>
+            <div className={CLS.cardOverflow}>
+              <div className='p-4 sm:p-6 border-b border-gray-100'>
+                <h2 className={CLS.cardTitle}>Territory Performance Details</h2>
+                <p className={CLS.cardSubtitle}>
                   Performance metrics by territory
                 </p>
               </div>
@@ -1907,24 +1837,18 @@ const Dashboard = () => {
                 <table className='min-w-full divide-y divide-gray-200'>
                   <thead className='bg-gray-50'>
                     <tr>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Territory
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Total Deployments
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Completed
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Completion Rate
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Total Sacks
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Total Weight (kg)
-                      </th>
+                      {[
+                        'Territory',
+                        'Total Deployments',
+                        'Completed',
+                        'Completion Rate',
+                        'Total Sacks',
+                        'Total Weight (kg)'
+                      ].map(h => (
+                        <th key={h} className={CLS.thCell}>
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className='bg-white divide-y divide-gray-200'>
@@ -1937,32 +1861,30 @@ const Dashboard = () => {
                             index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                           }
                         >
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
+                          <td
+                            className={`${CLS.tdCell} font-medium text-gray-900`}
+                          >
                             {territory._id || 'Unknown'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {territory.count?.toLocaleString() || '0'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {territory.completed || '0'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm'>
+                          <td className={CLS.tdCell}>
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                territory.completionRate >= 80
-                                  ? 'bg-green-100 text-green-800'
-                                  : territory.completionRate >= 60
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${completionBadge(
+                                territory.completionRate
+                              )}`}
                             >
                               {territory.completionRate || '0'}%
                             </span>
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {territory.totalSacks?.toLocaleString() || '0'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {territory.totalWeight?.toLocaleString() || '0'} kg
                           </td>
                         </tr>
@@ -1974,10 +1896,12 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Users Tab */}
+        {/* ════════════════════════════════════════════════════════════════
+            USERS TAB
+        ════════════════════════════════════════════════════════════════ */}
         {activeTab === 'users' && isAdmin && (
-          <div className='space-y-6'>
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+          <div className={CLS.tabSection}>
+            <div className='grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4'>
               <MetricCard
                 icon={HiOutlineUsers}
                 title='Total Users'
@@ -2019,7 +1943,8 @@ const Dashboard = () => {
                 color='purple-600'
               />
             </div>
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4'>
               <MetricCard
                 icon={HiOutlineKey}
                 title='Total Logins'
@@ -2050,33 +1975,26 @@ const Dashboard = () => {
                 color='emerald-600'
               />
             </div>
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                <div className='mb-6'>
-                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                    User Role Distribution
-                  </h2>
-                  <p className='text-gray-500 text-sm'>
-                    Breakdown by user roles
-                  </p>
-                </div>
-                <div className='h-60 sm:h-80'>
+
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-6'>
+              <div className={CLS.card}>
+                <CardHeader
+                  title='User Role Distribution'
+                  subtitle='Breakdown by user roles'
+                />
+                <div className={CLS.chartMd}>
                   <Doughnut
                     data={getUserRoleData()}
                     options={doughnutOptions}
                   />
                 </div>
               </div>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                <div className='mb-6'>
-                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                    User Status Distribution
-                  </h2>
-                  <p className='text-gray-500 text-xs md:text-sm'>
-                    Breakdown by account status
-                  </p>
-                </div>
-                <div className='h-60 sm:h-80'>
+              <div className={CLS.card}>
+                <CardHeader
+                  title='User Status Distribution'
+                  subtitle='Breakdown by account status'
+                />
+                <div className={CLS.chartMd}>
                   <Doughnut
                     data={getUserStatusData()}
                     options={pieDoughnutOptions}
@@ -2084,16 +2002,13 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-              <div className='mb-6'>
-                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                  Subcontractor Distribution
-                </h2>
-                <p className='text-gray-500 text-xs md:text-sm'>
-                  Breakdown by subcontractor
-                </p>
-              </div>
-              <div className='h-60 sm:h-80'>
+
+            <div className={CLS.card}>
+              <CardHeader
+                title='Subcontractor Distribution'
+                subtitle='Breakdown by subcontractor'
+              />
+              <div className={CLS.chartMd}>
                 <Bar
                   data={getBarChartData(
                     analytics.charts.subconDistribution,
@@ -2106,31 +2021,28 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Subcons Tab */}
+        {/* ════════════════════════════════════════════════════════════════
+            SUBCONTRACTORS TAB
+        ════════════════════════════════════════════════════════════════ */}
         {activeTab === 'subcons' && isAdmin && (
-          <div className='space-y-6'>
-            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-              <div className='mb-6'>
-                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                  Subcontractor Deployment Status
-                </h2>
-                <p className='text-gray-500 text-xs md:text-sm'>
-                  Deployment status breakdown by subcontractor (stacked view)
-                </p>
-              </div>
-              <div className='h-96'>
+          <div className={CLS.tabSection}>
+            <div className={CLS.card}>
+              <CardHeader
+                title='Subcontractor Deployment Status'
+                subtitle='Deployment status breakdown by subcontractor (stacked view)'
+              />
+              <div className={CLS.chartLg}>
                 <Bar
                   data={getSubconDeploymentStatusData()}
                   options={stackedBarOptions}
                 />
               </div>
             </div>
-            <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
-              <div className='p-6 border-b border-gray-100'>
-                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                  Subcontractor Details
-                </h2>
-                <p className='text-gray-500 text-xs md:text-sm'>
+
+            <div className={CLS.cardOverflow}>
+              <div className='p-4 sm:p-6 border-b border-gray-100'>
+                <h2 className={CLS.cardTitle}>Subcontractor Details</h2>
+                <p className={CLS.cardSubtitle}>
                   Performance metrics by subcontractor
                 </p>
               </div>
@@ -2138,24 +2050,18 @@ const Dashboard = () => {
                 <table className='min-w-full divide-y divide-gray-200'>
                   <thead className='bg-gray-50'>
                     <tr>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Subcontractor
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Total Deployments
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Completed
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Completion Rate
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Total Sacks
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Total Weight (kg)
-                      </th>
+                      {[
+                        'Subcontractor',
+                        'Total Deployments',
+                        'Completed',
+                        'Completion Rate',
+                        'Total Sacks',
+                        'Total Weight (kg)'
+                      ].map(h => (
+                        <th key={h} className={CLS.thCell}>
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className='bg-white divide-y divide-gray-200'>
@@ -2168,32 +2074,30 @@ const Dashboard = () => {
                             index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                           }
                         >
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
+                          <td
+                            className={`${CLS.tdCell} font-medium text-gray-900`}
+                          >
                             {subcon.name || 'Unknown'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {subcon.totalDeployments.toLocaleString()}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {subcon.completedDeployments.toLocaleString()}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm'>
+                          <td className={CLS.tdCell}>
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                parseFloat(subcon.completionRate) >= 80
-                                  ? 'bg-green-100 text-green-800'
-                                  : parseFloat(subcon.completionRate) >= 60
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${completionBadge(
+                                subcon.completionRate
+                              )}`}
                             >
                               {subcon.completionRate}%
                             </span>
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {subcon.totalSacks.toLocaleString()}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {subcon.totalWeight.toLocaleString()} kg
                           </td>
                         </tr>
@@ -2205,10 +2109,12 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* My Resources Tab */}
+        {/* ════════════════════════════════════════════════════════════════
+            MY RESOURCES TAB (subcon)
+        ════════════════════════════════════════════════════════════════ */}
         {activeTab === 'resources' && isSubcon && analytics?.subconAnalytics && (
-          <div className='space-y-6'>
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+          <div className={CLS.tabSection}>
+            <div className='grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4'>
               <MetricCard
                 icon={HiOutlineTruck}
                 title='Total Trucks'
@@ -2259,33 +2165,25 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                <div className='mb-6'>
-                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                    Driver Performance
-                  </h2>
-                  <p className='text-gray-500 text-xs md:text-sm'>
-                    Top drivers by completed trips
-                  </p>
-                </div>
-                <div className='h-96'>
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-6'>
+              <div className={CLS.card}>
+                <CardHeader
+                  title='Driver Performance'
+                  subtitle='Top drivers by completed trips'
+                />
+                <div className={CLS.chartLg}>
                   <Bar
                     data={getSubconDriverPerformanceData()}
                     options={horizontalBarOptions}
                   />
                 </div>
               </div>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                <div className='mb-6'>
-                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                    Driver Status
-                  </h2>
-                  <p className='text-gray-500 text-xs md:text-sm'>
-                    Availability distribution
-                  </p>
-                </div>
-                <div className='h-96'>
+              <div className={CLS.card}>
+                <CardHeader
+                  title='Driver Status'
+                  subtitle='Availability distribution'
+                />
+                <div className={CLS.chartLg}>
                   <Doughnut
                     data={getSubconDriverStatusData()}
                     options={doughnutOptions}
@@ -2294,33 +2192,25 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                <div className='mb-6'>
-                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                    Truck Performance
-                  </h2>
-                  <p className='text-gray-500 text-xs md:text-sm'>
-                    Top trucks by completed trips
-                  </p>
-                </div>
-                <div className='h-96'>
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-6'>
+              <div className={CLS.card}>
+                <CardHeader
+                  title='Truck Performance'
+                  subtitle='Top trucks by completed trips'
+                />
+                <div className={CLS.chartLg}>
                   <Bar
                     data={getSubconTruckPerformanceData()}
                     options={horizontalBarOptions}
                   />
                 </div>
               </div>
-              <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-                <div className='mb-6'>
-                  <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                    Truck Status
-                  </h2>
-                  <p className='text-gray-500 text-xs md:text-sm'>
-                    Operational status distribution
-                  </p>
-                </div>
-                <div className='h-96'>
+              <div className={CLS.card}>
+                <CardHeader
+                  title='Truck Status'
+                  subtitle='Operational status distribution'
+                />
+                <div className={CLS.chartLg}>
                   <Pie
                     data={getSubconTruckStatusData()}
                     options={pieDoughnutOptions}
@@ -2329,16 +2219,12 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-card3 border border-gray-100'>
-              <div className='mb-6'>
-                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                  Fleet Composition
-                </h2>
-                <p className='text-gray-500 text-xs md:text-sm'>
-                  Truck types in your fleet
-                </p>
-              </div>
-              <div className='h-60 sm:h-80'>
+            <div className={CLS.card}>
+              <CardHeader
+                title='Fleet Composition'
+                subtitle='Truck types in your fleet'
+              />
+              <div className={CLS.chartMd}>
                 <Bar
                   data={getSubconTruckTypesData()}
                   options={verticalBarOptions}
@@ -2346,13 +2232,11 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Drivers List */}
-            <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
-              <div className='p-6 border-b border-gray-100'>
-                <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
-                  All Drivers
-                </h2>
-                <p className='text-gray-500 text-xs md:text-sm'>
+            {/* Drivers list */}
+            <div className={CLS.cardOverflow}>
+              <div className='p-4 sm:p-6 border-b border-gray-100'>
+                <h2 className={CLS.cardTitle}>All Drivers</h2>
+                <p className={CLS.cardSubtitle}>
                   Complete list of your drivers
                 </p>
               </div>
@@ -2360,21 +2244,17 @@ const Dashboard = () => {
                 <table className='min-w-full divide-y divide-gray-200'>
                   <thead className='bg-gray-50'>
                     <tr>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Driver Name
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Phone Number
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        License No.
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Status
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Completed Trips
-                      </th>
+                      {[
+                        'Driver Name',
+                        'Phone Number',
+                        'License No.',
+                        'Status',
+                        'Completed Trips'
+                      ].map(h => (
+                        <th key={h} className={CLS.thCell}>
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className='bg-white divide-y divide-gray-200'>
@@ -2386,24 +2266,22 @@ const Dashboard = () => {
                             index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                           }
                         >
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
+                          <td
+                            className={`${CLS.tdCell} font-medium text-gray-900`}
+                          >
                             {driver.name || 'Unknown'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {driver.phoneNo || 'N/A'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {driver.licenseNo || 'N/A'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm'>
+                          <td className={CLS.tdCell}>
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                driver.status === 'available'
-                                  ? 'bg-green-100 text-green-800'
-                                  : driver.status === 'deployed'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(
+                                driver.status
+                              )}`}
                             >
                               {driver.status
                                 ? driver.status.charAt(0).toUpperCase() +
@@ -2411,7 +2289,9 @@ const Dashboard = () => {
                                 : 'Unknown'}
                             </span>
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
+                          <td
+                            className={`${CLS.tdCell} font-medium text-gray-900`}
+                          >
                             {driver.tripCount?.toLocaleString() || '0'}
                           </td>
                         </tr>
@@ -2422,35 +2302,27 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Trucks List */}
-            <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
-              <div className='p-6 border-b border-gray-100'>
-                <h2 className='text-xl font-semibold text-gray-900'>
-                  All Trucks
-                </h2>
-                <p className='text-gray-500 text-xs md:text-sm'>
-                  Complete list of your trucks
-                </p>
+            {/* Trucks list */}
+            <div className={CLS.cardOverflow}>
+              <div className='p-4 sm:p-6 border-b border-gray-100'>
+                <h2 className={CLS.cardTitle}>All Trucks</h2>
+                <p className={CLS.cardSubtitle}>Complete list of your trucks</p>
               </div>
               <div className='overflow-x-auto'>
                 <table className='min-w-full divide-y divide-gray-200'>
                   <thead className='bg-gray-50'>
                     <tr>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Plate No.
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Truck Type
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Max Load
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Status
-                      </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                        Completed Trips
-                      </th>
+                      {[
+                        'Plate No.',
+                        'Truck Type',
+                        'Max Load',
+                        'Status',
+                        'Completed Trips'
+                      ].map(h => (
+                        <th key={h} className={CLS.thCell}>
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className='bg-white divide-y divide-gray-200'>
@@ -2462,30 +2334,28 @@ const Dashboard = () => {
                             index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                           }
                         >
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
+                          <td
+                            className={`${CLS.tdCell} font-medium text-gray-900`}
+                          >
                             {truck.plateNo || 'Unknown'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {truck.truckType
                               ? truck.truckType
                                   .replace('-', ' ')
-                                  .replace(/\b\w/g, char => char.toUpperCase())
+                                  .replace(/\b\w/g, c => c.toUpperCase())
                               : 'N/A'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500'>
+                          <td className={`${CLS.tdCell} text-gray-500`}>
                             {truck.maxLoad
                               ? `${truck.maxLoad.toLocaleString()} kg`
                               : 'N/A'}
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm'>
+                          <td className={CLS.tdCell}>
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                truck.status === 'available'
-                                  ? 'bg-green-100 text-green-800'
-                                  : truck.status === 'deployed'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(
+                                truck.status
+                              )}`}
                             >
                               {truck.status
                                 ? truck.status.charAt(0).toUpperCase() +
@@ -2493,7 +2363,9 @@ const Dashboard = () => {
                                 : 'Unknown'}
                             </span>
                           </td>
-                          <td className='px-6 py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900'>
+                          <td
+                            className={`${CLS.tdCell} font-medium text-gray-900`}
+                          >
                             {truck.tripCount?.toLocaleString() || '0'}
                           </td>
                         </tr>
