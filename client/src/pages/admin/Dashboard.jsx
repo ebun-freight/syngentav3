@@ -1060,6 +1060,18 @@ const Dashboard = () => {
     }
   }
 
+  const colorMap = {
+    'blue-600': { text: 'text-blue-600', bg: 'bg-blue-100/50' },
+    'green-600': { text: 'text-green-600', bg: 'bg-green-100/50' },
+    'amber-600': { text: 'text-amber-600', bg: 'bg-amber-100/50' },
+    'purple-600': { text: 'text-purple-600', bg: 'bg-purple-100/50' },
+    'indigo-600': { text: 'text-indigo-600', bg: 'bg-indigo-100/50' },
+    'cyan-600': { text: 'text-cyan-600', bg: 'bg-cyan-100/50' },
+    'emerald-600': { text: 'text-emerald-600', bg: 'bg-emerald-100/50' },
+    'violet-600': { text: 'text-violet-600', bg: 'bg-violet-100/50' },
+    'red-600': { text: 'text-red-600', bg: 'bg-red-100/50' }
+  }
+
   const MetricCard = ({
     icon: Icon,
     title,
@@ -1067,61 +1079,67 @@ const Dashboard = () => {
     subtitle,
     color,
     trend = null
-  }) => (
-    <div className='bg-white p-2 sm:p-4 rounded-lg shadow-card3 border border-gray-100 hover:shadow-md transition-all duration-200'>
-      <div className='flex items-start justify-between'>
-        <div className='space-y-2'>
-          <div className='flex items-center gap-2'>
-            <div className={`p-2 rounded-lg ${color} bg-opacity-10`}>
-              <Icon className={`text-lg sm:text-xl ${color}`} />
+  }) => {
+    const c = colorMap[color] || { text: 'text-gray-600', bg: 'bg-gray-100' }
+    return (
+      <div className='bg-white p-2 sm:p-4 rounded-lg shadow-card3 border border-gray-100 hover:shadow-md transition-all duration-200'>
+        <div className='flex items-start justify-between'>
+          <div className='space-y-2'>
+            <div className='flex items-center gap-2'>
+              <div className={`p-2 rounded-lg ${c.bg}`}>
+                <Icon className={`text-lg sm:text-xl ${c.text}`} />
+              </div>
+              <span className='text-xxs sm:text-xs md:text-sm font-medium text-gray-600'>
+                {title}
+              </span>
             </div>
-            <span className='text-xxs sm:text-xs md:text-sm font-medium text-gray-600'>
-              {title}
-            </span>
+            <div className='text-xl md:text-2xl font-bold text-gray-900'>
+              {value}
+            </div>
+            {subtitle && (
+              <div className='text-xxs sm:text-xs md:text-sm text-gray-500'>
+                {subtitle}
+              </div>
+            )}
           </div>
-          <div className='text-xl md:text-2xl font-bold text-gray-900'>
-            {value}
-          </div>
-          {subtitle && (
-            <div className='text-xxs sm:text-xs md:text-sm text-gray-500'>
-              {subtitle}
+          {trend && (
+            <div
+              className={`flex items-center gap-1 ${
+                trend > 0 ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {trend > 0 ? <TbTrendingUp /> : <TbTrendingDown />}
+              <span className='text-xxs sm:text-xs md:text-sm font-medium'>
+                {Math.abs(trend)}%
+              </span>
             </div>
           )}
         </div>
-        {trend && (
-          <div
-            className={`flex items-center gap-1 ${
-              trend > 0 ? 'text-green-600' : 'text-red-600'
-            }`}
-          >
-            {trend > 0 ? <TbTrendingUp /> : <TbTrendingDown />}
-            <span className='text-xxs sm:text-xs md:text-sm font-medium'>
-              {Math.abs(trend)}%
-            </span>
-          </div>
-        )}
       </div>
-    </div>
-  )
+    )
+  }
 
-  const MetricCardMobile = ({ icon: Icon, title, value, subtitle, color }) => (
-    <div className='bg-white p-2 rounded shadow-card3'>
-      <div className='flex items-start gap-1.5'>
-        <div className={`p-1.5 rounded ${color} bg-opacity-10 shrink-0`}>
-          <Icon className={`text-sm ${color}`} />
-        </div>
-        <div className='min-w-0 flex-1'>
-          <div className='flex items-center justify-between gap-1'>
-            <span className='text-[10px] font-medium text-gray-600 truncate'>
-              {title}
-            </span>
+  const MetricCardMobile = ({ icon: Icon, title, value, subtitle, color }) => {
+    const c = colorMap[color] || { text: 'text-gray-600', bg: 'bg-gray-100' }
+    return (
+      <div className='bg-white p-2 rounded shadow-card3'>
+        <div className='flex items-start gap-2'>
+          <div className={`p-1.5 rounded ${c.bg} shrink-0`}>
+            <Icon className={`text-sm ${c.text}`} />
+          </div>
+          <div className='min-w-0 flex-1'>
+            <div className='flex items-center justify-between gap-1'>
+              <span className='text-xxs font-medium text-gray-600 truncate'>
+                {title}
+              </span>
+              <p className='text-[9px] text-gray-500 truncate'>{subtitle}</p>
+            </div>
             <span className='text-xs font-bold text-gray-900'>{value}</span>
           </div>
-          <p className='text-[9px] text-gray-500 truncate'>{subtitle}</p>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   if (loading || userData.isLoading) {
     return (
@@ -1167,7 +1185,7 @@ const Dashboard = () => {
 
   return (
     <div className='flex-1 relative overflow-y-auto scrollbar-thin'>
-      <div className='absolute inset-0 space-y-4 sm:space-y-6'>
+      <div className='absolute inset-0 space-y-4 sm:space-y-6 px-0.5'>
         {/* Header */}
         <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
           <div>
@@ -1181,7 +1199,7 @@ const Dashboard = () => {
         </div>
 
         {/* Tabs */}
-        <div className='flex border-b border-gray-200 overflow-x-auto'>
+        <div className='flex border-b border-gray-100 overflow-x-auto'>
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-2 sm:px-4 py-1 sm:py-2 font-medium text-xs md:text-sm transition-colors text-nowrap ${
@@ -1261,7 +1279,7 @@ const Dashboard = () => {
                 subtitle={`${
                   analytics.performanceMetrics.monthlyDeployments || 0
                 } this month`}
-                color='text-blue-600'
+                color='blue-600'
               />
               <MetricCard
                 icon={TbChecklist}
@@ -1273,7 +1291,7 @@ const Dashboard = () => {
                 subtitle={`${
                   analytics.performanceMetrics.successRate || 0
                 }% success rate`}
-                color='text-green-600'
+                color='green-600'
               />
               <MetricCard
                 icon={TbRefresh}
@@ -1285,7 +1303,7 @@ const Dashboard = () => {
                 subtitle={`${
                   analytics.performanceMetrics.activeDeployments || 0
                 } active`}
-                color='text-amber-600'
+                color='amber-600'
               />
               <MetricCard
                 icon={TbActivity}
@@ -1295,7 +1313,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='Last 24 hours'
-                color='text-purple-600'
+                color='purple-600'
               />
 
               {isSubcon && analytics?.subconAnalytics && (
@@ -1310,7 +1328,7 @@ const Dashboard = () => {
                     subtitle={`${
                       analytics.subconAnalytics.trucks?.total || 0
                     } total trucks`}
-                    color='text-indigo-600'
+                    color='indigo-600'
                   />
                   <MetricCard
                     icon={HiOutlineUser}
@@ -1322,7 +1340,7 @@ const Dashboard = () => {
                     subtitle={`${
                       analytics.subconAnalytics.drivers?.total || 0
                     } total drivers`}
-                    color='text-cyan-600'
+                    color='cyan-600'
                   />
                 </>
               )}
@@ -1341,7 +1359,7 @@ const Dashboard = () => {
                         2
                       ) || '0'
                     } per trip`}
-                    color='text-emerald-600'
+                    color='emerald-600'
                   />
                   <MetricCard
                     icon={HiOutlineScale}
@@ -1354,7 +1372,7 @@ const Dashboard = () => {
                       analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
                       '0'
                     } kg per trip`}
-                    color='text-violet-600'
+                    color='violet-600'
                   />
                 </>
               )}
@@ -1372,7 +1390,7 @@ const Dashboard = () => {
                 subtitle={`${
                   analytics.performanceMetrics.monthlyDeployments || 0
                 } mo`}
-                color='text-blue-600'
+                color='blue-600'
               />
               <MetricCardMobile
                 icon={TbChecklist}
@@ -1382,7 +1400,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle={`${analytics.performanceMetrics.successRate || 0}%`}
-                color='text-green-600'
+                color='green-600'
               />
               <MetricCardMobile
                 icon={TbRefresh}
@@ -1394,7 +1412,7 @@ const Dashboard = () => {
                 subtitle={`${
                   analytics.performanceMetrics.activeDeployments || 0
                 } act`}
-                color='text-amber-600'
+                color='amber-600'
               />
               <MetricCardMobile
                 icon={TbActivity}
@@ -1404,7 +1422,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='24h'
-                color='text-purple-600'
+                color='purple-600'
               />
 
               {isSubcon && analytics?.subconAnalytics && (
@@ -1419,7 +1437,7 @@ const Dashboard = () => {
                     subtitle={`${
                       analytics.subconAnalytics.trucks?.total || 0
                     } tot`}
-                    color='text-indigo-600'
+                    color='indigo-600'
                   />
                   <MetricCardMobile
                     icon={HiOutlineUser}
@@ -1431,7 +1449,7 @@ const Dashboard = () => {
                     subtitle={`${
                       analytics.subconAnalytics.drivers?.total || 0
                     } tot`}
-                    color='text-cyan-600'
+                    color='cyan-600'
                   />
                 </>
               )}
@@ -1450,7 +1468,7 @@ const Dashboard = () => {
                         1
                       ) || '0'
                     }`}
-                    color='text-emerald-600'
+                    color='emerald-600'
                   />
                   <MetricCardMobile
                     icon={HiOutlineScale}
@@ -1463,7 +1481,7 @@ const Dashboard = () => {
                       analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
                       '0'
                     }kg`}
-                    color='text-violet-600'
+                    color='violet-600'
                   />
                 </>
               )}
@@ -1481,7 +1499,7 @@ const Dashboard = () => {
                   subtitle={`${
                     analytics.performanceMetrics.deployedTrucks || 0
                   }/${analytics.performanceMetrics.totalTrucks || 0}`}
-                  color='text-indigo-600'
+                  color='indigo-600'
                 />
                 <MetricCardMobile
                   icon={HiOutlineUser}
@@ -1492,7 +1510,7 @@ const Dashboard = () => {
                   subtitle={`${
                     analytics.performanceMetrics.deployedDrivers || 0
                   }/${analytics.performanceMetrics.totalDrivers || 0}`}
-                  color='text-cyan-600'
+                  color='cyan-600'
                 />
                 <MetricCardMobile
                   icon={HiOutlineCube}
@@ -1506,7 +1524,7 @@ const Dashboard = () => {
                       1
                     ) || '0'
                   }`}
-                  color='text-emerald-600'
+                  color='emerald-600'
                 />
                 <MetricCardMobile
                   icon={HiOutlineScale}
@@ -1519,14 +1537,14 @@ const Dashboard = () => {
                     analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
                     '0'
                   }kg`}
-                  color='text-violet-600'
+                  color='violet-600'
                 />
                 <MetricCardMobile
                   icon={HiOutlineTrendingUp}
                   title='Complete'
                   value={`${analytics.performanceMetrics.completionRate || 0}%`}
                   subtitle='of all'
-                  color='text-green-600'
+                  color='green-600'
                 />
                 <MetricCardMobile
                   icon={HiOutlineChartBar}
@@ -1535,7 +1553,7 @@ const Dashboard = () => {
                     analytics.performanceMetrics.cancellationRate || 0
                   }%`}
                   subtitle='of all'
-                  color='text-red-600'
+                  color='red-600'
                 />
               </div>
             )}
@@ -1551,7 +1569,7 @@ const Dashboard = () => {
                   subtitle={`${
                     analytics.performanceMetrics.deployedTrucks || 0
                   }/${analytics.performanceMetrics.totalTrucks || 0} deployed`}
-                  color='text-indigo-600'
+                  color='indigo-600'
                 />
                 <MetricCard
                   icon={HiOutlineUser}
@@ -1562,7 +1580,7 @@ const Dashboard = () => {
                   subtitle={`${
                     analytics.performanceMetrics.deployedDrivers || 0
                   }/${analytics.performanceMetrics.totalDrivers || 0} deployed`}
-                  color='text-cyan-600'
+                  color='cyan-600'
                 />
                 <MetricCard
                   icon={HiOutlineCube}
@@ -1576,7 +1594,7 @@ const Dashboard = () => {
                       1
                     ) || '0'
                   } per trip`}
-                  color='text-emerald-600'
+                  color='emerald-600'
                 />
                 <MetricCard
                   icon={HiOutlineScale}
@@ -1589,14 +1607,14 @@ const Dashboard = () => {
                     analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
                     '0'
                   } kg per trip`}
-                  color='text-violet-600'
+                  color='violet-600'
                 />
                 <MetricCard
                   icon={HiOutlineTrendingUp}
                   title='Completion Rate'
                   value={`${analytics.performanceMetrics.completionRate || 0}%`}
                   subtitle='Of all deployments'
-                  color='text-green-600'
+                  color='green-600'
                 />
                 <MetricCard
                   icon={HiOutlineChartBar}
@@ -1605,14 +1623,14 @@ const Dashboard = () => {
                     analytics.performanceMetrics.cancellationRate || 0
                   }%`}
                   subtitle='Of all deployments'
-                  color='text-red-600'
+                  color='red-600'
                 />
               </div>
             )}
 
-            <div className='grid grid-cols-1 2xl:grid-cols-3 gap-6'>
+            <div className='grid grid-cols-1 xl:grid-cols-3 gap-6'>
               {/* Deployment Trends - with Daily / Weekly toggle */}
-              <div className='col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-card3'>
+              <div className='xl:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-card3'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4'>
                   <div>
                     <h2 className='text-base sm:text-lg md:text-xl font-semibold text-gray-900'>
@@ -1766,7 +1784,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='Active territories'
-                color='text-blue-600'
+                color='blue-600'
               />
               <MetricCard
                 icon={HiOutlineBeaker}
@@ -1776,7 +1794,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='Hybrid types'
-                color='text-green-600'
+                color='green-600'
               />
               <MetricCard
                 icon={HiOutlineFlag}
@@ -1786,7 +1804,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='Flagging levels'
-                color='text-purple-600'
+                color='purple-600'
               />
             </div>
 
@@ -1877,7 +1895,7 @@ const Dashboard = () => {
             </div>
 
             <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
-              <div className='p-6 border-b border-gray-200'>
+              <div className='p-6 border-b border-gray-100'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Territory Performance Details
                 </h2>
@@ -1968,7 +1986,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='All system users'
-                color='text-blue-600'
+                color='blue-600'
               />
               <MetricCard
                 icon={HiOutlineUserGroup}
@@ -1978,7 +1996,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='Currently active'
-                color='text-green-600'
+                color='green-600'
               />
               <MetricCard
                 icon={TbUserPlus}
@@ -1988,7 +2006,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='Awaiting approval'
-                color='text-amber-600'
+                color='amber-600'
               />
               <MetricCard
                 icon={HiOutlineDocumentAdd}
@@ -1998,7 +2016,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='Last 30 days'
-                color='text-purple-600'
+                color='purple-600'
               />
             </div>
             <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
@@ -2010,7 +2028,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='All time'
-                color='text-indigo-600'
+                color='indigo-600'
               />
               <MetricCard
                 icon={HiOutlineTrendingUp}
@@ -2019,7 +2037,7 @@ const Dashboard = () => {
                   analytics.performanceMetrics.avgLoginCount?.toFixed(1) || '0'
                 }
                 subtitle='Average login count'
-                color='text-cyan-600'
+                color='cyan-600'
               />
               <MetricCard
                 icon={HiOutlineChartBar}
@@ -2029,7 +2047,7 @@ const Dashboard = () => {
                   '0'
                 }
                 subtitle='Highest individual count'
-                color='text-emerald-600'
+                color='emerald-600'
               />
             </div>
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
@@ -2108,7 +2126,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
-              <div className='p-6 border-b border-gray-200'>
+              <div className='p-6 border-b border-gray-100'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   Subcontractor Details
                 </h2>
@@ -2201,7 +2219,7 @@ const Dashboard = () => {
                 subtitle={`${
                   analytics.subconAnalytics.trucks?.available || 0
                 } available`}
-                color='text-indigo-600'
+                color='indigo-600'
               />
               <MetricCard
                 icon={HiOutlineUser}
@@ -2213,7 +2231,7 @@ const Dashboard = () => {
                 subtitle={`${
                   analytics.subconAnalytics.drivers?.available || 0
                 } available`}
-                color='text-cyan-600'
+                color='cyan-600'
               />
               <MetricCard
                 icon={TbLicense}
@@ -2225,7 +2243,7 @@ const Dashboard = () => {
                 subtitle={`${
                   analytics.performanceMetrics.deployedTrucks || 0
                 } currently deployed`}
-                color='text-blue-600'
+                color='blue-600'
               />
               <MetricCard
                 icon={TbUserPlus}
@@ -2237,7 +2255,7 @@ const Dashboard = () => {
                 subtitle={`${
                   analytics.performanceMetrics.deployedDrivers || 0
                 } currently deployed`}
-                color='text-green-600'
+                color='green-600'
               />
             </div>
 
@@ -2330,7 +2348,7 @@ const Dashboard = () => {
 
             {/* Drivers List */}
             <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
-              <div className='p-6 border-b border-gray-200'>
+              <div className='p-6 border-b border-gray-100'>
                 <h2 className='text-lg md:text-xl font-semibold text-gray-900'>
                   All Drivers
                 </h2>
@@ -2406,7 +2424,7 @@ const Dashboard = () => {
 
             {/* Trucks List */}
             <div className='bg-white rounded-xl shadow-card3 border border-gray-100 overflow-hidden'>
-              <div className='p-6 border-b border-gray-200'>
+              <div className='p-6 border-b border-gray-100'>
                 <h2 className='text-xl font-semibold text-gray-900'>
                   All Trucks
                 </h2>
