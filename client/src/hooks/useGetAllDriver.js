@@ -31,6 +31,7 @@ const useGetAllDriver = () => {
       console.log(error.response.data)
 
       return {
+        data: null,
         error: error.response?.data?.message || 'Something went wrong!'
       }
     } finally {

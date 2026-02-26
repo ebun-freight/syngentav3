@@ -26,7 +26,7 @@ const defaultFilters = {
   subcon: '',
   sort: 'latest',
   search: '',
-  perPage: 40,
+  perPage: 100,
   page: 1
 }
 
@@ -140,137 +140,35 @@ function TruckManagement () {
 
   return (
     <>
-      <div className='flex-1 flex flex-col gap-10'>
+      <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
         {/* header */}
-        <div className='flex items-center flex-wrap gap-x-12 gap-y-4'>
-          <h1 className='font-semibold text-2xl mr-auto'>Manage Trucks</h1>
+        <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-16 gap-y-4'>
+          <div className='flex justify-between flex-1'>
+            <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-nowrap'>
+              Manage Trucks
+            </h1>
+
+            <div className='flex gap-4 max-sm:hidden xl:hidden'>
+              {/* create button */}
+              {['head_admin', 'admin'].includes(userData.data.role) && (
+                <button
+                  onClick={() => setIsCreateTruckModalOpen(true)}
+                  disabled={isLoading}
+                  className='flex items-center gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95'
+                >
+                  <FaPlus className='text-sm' />
+                  <p>Create New</p>
+                </button>
+              )}
+            </div>
+          </div>
 
           {/* right side */}
-          <div className='flex flex-wrap gap-4'>
-            {/* filters */}
-            <div className='dropdown dropdown-center'>
-              {/* button */}
-              <div
-                tabIndex={0}
-                role='button'
-                className='flex items-center gap-4 ring-1 ring-gray-200 hover:bg-gray-50 rounded px-3 py-1 cursor-pointer active:scale-95 transition-all'
-              >
-                <FaFilter className='text-sm' />
-                <p>Filter</p>
-              </div>
-
-              {/* menu */}
-              <div
-                tabIndex='0'
-                className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-sm ring-1 ring-gray-300'
-              >
-                <div className='grid grid-cols-2 gap-4 p-4'>
-                  {/* Truck Type */}
-                  <label
-                    className={clsx(
-                      'flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2',
-                      {
-                        'col-span-full': userData.data.role === 'subcon'
-                      }
-                    )}
-                  >
-                    <p className='font-semibold'>Type</p>
-                    <select
-                      name='truckType'
-                      value={tempFilters.truckType}
-                      onChange={handleChangeFilter}
-                      className='w-full focus:outline-none capitalize'
-                    >
-                      <option value=''>All</option>
-                      {settings.trucksDrivers.truckType.map((item, index) => (
-                        <option key={index} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  {/* Subcon */}
-                  {userData.data.role !== 'subcon' && (
-                    <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
-                      <p className='font-semibold'>Subcon</p>
-                      <select
-                        name='subcon'
-                        value={tempFilters.subcon}
-                        onChange={handleChangeFilter}
-                        className='w-full focus:outline-none capitalize'
-                      >
-                        <option value=''>All</option>
-                        {settings.trucksDrivers.subcon.map((item, index) => (
-                          <option key={index} value={item}>
-                            {item}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-
-                  {/* Status */}
-                  <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
-                    <p className='font-semibold'>Status</p>
-                    <select
-                      name='status'
-                      value={tempFilters.status}
-                      onChange={handleChangeFilter}
-                      className='w-full focus:outline-none capitalize'
-                    >
-                      <option value=''>All</option>
-                      {settings.trucksDrivers.status.map((item, index) => (
-                        <option key={index} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  {/* Sort */}
-                  <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
-                    <p className='font-semibold'>Sort</p>
-                    <select
-                      name='sort'
-                      value={tempFilters.sort}
-                      onChange={handleChangeFilter}
-                      className='w-full focus:outline-none'
-                    >
-                      <option value='latest'>Latest</option>
-                      <option value='oldest'>Oldest</option>
-                      <option value='a-z'>A to Z</option>
-                      <option value='z-a'>Z to A</option>
-                      <option value='trips-asc'>Trip-asc</option>
-                      <option value='trips-desc'>Trip-desc</option>
-                      <option value='subcon-asc'>Subcon-asc</option>
-                      <option value='subcon-desc'>Subcon-desc</option>
-                    </select>
-                  </label>
-
-                  <button
-                    onClick={handleResetFilters}
-                    disabled={isLoading}
-                    className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
-                  >
-                    Reset
-                  </button>
-
-                  <button
-                    onClick={handleApplyFilters}
-                    disabled={isLoading}
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </div>
-
+          <div className='flex justify-between max-sm:flex-col gap-2 sm:gap-4 max-xs:flex-1 w-full xl:w-auto'>
             {/* search */}
             <form
               onSubmit={handleApplyFilters}
-              className='flex items-center outline outline-gray-200 rounded pl-3 pr-1 focus-within:outline-gray-300 transition-all max-xl:mr-auto'
+              className='flex max-md:flex-1 items-center outline outline-gray-200 rounded pl-3 pr-1 focus-within:outline-gray-300 transition-all'
             >
               <FaSearch className='text-sm' />
               <input
@@ -280,7 +178,7 @@ function TruckManagement () {
                 value={tempFilters.search}
                 onChange={handleChangeFilter}
                 autoComplete='off'
-                className='max-w-60 focus:outline-none ml-3 mr-1'
+                className='w-full focus:outline-none ml-3 mr-1 py-1 text-sm sm:text-base'
               />
               <button
                 type='button'
@@ -293,46 +191,169 @@ function TruckManagement () {
                   }
                 )}
               >
-                <IoClose className='text-xl' />
+                <IoClose className='text-lg sm:text-xl' />
               </button>
             </form>
 
-            {/* pagination */}
-            <div className='flex gap-4 items-center outline outline-gray-200 rounded'>
-              <button
-                onClick={() => handleChangePage('prev')}
-                disabled={isLoading}
-                className='p-1 text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200'
-              >
-                <MdOutlineKeyboardArrowLeft />
-              </button>
+            <div className='flex justify-between gap-2 sm:gap-4'>
+              {/* filters */}
+              <div className='dropdown dropdown-start sm:dropdown-center'>
+                {/* button */}
+                <div
+                  tabIndex={0}
+                  role='button'
+                  className='flex items-center gap-4 ring-1 ring-gray-200 hover:bg-gray-50 rounded px-3 py-1 cursor-pointer active:scale-95 transition-all'
+                >
+                  <FaFilter className='text-xs sm:text-sm' />
+                  <p className='text-sm sm:text-base'>Filter</p>
+                </div>
 
-              <p className='text-sm min-w-22 text-center'>
-                {!isLoading &&
-                  allTrucks &&
-                  `Page ${total > 0 ? page : total} of ${totalPages}`}
-              </p>
+                {/* menu */}
+                <div
+                  tabIndex='0'
+                  className='dropdown-content menu mt-3 bg-white shadow-sm rounded ring-1 ring-gray-300
+           w-[calc(100vw-2rem)] max-w-sm'
+                >
+                  <div className='grid grid-cols-2 gap-4 p-2 sm:p-4'>
+                    {/* Truck Type */}
+                    <label
+                      className={clsx(
+                        'flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2',
+                        {
+                          'col-span-full': userData.data.role === 'subcon'
+                        }
+                      )}
+                    >
+                      <p className='font-semibold'>Type</p>
+                      <select
+                        name='truckType'
+                        value={tempFilters.truckType}
+                        onChange={handleChangeFilter}
+                        className='w-full focus:outline-none capitalize'
+                      >
+                        <option value=''>All</option>
+                        {settings.trucksDrivers.truckType.map((item, index) => (
+                          <option key={index} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-              <button
-                onClick={() => handleChangePage('next')}
-                disabled={isLoading}
-                className='p-1 text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200'
-              >
-                <MdOutlineKeyboardArrowRight />
-              </button>
+                    {/* Subcon */}
+                    {userData.data.role !== 'subcon' && (
+                      <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
+                        <p className='font-semibold'>Subcon</p>
+                        <select
+                          name='subcon'
+                          value={tempFilters.subcon}
+                          onChange={handleChangeFilter}
+                          className='w-full focus:outline-none capitalize'
+                        >
+                          <option value=''>All</option>
+                          {settings.trucksDrivers.subcon.map((item, index) => (
+                            <option key={index} value={item}>
+                              {item}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+
+                    {/* Status */}
+                    <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
+                      <p className='font-semibold'>Status</p>
+                      <select
+                        name='status'
+                        value={tempFilters.status}
+                        onChange={handleChangeFilter}
+                        className='w-full focus:outline-none capitalize'
+                      >
+                        <option value=''>All</option>
+                        {settings.trucksDrivers.status.map((item, index) => (
+                          <option key={index} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    {/* Sort */}
+                    <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
+                      <p className='font-semibold'>Sort</p>
+                      <select
+                        name='sort'
+                        value={tempFilters.sort}
+                        onChange={handleChangeFilter}
+                        className='w-full focus:outline-none'
+                      >
+                        <option value='latest'>Latest</option>
+                        <option value='oldest'>Oldest</option>
+                        <option value='a-z'>A to Z</option>
+                        <option value='z-a'>Z to A</option>
+                        <option value='trips-asc'>Trip-asc</option>
+                        <option value='trips-desc'>Trip-desc</option>
+                        <option value='subcon-asc'>Subcon-asc</option>
+                        <option value='subcon-desc'>Subcon-desc</option>
+                      </select>
+                    </label>
+
+                    <button
+                      onClick={handleResetFilters}
+                      disabled={isLoading}
+                      className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all  max-xs:text-xs cursor-pointer hover:brightness-95'
+                    >
+                      Reset
+                    </button>
+
+                    <button
+                      onClick={handleApplyFilters}
+                      disabled={isLoading}
+                      className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all  max-xs:text-xs cursor-pointer hover:brightness-95'
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* pagination */}
+              <div className='flex gap-4 items-center outline outline-gray-200 rounded'>
+                <button
+                  onClick={() => handleChangePage('prev')}
+                  disabled={isLoading}
+                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  <MdOutlineKeyboardArrowLeft />
+                </button>
+
+                <p className='text-xs sm:text-sm sm:min-w-22 text-center'>
+                  {!isLoading &&
+                    allTrucks &&
+                    `Page ${total > 0 ? page : total} of ${totalPages}`}
+                </p>
+
+                <button
+                  onClick={() => handleChangePage('next')}
+                  disabled={isLoading}
+                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  <MdOutlineKeyboardArrowRight />
+                </button>
+              </div>
+
+              {/* create button */}
+              {['head_admin', 'admin'].includes(userData.data.role) && (
+                <button
+                  onClick={() => setIsCreateTruckModalOpen(true)}
+                  disabled={isLoading}
+                  className='flex items-center gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 max-xl:hidden'
+                >
+                  <FaPlus className='text-sm' />
+                  <p>Create New</p>
+                </button>
+              )}
             </div>
-
-            {/* create button */}
-            {['head_admin', 'admin'].includes(userData.data.role) && (
-              <button
-                onClick={() => setIsCreateTruckModalOpen(true)}
-                disabled={isLoading}
-                className='flex items-center gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95'
-              >
-                <FaPlus className='text-sm' />
-                <p>Create New</p>
-              </button>
-            )}
           </div>
         </div>
 
@@ -382,17 +403,17 @@ function TruckManagement () {
         ) : (
           <div className='relative flex-1 overflow-y-auto scrollbar-thin'>
             <div className='absolute inset-0'>
-              <table className='table table-md table-pin-rows table-pin-cols'>
+              <table className='table table-xs sm:table-md table-pin-rows table-pin-cols'>
                 <thead>
                   <tr className='bg-white border-b border-gray-200 text-gray-800'>
-                    <td>{total}</td>
-                    <td>Image</td>
-                    <td>Plate No.</td>
-                    <td>Type</td>
-                    <td>Subcon</td>
-                    <td>Max Load (kg)</td>
-                    <td>Trip Count</td>
-                    <td>Status</td>
+                    <td className='max-sm:text-xs'>{total}</td>
+                    <td className='max-sm:text-xs'>Image</td>
+                    <td className='max-sm:text-xs'>Plate No.</td>
+                    <td className='max-sm:text-xs'>Type</td>
+                    <td className='max-sm:text-xs'>Subcon</td>
+                    <td className='max-sm:text-xs'>Max Load (kg)</td>
+                    <td className='max-sm:text-xs'>Trip Count</td>
+                    <td className='max-sm:text-xs'>Status</td>
                   </tr>
                 </thead>
                 <tbody>
@@ -402,7 +423,7 @@ function TruckManagement () {
                       onClick={() => handleShowTruckDetailsModal(truck)}
                       className='border-b border-gray-200 last:border-none hover:bg-gray-50 cursor-pointer'
                     >
-                      <td className='text-xs font-bold text-gray-600'>
+                      <td className='text-xxs sm:text-xs  font-bold text-gray-600'>
                         {(page - 1) * filters.perPage + index + 1}
                       </td>
                       <td className='py-0'>
@@ -410,24 +431,30 @@ function TruckManagement () {
                           src={truck.imageUrl || no_image}
                           alt='img'
                           className={clsx(
-                            'w-9 aspect-square object-cover object-center mask mask-squircle',
+                            'w-8 sm:w-9 aspect-square object-cover object-center mask mask-squircle',
                             {
                               'opacity-10': !truck.imageUrl
                             }
                           )}
                         />
                       </td>
-                      <td className='uppercase'>{truck.plateNo}</td>
-                      <td className='capitalize'>{truck.truckType}</td>
-                      <td className='capitalize'>
+                      <td className='uppercase max-sm:text-xxs'>
+                        {truck.plateNo}
+                      </td>
+                      <td className='capitalize max-sm:text-xxs'>
+                        {truck.truckType}
+                      </td>
+                      <td className='capitalize max-sm:text-xxs text-nowrap'>
                         {truck.subcon ? truck.subcon.replace(/_/g, ' ') : 'N/A'}
                       </td>
-                      <td>{truck.maxLoad?.toLocaleString()}</td>
-                      <td>{truck.tripCount}</td>
+                      <td className='max-sm:text-xxs'>
+                        {truck.maxLoad?.toLocaleString()}
+                      </td>
+                      <td className='max-sm:text-xxs'>{truck.tripCount}</td>
                       <td>
                         <div
                           className={clsx(
-                            'rounded-full px-2 w-fit capitalize text-xs py-0.5',
+                            'rounded-full px-2 w-fit capitalize text-xs py-0.5 max-sm:text-xxs',
                             {
                               'bg-emerald-500/10 text-emerald-500':
                                 truck.status === 'available',

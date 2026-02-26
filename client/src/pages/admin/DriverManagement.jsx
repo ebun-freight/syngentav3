@@ -141,7 +141,7 @@ function DriverManagement () {
         <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-16 gap-y-4'>
           {/* left side */}
           <div className='flex justify-between flex-1'>
-            <h1 className='font-semibold text-lg sm:text-xl md:text-2xl'>
+            <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-nowrap'>
               Manage Drivers
             </h1>
 
@@ -175,7 +175,7 @@ function DriverManagement () {
                 value={tempFilters.search}
                 onChange={handleChangeFilter}
                 autoComplete='off'
-                className='max-w-60 focus:outline-none ml-3 mr-1'
+                className='w-full focus:outline-none ml-3 mr-1 py-1 text-sm sm:text-base'
               />
               <button
                 type='button'
@@ -188,30 +188,31 @@ function DriverManagement () {
                   }
                 )}
               >
-                <IoClose className='text-xl' />
+                <IoClose className='text-lg sm:text-xl' />
               </button>
             </form>
 
             <div className='flex justify-between gap-2 sm:gap-4'>
               {/* filters */}
-              <div className='dropdown dropdown-center'>
+              <div className='dropdown dropdown-start sm:dropdown-center'>
                 {/* button */}
                 <div
                   tabIndex={0}
                   role='button'
                   className='flex items-center gap-4 ring-1 ring-gray-200 hover:bg-gray-50 rounded px-3 py-1 cursor-pointer active:scale-95 transition-all'
                 >
-                  <FaFilter className='text-sm' />
-                  <p>Filter</p>
+                  <FaFilter className='text-xs sm:text-sm' />
+                  <p className='text-sm sm:text-base'>Filter</p>
                 </div>
 
                 {/* menu */}
                 <div
                   tabIndex='0'
-                  className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-sm ring-1 ring-gray-300'
+                  className='dropdown-content menu mt-3 bg-white shadow-sm rounded ring-1 ring-gray-300
+           w-[calc(100vw-2rem)] max-w-sm'
                 >
-                  <div className='grid grid-cols-2 gap-4 p-4'>
-                    <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                  <div className='grid grid-cols-2 gap-4 p-2 sm:p-4'>
+                    <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
                       <p className='font-semibold'>Sort</p>
                       <select
                         name='sort'
@@ -225,12 +226,12 @@ function DriverManagement () {
                         <option value='z-a'>Z to A</option>
                         <option value='trips-asc'>Trip-asc</option>
                         <option value='trips-desc'>Trip-desc</option>
-                        <option value='subcon-asc'>Subcon-asc</option>
                         <option value='subcon-desc'>Subcon-desc</option>
+                        <option value='subcon-asc'>Subcon-asc</option>
                       </select>
                     </label>
 
-                    <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                    <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
                       <p className='font-semibold'>Status</p>
                       <select
                         name='status'
@@ -248,7 +249,7 @@ function DriverManagement () {
                     </label>
 
                     {userData.data.role !== 'subcon' && (
-                      <label className='col-span-full flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                      <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2 col-span-full'>
                         <p className='font-semibold'>Subcon</p>
                         <select
                           name='subcon'
@@ -269,7 +270,7 @@ function DriverManagement () {
                     <button
                       onClick={handleResetFilters}
                       disabled={isLoading}
-                      className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                      className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all  max-xs:text-xs cursor-pointer hover:brightness-95'
                     >
                       Reset
                     </button>
@@ -277,7 +278,7 @@ function DriverManagement () {
                     <button
                       onClick={handleApplyFilters}
                       disabled={isLoading}
-                      className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                      className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all  max-xs:text-xs cursor-pointer hover:brightness-95'
                     >
                       Apply
                     </button>
@@ -290,12 +291,12 @@ function DriverManagement () {
                 <button
                   onClick={() => handleChangePage('prev')}
                   disabled={isLoading}
-                  className='p-1 text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200'
+                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   <MdOutlineKeyboardArrowLeft />
                 </button>
 
-                <p className='text-sm min-w-22 text-center'>
+                <p className='text-xs sm:text-sm sm:min-w-22 text-center'>
                   {!isLoading &&
                     allDrivers &&
                     `Page ${total > 0 ? page : total} of ${totalPages}`}
@@ -304,7 +305,7 @@ function DriverManagement () {
                 <button
                   onClick={() => handleChangePage('next')}
                   disabled={isLoading}
-                  className='p-1 text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200'
+                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   <MdOutlineKeyboardArrowRight />
                 </button>
@@ -368,17 +369,17 @@ function DriverManagement () {
         ) : (
           <div className='relative flex-1 overflow-y-auto scrollbar-thin'>
             <div className='absolute inset-0'>
-              <table className='table table-md table-pin-rows table-pin-cols'>
+              <table className='table table-xs sm:table-md table-pin-rows table-pin-cols'>
                 <thead>
                   <tr className='bg-white border-b border-gray-200 text-gray-800'>
-                    <td>{total}</td>
-                    <td>Image</td>
-                    <td>Fullname</td>
-                    <td>Phone No.</td>
-                    <td>License No.</td>
-                    <td>Subcon</td>
-                    <td>Trip Count</td>
-                    <td>Status</td>
+                    <td className='max-sm:text-xs'>{total}</td>
+                    <td className='max-sm:text-xs'>Image</td>
+                    <td className='max-sm:text-xs'>Fullname</td>
+                    <td className='max-sm:text-xs'>Phone No.</td>
+                    <td className='max-sm:text-xs'>License No.</td>
+                    <td className='max-sm:text-xs'>Subcon</td>
+                    <td className='max-sm:text-xs'>Trip Count</td>
+                    <td className='max-sm:text-xs'>Status</td>
                   </tr>
                 </thead>
                 <tbody>
@@ -388,7 +389,7 @@ function DriverManagement () {
                       onClick={() => handleShowDriverDetailsModal(driver)}
                       className='border-b border-gray-200 last:border-none hover:bg-gray-50 capitalize cursor-pointer'
                     >
-                      <td className='text-xs font-bold text-gray-600'>
+                      <td className='text-xxs sm:text-xs font-bold text-gray-600'>
                         {(page - 1) * filters.perPage + index + 1}
                       </td>
                       <td className='py-0'>
@@ -396,7 +397,7 @@ function DriverManagement () {
                           src={driver.imageUrl || no_image}
                           alt='img'
                           className={clsx(
-                            'w-9 aspect-square object-cover object-center mask mask-squircle',
+                            'w-8 sm:w-9 aspect-square object-cover object-center mask mask-squircle',
                             {
                               'opacity-10': !driver.imageUrl
                             }
@@ -404,28 +405,28 @@ function DriverManagement () {
                         />
                       </td>
                       <td>
-                        <p className='text-nowrap capitalize'>{`${driver.firstname} ${driver.lastname}`}</p>
+                        <p className='max-sm:text-xxs text-nowrap capitalize'>{`${driver.firstname} ${driver.lastname}`}</p>
                       </td>
-                      <td>{driver.phoneNo}</td>
+                      <td className='max-sm:text-xxs'>{driver.phoneNo}</td>
                       <td>
                         {driver.licenseNo ? (
-                          <p className='text-nowrap uppercase'>
+                          <p className='text-nowrap uppercase max-sm:text-xxs'>
                             {driver.licenseNo}
                           </p>
                         ) : (
-                          <p className='text-gray-500'>N/A</p>
+                          <p className='text-gray-500 max-sm:text-xxs'>N/A</p>
                         )}
                       </td>
-                      <td>
+                      <td className='max-sm:text-xxs text-nowrap'>
                         {driver.subcon
                           ? driver.subcon.replace(/_/g, ' ')
                           : 'N/A'}
                       </td>
-                      <td>{driver.tripCount}</td>
+                      <td className='max-sm:text-xxs'>{driver.tripCount}</td>
                       <td>
                         <div
                           className={clsx(
-                            'rounded-full px-2 w-fit capitalize text-xs py-0.5',
+                            'rounded-full px-2 w-fit capitalize text-xs py-0.5 max-sm:text-xxs',
                             {
                               'bg-emerald-500/10 text-emerald-500':
                                 driver.status === 'available',

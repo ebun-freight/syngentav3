@@ -193,7 +193,7 @@ function TimelineLogs () {
       <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
         {/* header */}
         <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-16 gap-y-4'>
-          <h1 className='font-semibold text-lg sm:text-xl md:text-2xl'>
+          <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-nowrap'>
             Deployment Logs
           </h1>
 

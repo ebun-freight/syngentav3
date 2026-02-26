@@ -90,32 +90,35 @@ function ActivityLogsPage () {
   }, [filters])
 
   return (
-    <div className='flex-1 flex flex-col gap-10'>
+    <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
       {/* header */}
-      <div className='flex items-center flex-wrap gap-x-12 gap-y-4'>
-        <h1 className='font-semibold text-2xl mr-auto'>Activity Logs</h1>
+      <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-99 gap-y-4'>
+        <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-nowrap flex-1'>
+          Activity Logs
+        </h1>
 
         {/* right side */}
-        <div className='flex flex-wrap gap-4'>
+        <div className='flex-1 flex justify-between gap-2 sm:gap-4'>
           {/* filters */}
-          <div className='dropdown dropdown-center'>
+          <div className='dropdown dropdown-start sm:dropdown-center'>
             {/* button */}
             <div
               tabIndex={0}
               role='button'
               className='flex items-center gap-4 ring-1 ring-gray-200 hover:bg-gray-50 rounded px-3 py-1 cursor-pointer active:scale-95 transition-all'
             >
-              <FaFilter className='text-sm' />
-              <p>Filter</p>
+              <FaFilter className='text-xs sm:text-sm' />
+              <p className='text-sm sm:text-base'>Filter</p>
             </div>
 
             {/* menu */}
             <div
               tabIndex='0'
-              className='dropdown-content menu mt-3 bg-white shadow-sm rounded w-sm ring-1 ring-gray-300'
+              className='dropdown-content menu mt-3 bg-white shadow-sm rounded ring-1 ring-gray-300
+           w-[calc(100vw-2rem)] max-w-sm'
             >
-              <div className='grid grid-cols-2 gap-4 p-4'>
-                <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+              <div className='grid grid-cols-2 gap-4 p-2 sm:p-4'>
+                <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
                   <p className='font-semibold'>Type</p>
                   <select
                     name='type'
@@ -132,7 +135,7 @@ function ActivityLogsPage () {
                   </select>
                 </label>
 
-                <label className='flex items-center text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
                   <p className='font-semibold'>Sort</p>
                   <select
                     name='sort'
@@ -147,7 +150,7 @@ function ActivityLogsPage () {
                   </select>
                 </label>
 
-                <label className='col-span-2 flex items-center justify-between text-sm outline outline-gray-200 rounded py-2 px-3 gap-2'>
+                <label className='col-span-2 flex items-center justify-between text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
                   <p className='font-semibold'>Date</p>
                   <input
                     name='date'
@@ -161,7 +164,7 @@ function ActivityLogsPage () {
                 <button
                   onClick={handleResetFilters}
                   disabled={isLoading}
-                  className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                  className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all  max-xs:text-xs cursor-pointer hover:brightness-95'
                 >
                   Reset
                 </button>
@@ -169,7 +172,7 @@ function ActivityLogsPage () {
                 <button
                   onClick={handleApplyFilters}
                   disabled={isLoading}
-                  className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95'
+                  className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all  max-xs:text-xs cursor-pointer hover:brightness-95'
                 >
                   Apply
                 </button>
@@ -182,12 +185,12 @@ function ActivityLogsPage () {
             <button
               onClick={() => handleChangePage('prev')}
               disabled={isLoading}
-              className='p-1 text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200'
+              className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
             >
               <MdOutlineKeyboardArrowLeft />
             </button>
 
-            <p className='text-sm min-w-22 text-center'>
+            <p className='text-xs sm:text-sm sm:min-w-22 text-center'>
               {!isLoading &&
                 allActivityLogs &&
                 `Page ${total > 0 ? page : total} of ${totalPages}`}
@@ -196,7 +199,7 @@ function ActivityLogsPage () {
             <button
               onClick={() => handleChangePage('next')}
               disabled={isLoading}
-              className='p-1 text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200'
+              className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
             >
               <MdOutlineKeyboardArrowRight />
             </button>
@@ -247,14 +250,14 @@ function ActivityLogsPage () {
       ) : (
         <div className='relative flex-1 overflow-y-auto scrollbar-thin'>
           <div className='absolute inset-0'>
-            <table className='table table-md table-pin-rows table-pin-cols'>
+            <table className='table table-xs sm:table-md table-pin-rows table-pin-cols'>
               <thead>
                 <tr className='bg-white border-b border-gray-200  text-gray-800'>
-                  <td>{total}</td>
-                  <td>Role</td>
-                  <td>Performed by</td>
-                  <td>Action</td>
-                  <td>Performed at</td>
+                  <td className='max-sm:text-xs'>{total}</td>
+                  <td className='max-sm:text-xs'>Role</td>
+                  <td className='max-sm:text-xs'>Performed by</td>
+                  <td className='max-sm:text-xs'>Action</td>
+                  <td className='max-sm:text-xs'>Performed at</td>
                 </tr>
               </thead>
               <tbody>
@@ -262,19 +265,21 @@ function ActivityLogsPage () {
                   <tr
                     key={index}
                     onClick={() => handleShowTruckDetailsModal(truck)}
-                    className='border-b border-gray-200 last:border-none hover:bg-gray-50 cursor-pointer'
+                    className='border-b border-gray-200 last:border-none hover:bg-gray-50 capitalize cursor-pointer'
                   >
-                    <td className='text-xs font-bold text-gray-600'>
+                    <td className='text-xxs sm:text-xs font-bold text-gray-600'>
                       {(page - 1) * filters.perPage + index + 1}
                     </td>
-                    <td className='capitalize'>
+                    <td className='capitalize max-sm:text-xxs text-nowrap'>
                       {activityLog?.performedBy?.role?.replace(/_/g, ' ')}
                     </td>
-                    <td className='capitalize  max-w-42'>
+                    <td className='capitalize max-w-42 max-sm:text-xxs text-nowrap'>
                       {`${activityLog?.performedBy?.firstname} ${activityLog?.performedBy?.lastname}`}
                     </td>
-                    <td>{activityLog?.action}</td>
-                    <td>
+                    <td className='max-sm:text-xxs line-clamp-2 '>
+                      {activityLog?.action}
+                    </td>
+                    <td className='max-sm:text-xxs text-nowrap'>
                       {DateTime.fromISO(activityLog?.createdAt)
                         .setZone('Asia/Manila')
                         .toFormat('MMM d, yyyy hh:mm a')}

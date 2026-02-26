@@ -266,7 +266,7 @@ function Deployments () {
         <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-16 gap-y-4'>
           {/* left side */}
           <div className='flex justify-between flex-1'>
-            <h1 className='font-semibold text-lg sm:text-xl md:text-2xl'>
+            <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-nowrap'>
               Deployments
             </h1>
 
