@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Combobox,
-  ComboboxButton,
-  ComboboxInput,
-  ComboboxOption,
-  ComboboxOptions,
   Dialog,
   DialogBackdrop,
   DialogPanel,
@@ -22,9 +17,6 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
     value: ''
   })
 
-  // For field combobox
-  const [fieldQuery, setFieldQuery] = useState('')
-
   useEffect(() => {
     if (!isOpen) {
       setFormData({
@@ -32,7 +24,6 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
         field: 'truckType',
         value: ''
       })
-      setFieldQuery('')
     }
   }, [isOpen])
 
@@ -45,7 +36,6 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
     const category = e.target.value
     const defaultField = category === 'trucksDrivers' ? 'truckType' : 'hybrid'
     setFormData({ category, field: defaultField, value: '' })
-    setFieldQuery('')
   }
 
   const getCategoryOptions = () => {
@@ -65,11 +55,6 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
     }
   }
 
-  // Filter field options based on query
-  const filteredFields = getCategoryOptions().filter(field =>
-    field.label.toLowerCase().includes(fieldQuery.toLowerCase())
-  )
-
   const handleSubmit = async e => {
     e.preventDefault()
     if (!formData.value.trim()) return
@@ -86,7 +71,6 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
       field: 'truckType',
       value: ''
     })
-    setFieldQuery('')
     onClose()
   }
 
@@ -151,68 +135,31 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
                   </div>
                 </div>
 
-                {/* Field - Combobox like in CreateSubconModal */}
+                {/* Field - Now using simple select */}
                 <div className='flex flex-col gap-1'>
                   <span className='uppercase text-xs text-gray-500 font-semibold'>
                     Field <span className='text-red-500'>*</span>
                   </span>
-                  <Combobox
-                    value={formData.field}
-                    onChange={value => {
-                      const selectedField = getCategoryOptions().find(
-                        f => f.value === value
-                      )
-                      setFormData(prev => ({ ...prev, field: value }))
-                      setFieldQuery('')
-                    }}
-                  >
-                    <div className='relative'>
-                      <ComboboxInput
-                        className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400'
-                        displayValue={() => {
-                          const field = getCategoryOptions().find(
-                            f => f.value === formData.field
-                          )
-                          return field ? field.label : ''
-                        }}
-                        onChange={event => setFieldQuery(event.target.value)}
-                        placeholder='Select field'
-                        required
-                        autoComplete='off'
-                        disabled={isLoading}
-                      />
-                      <ComboboxButton className='absolute inset-y-0 right-0 flex items-center px-2 hover:bg-gray-100 rounded-sm'>
-                        <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                      </ComboboxButton>
-                      <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                        {filteredFields.length === 0 ? (
-                          <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                            Nothing found.
-                          </div>
-                        ) : (
-                          filteredFields.map((field, index) => (
-                            <ComboboxOption
-                              key={index}
-                              value={field.value}
-                              className={({ focus }) =>
-                                `relative cursor-default select-none py-2 px-4 text-base ${
-                                  focus ? 'bg-gray-50' : 'text-gray-900'
-                                } ${
-                                  formData.field === field.value
-                                    ? 'bg-gray-100'
-                                    : ''
-                                }`
-                              }
-                            >
-                              <span className='block truncate capitalize'>
-                                {field.label}
-                              </span>
-                            </ComboboxOption>
-                          ))
-                        )}
-                      </ComboboxOptions>
-                    </div>
-                  </Combobox>
+                  <div className='relative'>
+                    <select
+                      name='field'
+                      value={formData.field}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none disabled:opacity-50 disabled:bg-gray-50 capitalize'
+                    >
+                      {getCategoryOptions().map((field, index) => (
+                        <option
+                          key={index}
+                          value={field.value}
+                          className='capitalize'
+                        >
+                          {field.label}
+                        </option>
+                      ))}
+                    </select>
+                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
+                  </div>
                 </div>
 
                 {/* Value */}
@@ -238,7 +185,7 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
                   <button
                     type='submit'
                     disabled={isLoading}
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
+                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     {isLoading ? (
                       <>
