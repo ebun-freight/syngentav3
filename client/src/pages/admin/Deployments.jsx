@@ -312,7 +312,7 @@ function Deployments () {
     <>
       <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className='flex flex-wrap justify-between items-start gap-4 bg-blue-300'>
+        <div className='flex flex-wrap justify-between items-start gap-4 bg-green-300'>
           {/* Left: title + sm/md export+create */}
           <div className='flex justify-between flex-1 items-center'>
             <div>
@@ -671,7 +671,7 @@ function Deployments () {
             </div>
           </div>
         ) : (
-          <div className='relative flex-1 overflow-y-auto overflow-x-auto scrollbar-thin bg-white border border-gray-200 rounded-xl shadow-sm'>
+          <div className='relative flex-1   scrollbar-thin bg-white border border-gray-200 rounded-xl shadow-sm'>
             <div className='absolute inset-0 overflow-x-auto'>
               <table className='table text-xs sm:table-sm table-pin-rows table-pin-cols'>
                 <thead>
