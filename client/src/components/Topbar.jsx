@@ -21,11 +21,11 @@ function TopBar () {
 
   return (
     <>
-      <header className='bg-white py-2.5 px-4 sm:px-8 flex items-center shadow-sm border-b border-gray-100'>
+      <header className='bg-white py-2.5 px-4 sm:px-8 flex items-center shadow-sm sm:border-b border-gray-100'>
         {/* Burger button */}
         <button
           onClick={handleOpenSideBar}
-          className='hover:bg-gray-100 p-2 rounded-xl text-2xl sm:text-3xl cursor-pointer text-gray-600 transition-colors'
+          className='hover:bg-gray-100 p-2 rounded-xl text-2xl sm:text-3xl cursor-pointer text-gray-600 transition-colors -translate-x-3'
         >
           <HiOutlineMenuAlt2 />
         </button>

@@ -736,7 +736,7 @@ function Deployments () {
 
                       <td className='p-0 relative max-sm:text-xxs'>
                         <div
-                          className='cursor-copy h-full w-fit p-2 hover:bg-gray-100 transition-colors rounded-lg relative group font-mono text-xs'
+                          className='cursor-copy h-full w-fit p-2 hover:bg-gray-100 transition-colors rounded relative group'
                           onClick={e => {
                             e.stopPropagation()
                             navigator.clipboard.writeText(
@@ -760,7 +760,7 @@ function Deployments () {
                       </td>
 
                       <td>
-                        <div className='space-y-0.5 max-sm:text-xxs'>
+                        <div className='space-y-0.5'>
                           {deployment?.replacement?.replacementTruckId?._id ? (
                             <>
                               <p className='text-nowrap text-gray-800'>
@@ -789,7 +789,7 @@ function Deployments () {
                                   ({deployment.truckType})
                                 </span>
                               </p>
-                              <p className='text-nowrap text-gray-500 font-light'>
+                              <p className='text-nowrap text-gray-500 font-light max-sm:text-xxs'>
                                 {`${deployment.driverId.firstname} ${deployment.driverId.lastname}`}
                               </p>
                             </>
