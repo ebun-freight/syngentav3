@@ -312,7 +312,7 @@ function Deployments () {
     <>
       <div className='flex-1 flex flex-col gap-4 lg:gap-6 min-w-0'>
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className='flex flex-wrap justify-between items-start gap-4 bg-amber-300'>
+        <div className='flex flex-wrap justify-between items-start gap-4 bg-red-300'>
           {/* Left: title + sm/md export+create */}
           <div className='flex justify-between flex-1 items-center'>
             <div>
