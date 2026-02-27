@@ -10,6 +10,28 @@ import 'aos/dist/aos.css'
 import { useEffect } from 'react'
 import { useUIContext } from '../contexts/UIContext'
 
+/* ─── Decorative SVG dot pattern (matches Login/Signup) ─────────────────── */
+const DotPattern = () => (
+  <svg
+    className='absolute inset-0 w-full h-full opacity-10 pointer-events-none'
+    xmlns='http://www.w3.org/2000/svg'
+  >
+    <defs>
+      <pattern
+        id='dots-sidenav'
+        x='0'
+        y='0'
+        width='24'
+        height='24'
+        patternUnits='userSpaceOnUse'
+      >
+        <circle cx='2' cy='2' r='1.5' fill='white' />
+      </pattern>
+    </defs>
+    <rect width='100%' height='100%' fill='url(#dots-sidenav)' />
+  </svg>
+)
+
 function SideNav () {
   const location = useLocation()
   const { userData } = useUserContext()
@@ -33,7 +55,7 @@ function SideNav () {
 
   return (
     <>
-      {/* big screen */}
+      {/* Sidebar */}
       <div
         className={clsx(
           'w-full min-h-screen bg-linear-to-b from-primaryColor to-slate-950 shadow-card3 flex flex-col transition-all overflow-hidden z-50 absolute lg:static',
@@ -43,18 +65,47 @@ function SideNav () {
           }
         )}
       >
-        <div className='flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10'>
-          <img src={ebun_logo_light} alt='' className='w-10 sm:w-14' />
-          <div>
-            <h1 className='font-semibold text-3xl sm:text-4xl tracking-widest text-white uppercase'>
-              EBUN
-            </h1>
-            <p className='max-sm:text-xs text-white -mt-1.5 uppercase tracking-widest sm:tracking-wider sm:ml-0.5 text-nowrap whitespace-nowrap'>
-              Freight OPC
-            </p>
+        {/* ── Logo Section with dot background ─────────────────────────── */}
+        <div
+          className='relative flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10 overflow-hidden rounded-b-2xl'
+          style={{
+            background:
+              'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
+          }}
+        >
+          {/* Dot pattern */}
+          <DotPattern />
+
+          {/* Radial glow top-right */}
+          <div
+            className='absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-15 pointer-events-none'
+            style={{
+              background: 'radial-gradient(circle, #475569 0%, transparent 70%)'
+            }}
+          />
+          {/* Radial glow bottom-left */}
+          <div
+            className='absolute -bottom-8 -left-8 w-32 h-32 rounded-full opacity-10 pointer-events-none'
+            style={{
+              background: 'radial-gradient(circle, #334155 0%, transparent 70%)'
+            }}
+          />
+
+          {/* Logo content */}
+          <div className='relative z-10 flex items-center justify-center gap-3'>
+            <img src={ebun_logo_light} alt='' className='w-10 sm:w-14' />
+            <div>
+              <h1 className='font-semibold text-3xl sm:text-4xl tracking-widest text-white uppercase'>
+                EBUN
+              </h1>
+              <p className='max-sm:text-xs text-white -mt-1.5 uppercase tracking-widest sm:tracking-wider sm:ml-0.5 text-nowrap whitespace-nowrap'>
+                Freight OPC
+              </p>
+            </div>
           </div>
         </div>
 
+        {/* ── Nav Items ─────────────────────────────────────────────────── */}
         <div className='flex-1 flex flex-col overflow-y-auto'>
           <div className='flex flex-col mt-4 mb-4 px-4'>
             {filteredSidebar.map((content, index) => {
@@ -75,7 +126,7 @@ function SideNav () {
                   to={content.path}
                   onClick={handleNavigate}
                   className={clsx(
-                    'flex items-center gap-4 px-4 sm:px-6 py-2 sm:py-3 active:scale-95 transition-transform rounded-sm',
+                    'flex items-center gap-4 px-4 sm:px-6 py-2 sm:py-3 active:scale-95 transition-transform rounded-xl',
                     {
                       'bg-white/90 text-primaryColor font-medium':
                         location.pathname === content.path ||
@@ -101,7 +152,7 @@ function SideNav () {
         <div
           onClick={() => setIsSideBarOpen(false)}
           className='absolute bg-black/40 inset-0 z-40 backdrop-blur-xs lg:hidden h-screen'
-        ></div>
+        />
       )}
     </>
   )

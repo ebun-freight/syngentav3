@@ -3,7 +3,7 @@ import DeploymentDetailsModal from '../../components/modals/DeploymentDetailsMod
 import CreateDeploymentModal from '../../components/modals/CreateDeploymentModal'
 import useGetAllTruck from '../../hooks/useGetAllTruck'
 import useGetAllDriver from '../../hooks/useGetAllDriver'
-import { FaFilter, FaPlus, FaSearch, FaFileExport } from 'react-icons/fa'
+import { FaFilter, FaPlus, FaSearch } from 'react-icons/fa'
 import { DEPLOYMENT_STATUS } from '../../utils/generalOptions'
 import { IoClose } from 'react-icons/io5'
 import {
@@ -39,7 +39,6 @@ const defaultFilters = {
   page: 1
 }
 
-// ─── helper: format a pickup stop's in/out timestamps ─────────────────────────
 const formatISO = iso =>
   iso
     ? DateTime.fromISO(iso)
@@ -47,19 +46,14 @@ const formatISO = iso =>
         .toFormat('MMM d, yyyy hh:mm a')
     : null
 
-/**
- * Renders a stacked list of pickup stop timestamps for either pickupIn or pickupOut.
- */
 const PickupStopsCell = ({ pickups = [], field, status }) => {
   const stopsWithValue = pickups.filter(p => p[field])
 
   if (stopsWithValue.length === 0) {
-    return status === 'canceled' ? (
-      <p className='italic text-gray-400 font-light max-sm:text-xxs'>
-        Canceled
+    return (
+      <p className='italic text-gray-400 font-light text-xs'>
+        {status === 'canceled' ? 'Canceled' : 'Pending'}
       </p>
-    ) : (
-      <p className='italic text-gray-400 font-light max-sm:text-xxs'>Pending</p>
     )
   }
 
@@ -70,13 +64,10 @@ const PickupStopsCell = ({ pickups = [], field, status }) => {
           <span className='text-xxs font-semibold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full leading-none shrink-0'>
             S{i + 1}
           </span>
-
           {stop[field] ? (
-            <span className='max-sm:text-xxs text-xs'>
-              {formatISO(stop[field])}
-            </span>
+            <span className='text-xs'>{formatISO(stop[field])}</span>
           ) : (
-            <span className='italic text-gray-400 font-light max-sm:text-xxs text-xs'>
+            <span className='italic text-gray-400 font-light text-xs'>
               {status === 'canceled' ? 'Canceled' : 'Pending'}
             </span>
           )}
@@ -103,6 +94,7 @@ function Deployments () {
     useGetAllDeployment()
   const { getAllTruckFunction, isLoading: isTruckLoading } = useGetAllTruck()
   const { getAllDriverFunction, isLoading: isDriverLoading } = useGetAllDriver()
+
   const [allDeployments, setAllDeployments] = useState([])
   const [allTrucks, setAllTrucks] = useState([])
   const [allDrivers, setAllDrivers] = useState([])
@@ -113,22 +105,16 @@ function Deployments () {
   const [total, setTotal] = useState(null)
   const [totalPages, setTotalPages] = useState(null)
   const [selectedDeployment, setSelectedDeployment] = useState({})
-
-  // ─── checkbox selection state ────────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState(new Set())
 
   const isAllSelected =
     allDeployments.length > 0 &&
     allDeployments.every(d => selectedIds.has(d._id))
-
   const isIndeterminate = selectedIds.size > 0 && !isAllSelected
 
   const handleToggleSelectAll = () => {
-    if (isAllSelected) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(allDeployments.map(d => d._id)))
-    }
+    if (isAllSelected) setSelectedIds(new Set())
+    else setSelectedIds(new Set(allDeployments.map(d => d._id)))
   }
 
   const handleToggleSelect = (e, id) => {
@@ -142,12 +128,10 @@ function Deployments () {
 
   const handleClearSelection = () => setSelectedIds(new Set())
 
-  /** Returns only the checked deployments, or all if nothing is checked. */
   const deploymentsForExport =
     selectedIds.size > 0
       ? allDeployments.filter(d => selectedIds.has(d._id))
       : allDeployments
-  // ─────────────────────────────────────────────────────────────────────────────
 
   const [filters, setFilters] = useState(defaultFilters)
   const [tempFilters, setTempFilters] = useState(defaultFilters)
@@ -187,21 +171,18 @@ function Deployments () {
   }
 
   const handleChangePage = direction => {
-    if (direction === 'prev' && filters.page > 1) {
+    if (direction === 'prev' && filters.page > 1)
       setFilters(prev => ({ ...prev, page: prev.page - 1 }))
-    } else if (direction === 'next' && filters.page < totalPages) {
+    else if (direction === 'next' && filters.page < totalPages)
       setFilters(prev => ({ ...prev, page: prev.page + 1 }))
-    }
   }
 
-  // ─── export handlers now use deploymentsForExport ────────────────────────────
   const handleExportToExcel = () =>
     exportDeploymentToExcel(deploymentsForExport)
   const handleExportToBillingToExcel = async () =>
     await exportBillingToExcel(deploymentsForExport)
   const handleExportToSubconBillingToExcel = async () =>
     await exportSubconBillingToExcel(deploymentsForExport, userData)
-  // ─────────────────────────────────────────────────────────────────────────────
 
   const handleAddNewDeployment = newDeployment => {
     setAllDeployments(prev => [newDeployment, ...prev])
@@ -238,248 +219,287 @@ function Deployments () {
       setTotal(total)
       setPage(page)
       setTotalPages(totalPages)
-      // Clear selection when the result set changes
       setSelectedIds(new Set())
     }
-
     const handleGetAllTrucks = async () => {
       const { trucks, error } = await getAllTruckFunction({})
       if (error) setTruckError(error)
       setAllTrucks(trucks || [])
     }
-
     const handleGetAllDrivers = async () => {
       const { drivers, error } = await getAllDriverFunction({})
       if (error) setDriverError(error)
       setAllDrivers(drivers || [])
     }
-
     handleGetAllDeployment()
     handleGetAllTrucks()
     handleGetAllDrivers()
   }, [filters])
 
+  /* ── shared button/control styles ── */
+  const btnBase =
+    'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium cursor-pointer active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+
+  /* ── Export dropdown (shared content) ── */
+  const ExportDropdownContent = () => (
+    <div
+      tabIndex='0'
+      className='dropdown-content menu mt-2 bg-white shadow-md rounded-xl border border-gray-100 w-[calc(100vw-2rem)] max-w-xs p-1.5'
+    >
+      {selectedIds.size > 0 ? (
+        <div className='px-3 py-2 flex items-center justify-between'>
+          <p className='text-xs text-blue-600 font-semibold'>
+            {selectedIds.size} row{selectedIds.size > 1 ? 's' : ''} selected
+          </p>
+          <button
+            onClick={handleClearSelection}
+            className='text-xs text-gray-400 hover:text-gray-600 cursor-pointer'
+          >
+            Clear
+          </button>
+        </div>
+      ) : (
+        <p className='px-3 pt-2 pb-1 text-xs text-gray-400'>
+          Exporting all {allDeployments.length} rows
+        </p>
+      )}
+
+      <div className='border-t border-gray-100 my-1' />
+
+      <button
+        onClick={handleExportToExcel}
+        disabled={isDeploymentLoading || allDeployments.length === 0}
+        className='w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 rounded-xl flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all'
+      >
+        <FaFolderOpen className='text-lg text-blue-500 shrink-0' />
+        <div>
+          <p className='font-medium text-gray-700'>Full Export</p>
+          <p className='text-xs text-gray-400'>All deployment details</p>
+        </div>
+      </button>
+
+      <div className='border-t border-gray-100 my-1' />
+
+      <button
+        onClick={handleExportToBillingToExcel}
+        disabled={isDeploymentLoading || allDeployments.length === 0}
+        className='w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 rounded-xl flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all'
+      >
+        <IoReceipt className='text-lg text-purple-500 shrink-0' />
+        <div>
+          <p className='font-medium text-gray-700'>Billing Export</p>
+          <p className='text-xs text-gray-400'>Simplified billing data</p>
+        </div>
+      </button>
+
+      <div className='border-t border-gray-100 my-1' />
+
+      <button
+        onClick={handleExportToSubconBillingToExcel}
+        disabled={isDeploymentLoading || allDeployments.length === 0}
+        className='w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 rounded-xl flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all'
+      >
+        <TbReceiptFilled className='text-lg text-orange-500 shrink-0' />
+        <div>
+          <p className='font-medium text-gray-700'>Subcon Billing Export</p>
+          <p className='text-xs text-gray-400'>Subcon billing data</p>
+        </div>
+      </button>
+    </div>
+  )
+
   return (
     <>
-      <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
-        {/* header */}
-        <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-16 gap-y-4'>
-          {/* left side */}
-          <div className='flex justify-between flex-1'>
-            <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-nowrap'>
-              Deployments
-            </h1>
+      <div className='flex-1 flex flex-col gap-4 lg:gap-6'>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className='flex flex-wrap justify-between items-start gap-4'>
+          {/* Left: title + sm/md export+create */}
+          <div className='flex justify-between flex-1 items-center'>
+            <div>
+              <h1 className='font-bold text-lg sm:text-xl md:text-2xl text-gray-800'>
+                Deployments
+              </h1>
+              <p className='text-xs text-gray-400 mt-0.5'>
+                Manage and track all truck deployments
+              </p>
+            </div>
 
-            <div className='flex gap-4 max-sm:hidden xl:hidden'>
-              {/* Export dropdown */}
+            <div className='flex gap-2 max-sm:hidden xl:hidden'>
               {['head_admin', 'admin'].includes(userData.data.role) && (
                 <div className='dropdown dropdown-end sm:dropdown-center'>
                   <div
                     tabIndex={0}
                     role='button'
-                    className='flex items-center gap-2 bg-linear-to-b from-blue-500 to-blue-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed '
-                    disabled={
-                      isDeploymentLoading || allDeployments.length === 0
-                    }
+                    className={clsx(
+                      btnBase,
+                      'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100'
+                    )}
                   >
-                    <BiExport className='text-base sm:text-lg' />
-                    <p className='text-sm sm:text-base'>Export</p>
-                    {/* selection badge */}
+                    <BiExport className='text-base' />
+                    <span>Export</span>
                     {selectedIds.size > 0 && (
-                      <span className='bg-white text-blue-600 text-xs font-bold px-1.5 py-0.5 rounded-full leading-none'>
+                      <span className='bg-blue-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none'>
                         {selectedIds.size}
                       </span>
                     )}
                   </div>
-
-                  <div
-                    tabIndex='0'
-                    className='dropdown-content menu mt-3 bg-white shadow-sm rounded ring-1 ring-gray-300 w-[calc(100vw-2rem)] max-w-sm'
-                  >
-                    {/* selection context hint */}
-                    {selectedIds.size > 0 ? (
-                      <div className='px-4 py-2 flex items-center justify-between'>
-                        <p className='text-xs text-blue-600 font-semibold'>
-                          {selectedIds.size} row
-                          {selectedIds.size > 1 ? 's' : ''} selected
-                        </p>
-                        <button
-                          onClick={handleClearSelection}
-                          className='text-xs text-gray-400 hover:text-gray-600 cursor-pointer'
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    ) : (
-                      <p className='px-4 pt-2 pb-1 text-xs text-gray-400'>
-                        Exporting all {allDeployments.length} rows
-                      </p>
-                    )}
-
-                    <div className='border-t border-gray-200 my-1' />
-
-                    <button
-                      onClick={handleExportToExcel}
-                      disabled={
-                        isDeploymentLoading || allDeployments.length === 0
-                      }
-                      className='w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all'
-                    >
-                      <FaFolderOpen className='text-xl text-blue-500' />
-                      <div>
-                        <p className='font-medium'>Full Export</p>
-                        <p className='text-xs text-gray-500'>
-                          All deployment details
-                        </p>
-                      </div>
-                    </button>
-
-                    <div className='border-t border-gray-200 my-1' />
-
-                    <button
-                      onClick={handleExportToBillingToExcel}
-                      disabled={
-                        isDeploymentLoading || allDeployments.length === 0
-                      }
-                      className='w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all'
-                    >
-                      <IoReceipt className='text-xl text-purple-500' />
-                      <div>
-                        <p className='font-medium'>Billing Export</p>
-                        <p className='text-xs text-gray-500'>
-                          Simplified billing data
-                        </p>
-                      </div>
-                    </button>
-
-                    <div className='border-t border-gray-200 my-1' />
-
-                    <button
-                      onClick={handleExportToSubconBillingToExcel}
-                      disabled={
-                        isDeploymentLoading || allDeployments.length === 0
-                      }
-                      className='w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all'
-                    >
-                      <TbReceiptFilled className='text-xl text-orange-500' />
-                      <div>
-                        <p className='font-medium'>Subcon Billing Export</p>
-                        <p className='text-xs text-gray-500'>
-                          Subcon billing data
-                        </p>
-                      </div>
-                    </button>
-                  </div>
+                  <ExportDropdownContent />
                 </div>
               )}
 
-              {/* create button */}
               {['head_admin', 'admin'].includes(userData.data.role) && (
                 <button
                   onClick={() => setIsCreateDeploymentModalOpen(true)}
                   disabled={isDeploymentLoading}
-                  className='flex items-center gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed max-sm:hidden'
+                  className={clsx(
+                    btnBase,
+                    'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'
+                  )}
                 >
-                  <FaPlus className='text-sm' />
-                  <p>Deploy Truck</p>
+                  <FaPlus className='text-xs' />
+                  <span>Deploy Truck</span>
                 </button>
               )}
             </div>
           </div>
 
-          {/* right side */}
-          <div className='flex justify-between max-sm:flex-col gap-2 sm:gap-4 max-xs:flex-1 w-full xl:w-auto'>
-            {/* search */}
+          {/* Right: search + filter + pagination + xl export+create */}
+          <div className='flex flex-wrap justify-between gap-2 w-full xl:w-auto'>
+            {/* Search */}
             <form
               onSubmit={handleApplyFilters}
-              className='flex max-md:flex-1 items-center outline outline-gray-200 rounded pl-3 pr-1 focus-within:outline-gray-300 transition-all'
+              className='flex flex-1 xl:w-64 items-center bg-white border border-gray-200 rounded-xl px-3 py-2 gap-2 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'
             >
-              <FaSearch className='text-sm' />
+              <FaSearch className='text-gray-400 text-xs shrink-0' />
               <input
                 type='text'
                 name='search'
-                placeholder='Search'
+                placeholder='Search deployments...'
                 value={tempFilters.search}
                 onChange={handleChangeFilter}
                 autoComplete='off'
-                className='w-full focus:outline-none ml-3 mr-1 py-1 text-sm sm:text-base'
+                className='flex-1 min-w-0 focus:outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent'
               />
               <button
                 type='button'
                 onClick={handleClearSearch}
                 className={clsx(
-                  'rounded-full p-1 hover:bg-gray-50 cursor-pointer transition-all duration-300',
+                  'rounded-full p-0.5 hover:bg-gray-100 cursor-pointer transition-all duration-200',
                   {
                     'opacity-100': tempFilters.search,
-                    'opacity-0 -z-10': !tempFilters.search
+                    'opacity-0 pointer-events-none': !tempFilters.search
                   }
                 )}
               >
-                <IoClose className='text-lg sm:text-xl' />
+                <IoClose className='text-base text-gray-400' />
               </button>
             </form>
 
-            <div className='flex justify-between gap-2 sm:gap-4'>
-              {/* filters */}
+            <div className='flex gap-2 max-sm:justify-between max-sm:w-full'>
+              {/* Filter */}
               <div className='dropdown dropdown-start sm:dropdown-center'>
                 <div
                   tabIndex={0}
                   role='button'
-                  className='flex items-center gap-4 ring-1 ring-gray-200 hover:bg-gray-50 rounded px-3 py-1 cursor-pointer active:scale-95 transition-all'
+                  className={clsx(
+                    btnBase,
+                    'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'
+                  )}
                 >
-                  <FaFilter className='text-xs sm:text-sm' />
-                  <p className='text-sm sm:text-base'>Filter</p>
+                  <FaFilter className='text-xs' />
+                  <span>Filter</span>
                 </div>
 
                 <div
                   tabIndex='0'
-                  className='dropdown-content menu mt-3 bg-white shadow-sm rounded ring-1 ring-gray-300
-           w-[calc(100vw-2rem)] max-w-sm'
+                  className='dropdown-content menu mt-2 bg-white shadow-md rounded-xl border border-gray-100 w-[calc(100vw-2rem)] max-w-sm p-3 sm:p-4'
                 >
-                  <div className='grid grid-cols-2 gap-4 p-2 sm:p-4'>
-                    <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
-                      <p className='font-semibold'>Status</p>
-                      <select
-                        name='status'
-                        value={tempFilters.status}
-                        onChange={handleChangeFilter}
-                        className='w-full focus:outline-none'
-                      >
-                        <option value=''>All</option>
-                        {DEPLOYMENT_STATUS.map((item, index) => (
-                          <option key={index} value={item.value}>
-                            {item.label}
-                          </option>
-                        ))}
-                      </select>
+                  <p className='text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3'>
+                    Filter Options
+                  </p>
+                  <div className='grid grid-cols-2 gap-3'>
+                    <label className='flex flex-col gap-1'>
+                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+                        Status
+                      </span>
+                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+                        <select
+                          name='status'
+                          value={tempFilters.status}
+                          onChange={handleChangeFilter}
+                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+                        >
+                          <option value=''>All</option>
+                          {DEPLOYMENT_STATUS.map((item, index) => (
+                            <option key={index} value={item.value}>
+                              {item.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </label>
 
-                    <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
-                      <p className='font-semibold'>Sort</p>
-                      <select
-                        name='sort'
-                        value={tempFilters.sort}
-                        onChange={handleChangeFilter}
-                        className='w-full focus:outline-none'
-                      >
-                        <option value='latest'>Latest</option>
-                        <option value='oldest'>Oldest</option>
-                      </select>
+                    <label className='flex flex-col gap-1'>
+                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+                        Sort
+                      </span>
+                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+                        <select
+                          name='sort'
+                          value={tempFilters.sort}
+                          onChange={handleChangeFilter}
+                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+                        >
+                          <option value='latest'>Latest</option>
+                          <option value='oldest'>Oldest</option>
+                        </select>
+                      </div>
                     </label>
 
                     {userData.data.role !== 'subcon' && (
                       <>
                         {userData.data.role !== 'visitor' && (
-                          <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
-                            <p className='font-semibold'>Subcon</p>
+                          <label className='flex flex-col gap-1'>
+                            <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+                              Subcon
+                            </span>
+                            <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+                              <select
+                                name='subcon'
+                                value={tempFilters.subcon}
+                                onChange={handleChangeFilter}
+                                className='w-full focus:outline-none text-sm text-gray-700 bg-transparent capitalize'
+                              >
+                                <option value=''>All</option>
+                                {settings.trucksDrivers.subcon.map(
+                                  (item, index) => (
+                                    <option key={index} value={item}>
+                                      {item}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </div>
+                          </label>
+                        )}
+
+                        <label
+                          className={clsx('flex flex-col gap-1', {
+                            'col-span-2': userData.data.role === 'visitor'
+                          })}
+                        >
+                          <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+                            Territory
+                          </span>
+                          <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
                             <select
-                              name='subcon'
-                              value={tempFilters.subcon}
+                              name='territory'
+                              value={tempFilters.territory}
                               onChange={handleChangeFilter}
-                              className='w-full focus:outline-none capitalize'
+                              className='w-full focus:outline-none text-sm text-gray-700 bg-transparent capitalize'
                             >
                               <option value=''>All</option>
-                              {settings.trucksDrivers.subcon.map(
+                              {settings.deployments.territory.map(
                                 (item, index) => (
                                   <option key={index} value={item}>
                                     {item}
@@ -487,69 +507,58 @@ function Deployments () {
                                 )
                               )}
                             </select>
-                          </label>
-                        )}
-
-                        <label
-                          className={clsx(
-                            'flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2',
-                            { 'col-span-2': userData.data.role === 'visitor' }
-                          )}
-                        >
-                          <p className='font-semibold'>Territory</p>
-                          <select
-                            name='territory'
-                            value={tempFilters.territory}
-                            onChange={handleChangeFilter}
-                            className='w-full focus:outline-none capitalize'
-                          >
-                            <option value=''>All</option>
-                            {settings.deployments.territory.map(
-                              (item, index) => (
-                                <option key={index} value={item}>
-                                  {item}
-                                </option>
-                              )
-                            )}
-                          </select>
+                          </div>
                         </label>
                       </>
                     )}
 
-                    <label className='col-span-2 flex items-center justify-between text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
-                      <p className='font-semibold text-nowrap'>Assigned At</p>
-                      <input
-                        type='date'
-                        name='assignedAt'
-                        value={tempFilters.assignedAt}
-                        onChange={handleChangeFilter}
-                        className='focus:outline-none'
-                      />
+                    <label className='col-span-2 flex flex-col gap-1'>
+                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+                        Assigned At
+                      </span>
+                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+                        <input
+                          type='date'
+                          name='assignedAt'
+                          value={tempFilters.assignedAt}
+                          onChange={handleChangeFilter}
+                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+                        />
+                      </div>
                     </label>
 
-                    <label className='col-span-2 flex items-center justify-between text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
-                      <p className='font-semibold text-nowrap'>Departed At</p>
-                      <input
-                        type='date'
-                        name='departedAt'
-                        value={tempFilters.departedAt}
-                        onChange={handleChangeFilter}
-                        className='focus:outline-none'
-                      />
+                    <label className='col-span-2 flex flex-col gap-1'>
+                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+                        Departed At
+                      </span>
+                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+                        <input
+                          type='date'
+                          name='departedAt'
+                          value={tempFilters.departedAt}
+                          onChange={handleChangeFilter}
+                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+                        />
+                      </div>
                     </label>
 
                     <button
                       onClick={handleResetFilters}
                       disabled={isDeploymentLoading}
-                      className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all  max-xs:text-xs cursor-pointer hover:brightness-95'
+                      className={clsx(
+                        btnBase,
+                        'justify-center bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      )}
                     >
                       Reset
                     </button>
-
                     <button
                       onClick={handleApplyFilters}
                       disabled={isDeploymentLoading}
-                      className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all  max-xs:text-xs cursor-pointer hover:brightness-95'
+                      className={clsx(
+                        btnBase,
+                        'justify-center bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'
+                      )}
                     >
                       Apply
                     </button>
@@ -557,16 +566,16 @@ function Deployments () {
                 </div>
               </div>
 
-              {/* pagination */}
-              <div className='flex gap-4 items-center outline outline-gray-200 rounded'>
+              {/* Pagination */}
+              <div className='flex items-center bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden'>
                 <button
                   onClick={() => handleChangePage('prev')}
                   disabled={isDeploymentLoading || filters.page === 1}
-                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                  className='p-2 text-xl hover:bg-gray-50 cursor-pointer border-r border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
                 >
                   <MdOutlineKeyboardArrowLeft />
                 </button>
-                <p className='text-xs sm:text-sm sm:min-w-22 text-center'>
+                <p className='text-xs text-gray-600 sm:min-w-24 text-center px-2'>
                   {!isDeploymentLoading &&
                     allDeployments &&
                     `Page ${total > 0 ? page : 0} of ${totalPages}`}
@@ -574,146 +583,72 @@ function Deployments () {
                 <button
                   onClick={() => handleChangePage('next')}
                   disabled={isDeploymentLoading || filters.page === totalPages}
-                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                  className='p-2 text-xl hover:bg-gray-50 cursor-pointer border-l border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
                 >
                   <MdOutlineKeyboardArrowRight />
                 </button>
               </div>
 
-              {/* Export dropdown */}
+              {/* xl Export */}
               {['head_admin', 'admin'].includes(userData.data.role) && (
                 <div className='dropdown dropdown-end sm:dropdown-center max-xl:hidden'>
                   <div
                     tabIndex={0}
                     role='button'
-                    className='flex items-center gap-2 bg-linear-to-b from-blue-500 to-blue-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed '
-                    disabled={
-                      isDeploymentLoading || allDeployments.length === 0
-                    }
+                    className={clsx(
+                      btnBase,
+                      'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100'
+                    )}
                   >
-                    <BiExport className='text-base sm:text-lg' />
-                    <p className='text-sm sm:text-base'>Export</p>
-                    {/* selection badge */}
+                    <BiExport className='text-base' />
+                    <span>Export</span>
                     {selectedIds.size > 0 && (
-                      <span className='bg-white text-blue-600 text-xs font-bold px-1.5 py-0.5 rounded-full leading-none'>
+                      <span className='bg-blue-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none'>
                         {selectedIds.size}
                       </span>
                     )}
                   </div>
-
-                  <div
-                    tabIndex='0'
-                    className='dropdown-content menu mt-3 bg-white shadow-sm rounded ring-1 ring-gray-300 w-[calc(100vw-2rem)] max-w-sm'
-                  >
-                    {/* selection context hint */}
-                    {selectedIds.size > 0 ? (
-                      <div className='px-4 py-2 flex items-center justify-between'>
-                        <p className='text-xs text-blue-600 font-semibold'>
-                          {selectedIds.size} row
-                          {selectedIds.size > 1 ? 's' : ''} selected
-                        </p>
-                        <button
-                          onClick={handleClearSelection}
-                          className='text-xs text-gray-400 hover:text-gray-600 cursor-pointer'
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    ) : (
-                      <p className='px-4 pt-2 pb-1 text-xs text-gray-400'>
-                        Exporting all {allDeployments.length} rows
-                      </p>
-                    )}
-
-                    <div className='border-t border-gray-200 my-1' />
-
-                    <button
-                      onClick={handleExportToExcel}
-                      disabled={
-                        isDeploymentLoading || allDeployments.length === 0
-                      }
-                      className='w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all'
-                    >
-                      <FaFolderOpen className='text-xl text-blue-500' />
-                      <div>
-                        <p className='font-medium'>Full Export</p>
-                        <p className='text-xs text-gray-500'>
-                          All deployment details
-                        </p>
-                      </div>
-                    </button>
-
-                    <div className='border-t border-gray-200 my-1' />
-
-                    <button
-                      onClick={handleExportToBillingToExcel}
-                      disabled={
-                        isDeploymentLoading || allDeployments.length === 0
-                      }
-                      className='w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all'
-                    >
-                      <IoReceipt className='text-xl text-purple-500' />
-                      <div>
-                        <p className='font-medium'>Billing Export</p>
-                        <p className='text-xs text-gray-500'>
-                          Simplified billing data
-                        </p>
-                      </div>
-                    </button>
-
-                    <div className='border-t border-gray-200 my-1' />
-
-                    <button
-                      onClick={handleExportToSubconBillingToExcel}
-                      disabled={
-                        isDeploymentLoading || allDeployments.length === 0
-                      }
-                      className='w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all'
-                    >
-                      <TbReceiptFilled className='text-xl text-orange-500' />
-                      <div>
-                        <p className='font-medium'>Subcon Billing Export</p>
-                        <p className='text-xs text-gray-500'>
-                          Subcon billing data
-                        </p>
-                      </div>
-                    </button>
-                  </div>
+                  <ExportDropdownContent />
                 </div>
               )}
 
-              {/* create button */}
+              {/* xl Create */}
               {['head_admin', 'admin'].includes(userData.data.role) && (
                 <button
                   onClick={() => setIsCreateDeploymentModalOpen(true)}
                   disabled={isDeploymentLoading}
-                  className='flex items-center gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed max-xl:hidden'
+                  className={clsx(
+                    btnBase,
+                    'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 max-xl:hidden'
+                  )}
                 >
-                  <FaPlus className='text-sm' />
-                  <p>Deploy Truck</p>
+                  <FaPlus className='text-xs' />
+                  <span>Deploy Truck</span>
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        {/* table */}
+        {/* ── Table / States ──────────────────────────────────────────────── */}
         {isDeploymentLoading ? (
           <div className='flex-1 flex items-center justify-center'>
-            <div className='flex flex-col items-center justify-center gap-4 text-center'>
+            <div className='flex flex-col items-center gap-4 text-center'>
               <span className='loading loading-spinner loading-lg text-primaryColor' />
-              <p className='text-gray-600 font-medium'>Loading content...</p>
+              <p className='text-gray-500 text-sm font-medium'>
+                Loading content...
+              </p>
             </div>
           </div>
         ) : deploymentError ? (
           <div className='flex-1 flex justify-center items-center'>
-            <div className='flex flex-col justify-center items-center gap-4 px-4 text-center'>
-              <img src={error_illustration} alt='error' className='w-56' />
-              <div className='space-y-2'>
-                <h1 className='text-xl font-semibold text-gray-700'>
+            <div className='flex flex-col items-center gap-4 text-center px-4'>
+              <img src={error_illustration} alt='error' className='w-52' />
+              <div>
+                <h1 className='text-lg font-semibold text-gray-700'>
                   Something went wrong
                 </h1>
-                <p className='text-gray-500 max-w-md leading-relaxed'>
+                <p className='text-gray-400 text-sm mt-1 max-w-md leading-relaxed'>
                   We encountered an unexpected error. Please try again later.
                 </p>
               </div>
@@ -721,13 +656,13 @@ function Deployments () {
           </div>
         ) : allDeployments.length === 0 ? (
           <div className='flex-1 flex justify-center items-center'>
-            <div className='flex flex-col justify-center items-center gap-4 px-4 text-center'>
-              <img src={empty_illustration} alt='empty' className='w-56' />
-              <div className='space-y-2'>
-                <h1 className='text-xl font-semibold text-gray-700'>
+            <div className='flex flex-col items-center gap-4 text-center px-4'>
+              <img src={empty_illustration} alt='empty' className='w-52' />
+              <div>
+                <h1 className='text-lg font-semibold text-gray-700'>
                   Nothing to show here
                 </h1>
-                <p className='text-gray-500 max-w-md leading-relaxed'>
+                <p className='text-gray-400 text-sm mt-1 max-w-md leading-relaxed'>
                   {filters.search || filters.status
                     ? 'Try adjusting your search terms or filters to see more results'
                     : 'Get started by adding your first deployment to the system'}
@@ -736,12 +671,11 @@ function Deployments () {
             </div>
           </div>
         ) : (
-          <div className='relative flex-1 overflow-y-auto scrollbar-thin'>
+          <div className='relative flex-1 overflow-y-auto scrollbar-thin bg-white border border-gray-200 rounded-xl shadow-sm'>
             <div className='absolute inset-0'>
               <table className='table text-xs sm:table-sm table-pin-rows table-pin-cols'>
                 <thead>
-                  <tr className='bg-white border-b border-gray-200 text-gray-800'>
-                    {/* ── select-all checkbox ── */}
+                  <tr className='bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wide'>
                     {['head_admin', 'admin'].includes(userData.data.role) && (
                       <td className='max-sm:hidden w-8'>
                         <input
@@ -755,16 +689,16 @@ function Deployments () {
                         />
                       </td>
                     )}
-                    <td className='max-sm:text-xs'>{total}</td>
-                    <td className='max-sm:text-xs'>Code</td>
-                    <td className='max-sm:text-xs'>Truck Details</td>
-                    <td className='max-sm:text-xs'>Status</td>
-                    <td className='max-sm:text-xs'>Departed</td>
-                    <td className='max-sm:text-xs'>Pick-up In</td>
-                    <td className='max-sm:text-xs'>Pick-up Out</td>
-                    <td className='max-sm:text-xs'>Dest. Arrival</td>
-                    <td className='max-sm:text-xs'>Dest. Departure</td>
-                    <td className='max-sm:text-xs'>Unloading</td>
+                    <td>{total}</td>
+                    <td>Code</td>
+                    <td>Truck Details</td>
+                    <td>Status</td>
+                    <td>Departed</td>
+                    <td>Pick-up In</td>
+                    <td>Pick-up Out</td>
+                    <td>Dest. Arrival</td>
+                    <td>Dest. Departure</td>
+                    <td>Unloading</td>
                   </tr>
                 </thead>
                 <tbody>
@@ -773,7 +707,7 @@ function Deployments () {
                       key={index}
                       onClick={() => handleShowTruckDetailsModal(deployment)}
                       className={clsx(
-                        'border-b border-gray-200 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top',
+                        'border-b border-gray-100 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top transition-colors',
                         {
                           'bg-blue-50 hover:bg-blue-100': selectedIds.has(
                             deployment._id
@@ -781,7 +715,6 @@ function Deployments () {
                         }
                       )}
                     >
-                      {/* ── per-row checkbox ── */}
                       {['head_admin', 'admin'].includes(userData.data.role) && (
                         <td
                           onClick={e => handleToggleSelect(e, deployment._id)}
@@ -791,20 +724,18 @@ function Deployments () {
                             type='checkbox'
                             className='checkbox checkbox-sm'
                             checked={selectedIds.has(deployment._id)}
-                            onChange={() => {}} // controlled via td onClick
+                            onChange={() => {}}
                           />
                         </td>
                       )}
 
-                      {/* # */}
-                      <td className='text-xxs sm:text-xs font-bold text-gray-600'>
+                      <td className='text-xxs sm:text-xs font-semibold text-gray-400'>
                         {(filters.page - 1) * filters.perPage + index + 1}
                       </td>
 
-                      {/* Deployment code */}
                       <td className='p-0 relative max-sm:text-xxs'>
                         <div
-                          className='cursor-copy h-full w-fit p-2 hover:bg-gray-100 transition-colors rounded relative group'
+                          className='cursor-copy h-full w-fit p-2 hover:bg-gray-100 transition-colors rounded-lg relative group font-mono text-xs'
                           onClick={e => {
                             e.stopPropagation()
                             navigator.clipboard.writeText(
@@ -813,8 +744,8 @@ function Deployments () {
                             const div = e.currentTarget
                             const tooltip = document.createElement('div')
                             tooltip.className =
-                              'absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50'
-                            tooltip.textContent = 'Copied'
+                              'absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap z-50'
+                            tooltip.textContent = 'Copied!'
                             div.appendChild(tooltip)
                             setTimeout(() => {
                               if (div.contains(tooltip))
@@ -827,33 +758,37 @@ function Deployments () {
                         </div>
                       </td>
 
-                      {/* Truck / driver */}
                       <td>
-                        <div className='space-y-0.5 sm:space-y-1 max-sm:text-xxs'>
+                        <div className='space-y-0.5 max-sm:text-xxs'>
                           {deployment?.replacement?.replacementTruckId?._id ? (
                             <>
-                              <p className='text-nowrap font-semibold '>
+                              <p className='text-nowrap font-semibold text-gray-800'>
                                 <span className='uppercase'>
                                   {
                                     deployment.replacement.replacementTruckId
                                       .plateNo
                                   }{' '}
                                 </span>
-                                ({deployment.replacement.replacementTruckType})
+                                <span className='text-gray-400 font-normal'>
+                                  ({deployment.replacement.replacementTruckType}
+                                  )
+                                </span>
                               </p>
-                              <p className='text-nowrap font-light'>
+                              <p className='text-nowrap text-gray-500 font-light'>
                                 {`${deployment.replacement.replacementDriverId.firstname} ${deployment.replacement.replacementDriverId.lastname}`}
                               </p>
                             </>
                           ) : (
                             <>
-                              <p className='text-nowrap font-semibold'>
+                              <p className='text-nowrap font-semibold text-gray-800'>
                                 <span className='uppercase'>
                                   {deployment.truckId.plateNo}{' '}
                                 </span>
-                                ({deployment.truckType})
+                                <span className='text-gray-400 font-normal'>
+                                  ({deployment.truckType})
+                                </span>
                               </p>
-                              <p className='text-nowrap font-light'>
+                              <p className='text-nowrap text-gray-500 font-light'>
                                 {`${deployment.driverId.firstname} ${deployment.driverId.lastname}`}
                               </p>
                             </>
@@ -861,19 +796,18 @@ function Deployments () {
                         </div>
                       </td>
 
-                      {/* Status */}
                       <td>
                         <div
                           className={clsx(
-                            'px-2 py-1 rounded-full w-fit max-sm:text-xxs',
+                            'px-2.5 py-1 rounded-full w-fit text-xs font-medium',
                             {
-                              'bg-orange-500/10 text-orange-500':
+                              'bg-orange-50 text-orange-500':
                                 deployment.status === 'preparing',
-                              'bg-emerald-500/10 text-emerald-500':
+                              'bg-emerald-50 text-emerald-600':
                                 deployment.status === 'ongoing',
-                              'bg-blue-500/10 text-blue-500':
+                              'bg-blue-50 text-blue-500':
                                 deployment.status === 'completed',
-                              'bg-red-500/10 text-red-500':
+                              'bg-red-50 text-red-500':
                                 deployment.status === 'canceled'
                             }
                           )}
@@ -882,24 +816,20 @@ function Deployments () {
                         </div>
                       </td>
 
-                      {/* Departed */}
                       <td>
                         {deployment.departed ? (
-                          <span className='text-nowrap max-sm:text-xxs text-xs'>
+                          <span className='text-nowrap text-xs'>
                             {formatISO(deployment.departed)}
                           </span>
-                        ) : deployment.status === 'canceled' ? (
-                          <p className='italic text-gray-400 font-light max-sm:text-xxs'>
-                            Canceled
-                          </p>
                         ) : (
-                          <p className='italic text-gray-400 font-light max-sm:text-xxs'>
-                            Pending
+                          <p className='italic text-gray-400 font-light text-xs'>
+                            {deployment.status === 'canceled'
+                              ? 'Canceled'
+                              : 'Pending'}
                           </p>
                         )}
                       </td>
 
-                      {/* Pick-up In */}
                       <td>
                         <PickupStopsCell
                           pickups={deployment.pickups}
@@ -907,8 +837,6 @@ function Deployments () {
                           status={deployment.status}
                         />
                       </td>
-
-                      {/* Pick-up Out */}
                       <td>
                         <PickupStopsCell
                           pickups={deployment.pickups}
@@ -917,44 +845,37 @@ function Deployments () {
                         />
                       </td>
 
-                      {/* Dest. Arrival */}
                       <td>
                         {deployment.destArrival ? (
-                          <span className='text-nowrap max-sm:text-xxs text-xs '>
+                          <span className='text-nowrap text-xs'>
                             {formatISO(deployment.destArrival)}
                           </span>
-                        ) : deployment.status === 'canceled' ? (
-                          <p className='italic text-gray-400 font-light max-sm:text-xxs'>
-                            Canceled
-                          </p>
                         ) : (
-                          <p className='italic text-gray-400 font-light max-sm:text-xxs'>
-                            Pending
+                          <p className='italic text-gray-400 font-light text-xs'>
+                            {deployment.status === 'canceled'
+                              ? 'Canceled'
+                              : 'Pending'}
                           </p>
                         )}
                       </td>
 
-                      {/* Dest. Departure */}
                       <td>
                         {deployment.destDeparture ? (
-                          <span className='text-nowrap max-sm:text-xxs text-xs'>
+                          <span className='text-nowrap text-xs'>
                             {formatISO(deployment.destDeparture)}
                           </span>
-                        ) : deployment.status === 'canceled' ? (
-                          <p className='italic text-gray-400 font-light max-sm:text-xxs'>
-                            Canceled
-                          </p>
                         ) : (
-                          <p className='italic text-gray-400 font-light max-sm:text-xxs'>
-                            Pending
+                          <p className='italic text-gray-400 font-light text-xs'>
+                            {deployment.status === 'canceled'
+                              ? 'Canceled'
+                              : 'Pending'}
                           </p>
                         )}
                       </td>
 
-                      {/* Unloading duration */}
                       <td>
                         {deployment.destArrival && deployment.destDeparture ? (
-                          <div className='text-nowrap w-fit px-3 py-1 rounded-full bg-emerald-500 text-white max-sm:text-xxs text-xs'>
+                          <div className='text-nowrap w-fit px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 font-medium text-xs border border-emerald-100'>
                             {(() => {
                               const { hours, minutes } = DateTime.fromISO(
                                 deployment.destDeparture
@@ -967,13 +888,11 @@ function Deployments () {
                                 : `${Math.floor(minutes)}m`
                             })()}
                           </div>
-                        ) : deployment.status === 'canceled' ? (
-                          <p className='italic text-gray-400 font-light max-sm:text-xxs'>
-                            Canceled
-                          </p>
                         ) : (
-                          <p className='italic text-gray-400 font-light max-sm:text-xxs'>
-                            Pending
+                          <p className='italic text-gray-400 font-light text-xs'>
+                            {deployment.status === 'canceled'
+                              ? 'Canceled'
+                              : 'Pending'}
                           </p>
                         )}
                       </td>
@@ -998,7 +917,6 @@ function Deployments () {
         openReplacementHistory={() => setShowReplacementHistory(true)}
         updatable={['head_admin', 'admin'].includes(userData.data.role)}
       />
-
       <CreateDeploymentModal
         isOpen={isCreateDeploymentModalOpen}
         onClose={() => setIsCreateDeploymentModalOpen(false)}
@@ -1006,7 +924,6 @@ function Deployments () {
         drivers={allDrivers}
         onCreate={handleAddNewDeployment}
       />
-
       <ReplacementModal
         isOpen={isReplacementModalOpen}
         onClose={() => setIsReplacementModalOpen(false)}
@@ -1018,13 +935,11 @@ function Deployments () {
           handleUpdateAllDeployments(data)
         }}
       />
-
       <ReplacementHistoryModal
         isOpen={showReplacementHistory}
         onClose={() => setShowReplacementHistory(false)}
         deployment={selectedDeployment}
       />
-
       <DeleteDeploymentModal
         isOpen={isDeleteDeploymentModalOpen}
         onClose={() => setIsDeleteDeploymentModalOpen(false)}

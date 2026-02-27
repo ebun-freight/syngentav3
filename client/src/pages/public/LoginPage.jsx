@@ -31,7 +31,9 @@ const DotPattern = () => (
 /* ─── Stat badge used in the brand panel ────────────────────────────────── */
 const StatBadge = ({ value, label }) => (
   <div className='flex flex-col items-center'>
-    <span className='text-white font-bold text-2xl leading-none'>{value}</span>
+    <span className='text-white font-bold text-xl lg:text-2xl leading-none'>
+      {value}
+    </span>
     <span className='text-white/60 text-xs mt-0.5 text-center'>{label}</span>
   </div>
 )
@@ -57,12 +59,12 @@ function LoginPage () {
   }, [])
 
   return (
-    <div className='min-h-screen flex flex-col lg:flex-row bg-gray-50 overflow-x-hidden'>
-      {/* ── Brand Panel (left on desktop, top banner on mobile) ─────────── */}
+    <div className='min-h-screen flex flex-col md:flex-row bg-gray-50 overflow-x-hidden'>
+      {/* ── Brand Panel ──────────────────────────────────────────────────── */}
       <div
         className='relative flex flex-col justify-between overflow-hidden
-                   lg:w-[45%] lg:min-h-screen
-                   p-8 sm:p-10 lg:p-14'
+                   md:w-[40%] lg:w-[45%] md:min-h-screen
+                   p-8 sm:p-10 md:p-8 lg:p-14'
         style={{
           background:
             'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
@@ -84,7 +86,7 @@ function LoginPage () {
           }}
         />
 
-        {/* Logo */}
+        {/* Logo — untouched */}
         <div
           data-aos='fade-right'
           className='relative z-10 flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10'
@@ -100,48 +102,48 @@ function LoginPage () {
           </div>
         </div>
 
-        {/* Centre copy — hidden on small mobile, shown sm+ */}
+        {/* Centre copy — visible md+ */}
         <div
           data-aos='fade-right'
           data-aos-delay='100'
-          className='relative z-10 hidden sm:block'
+          className='relative z-10 hidden md:block'
         >
-          <div className='w-10 h-0.5 bg-white/40 mb-6' />
-          <h2 className='text-white font-bold text-3xl lg:text-4xl leading-tight max-w-xs'>
+          <div className='w-10 h-0.5 bg-white/40 mb-4 lg:mb-6' />
+          <h2 className='text-white font-bold text-xl md:text-2xl lg:text-4xl leading-tight max-w-xs'>
             Smarter Freight.
             <br />
             <span className='text-slate-300'>Safer Roads.</span>
           </h2>
-          <p className='mt-4 text-white/60 text-sm leading-relaxed max-w-xs'>
+          <p className='mt-3 lg:mt-4 text-white/60 text-xs lg:text-sm leading-relaxed max-w-xs'>
             "Where Safety Leads, Technology Drives, and Community Thrives"
           </p>
         </div>
 
-        {/* Stats row — hidden on small mobile */}
+        {/* Stats row — visible md+ */}
         <div
           data-aos='fade-up'
           data-aos-delay='200'
-          className='relative z-10 hidden sm:flex items-center gap-8
-                     border-t border-white/20 pt-6'
+          className='relative z-10 hidden md:flex items-center gap-5 lg:gap-8
+                     border-t border-white/20 pt-5 lg:pt-6'
         >
           <StatBadge value='100+' label='Daily Trips' />
-          <div className='w-px h-8 bg-white/20' />
+          <div className='w-px h-7 bg-white/20' />
           <StatBadge value='24/7' label='Operations' />
-          <div className='w-px h-8 bg-white/20' />
+          <div className='w-px h-7 bg-white/20' />
           <StatBadge value='99%' label='On-Time Rate' />
         </div>
 
         {/* Mobile: compact tagline only */}
-        <p className='relative z-10 sm:hidden text-white/60 text-xs italic mt-4 text-center'>
+        <p className='relative z-10 md:hidden text-white/60 text-xs italic mt-4 text-center'>
           "Where Safety Leads, Technology Drives, and Community Thrives"
         </p>
       </div>
 
-      {/* ── Form Panel (right on desktop, below brand on mobile) ─────────── */}
+      {/* ── Form Panel ───────────────────────────────────────────────────── */}
       <div className='flex-1 flex items-center justify-center p-6 sm:p-10 lg:p-16'>
         <div data-aos='fade-left' className='w-full max-w-md'>
           {/* Heading */}
-          <div className='mb-8'>
+          <div className='mb-6 lg:mb-8'>
             <h2 className='text-gray-900 font-bold text-2xl sm:text-3xl'>
               Welcome back
             </h2>
@@ -150,16 +152,16 @@ function LoginPage () {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className='space-y-5'>
+          <form onSubmit={handleSubmit} className='space-y-4 lg:space-y-5'>
             {/* Email */}
             <div>
               <label className='block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
                 Email Address
               </label>
               <div
-                className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 min-w-0
-                              focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20
-                              transition-all duration-200 shadow-sm'
+                className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 lg:py-3.5 min-w-0
+                            focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20
+                            transition-all duration-200 shadow-sm'
               >
                 <FaUser className='text-gray-400 group-focus-within:text-primaryColor transition-colors shrink-0 text-sm' />
                 <input
@@ -176,15 +178,13 @@ function LoginPage () {
 
             {/* Password */}
             <div>
-              <div className='flex items-center justify-between mb-1.5'>
-                <label className='block text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                  Password
-                </label>
-              </div>
+              <label className='block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
+                Password
+              </label>
               <div
-                className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 min-w-0
-                              focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20
-                              transition-all duration-200 shadow-sm'
+                className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 lg:py-3.5 min-w-0
+                            focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20
+                            transition-all duration-200 shadow-sm'
               >
                 <FaLock className='text-gray-400 group-focus-within:text-primaryColor transition-colors shrink-0 text-sm' />
                 <input
@@ -210,7 +210,7 @@ function LoginPage () {
             <button
               type='submit'
               disabled={isLoading}
-              className='w-full mt-2 py-3.5 rounded-xl font-semibold text-white text-sm
+              className='w-full mt-2 py-3 lg:py-3.5 rounded-xl font-semibold text-white text-sm
                          shadow-md hover:shadow-lg hover:brightness-105 active:scale-[0.99]
                          transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed
                          flex items-center justify-center gap-2.5'
@@ -246,7 +246,7 @@ function LoginPage () {
           </form>
 
           {/* Footer */}
-          <p className='text-gray-500 mt-6 text-sm text-center'>
+          <p className='text-gray-500 mt-5 lg:mt-6 text-sm text-center'>
             Don&apos;t have an account?{' '}
             <Link
               to='/signup'
@@ -256,7 +256,7 @@ function LoginPage () {
             </Link>
           </p>
 
-          <p className='text-gray-400 text-xs text-center mt-8'>
+          <p className='text-gray-400 text-xs text-center mt-6 lg:mt-8'>
             © {new Date().getFullYear()} Ebun Freight OPC. All rights reserved.
           </p>
         </div>
