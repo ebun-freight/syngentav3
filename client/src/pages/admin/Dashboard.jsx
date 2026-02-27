@@ -1051,7 +1051,7 @@ const Dashboard = () => {
                 {title}
               </span>
             </div>
-            <div className='text-xl sm:text-2xl font-bold text-gray-900 tabular-nums'>
+            <div className='text-xl sm:text-2xl font-bold text-gray-800 tabular-nums'>
               {value}
             </div>
             {subtitle && (
