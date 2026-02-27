@@ -313,9 +313,9 @@ function Deployments () {
       {/* ── Copied exact container structure from ActivityLogsPage ── */}
       <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-99 gap-y-4 bg-red-200'>
+        <div className='flex flex-wrap max-xl:flex-col justify-between xl:items-start max-xs:gap-x-36 gap-x-99 gap-y-4'>
           {/* Left: title + description + sm/md export+create */}
-          <div className='flex justify-between flex-1 items-center bg-amber-200'>
+          <div className='flex justify-between flex-1 items-center'>
             <div>
               <h1 className='font-bold text-lg sm:text-xl md:text-2xl text-gray-800'>
                 Deployments
@@ -365,7 +365,7 @@ function Deployments () {
           </div>
 
           {/* Right: search + filter + pagination + xl export+create */}
-          <div className='flex-1 bg-blue-400 flex max-sm:flex-col justify-between gap-2 sm:gap-4'>
+          <div className='flex-1 flex max-sm:flex-col justify-between gap-2 sm:gap-4'>
             {/* Search */}
             <form
               onSubmit={handleApplyFilters}
@@ -672,8 +672,7 @@ function Deployments () {
             </div>
           </div>
         ) : (
-          // ── Copied exact table container structure from ActivityLogsPage ──
-          <div className='relative flex-1 overflow-y-auto scrollbar-thin'>
+          <div className='relative flex-1 overflow-y-auto scrollbar-thin bg-white border border-gray-200 rounded-xl shadow-sm'>
             <div className='absolute inset-0'>
               <table className='table text-xs sm:table-sm table-pin-rows table-pin-cols'>
                 <thead>
