@@ -400,7 +400,7 @@ function TimelineLogs () {
                 <thead>
                   <tr className='bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wide'>
                     <td>{total}</td>
-                    <td>Code</td>
+                    <td>DP Code</td>
                     <td>Action Details</td>
                     <td>Status</td>
                     <td>Truck Plate</td>

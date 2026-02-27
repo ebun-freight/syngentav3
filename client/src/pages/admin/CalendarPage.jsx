@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from 'react-icons/md'
+import {
+  MdOutlineKeyboardArrowLeft,
+  MdOutlineKeyboardArrowRight
+} from 'react-icons/md'
 import {
   FaBoxOpen,
   FaCheckCircle,
@@ -15,6 +18,11 @@ import useGetAllDriver from '../../hooks/useGetAllDriver'
 import ReplacementHistoryModal from '../../components/modals/ReplacementHistoryModal'
 import useGetAllDeployment from '../../hooks/useGetAllDeployment'
 import { error_illustration } from '../../consts/images'
+import clsx from 'clsx'
+
+/* ── Shared button base (mirrors Deployments page) ─────────────────────── */
+const btnBase =
+  'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium cursor-pointer active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
 
 function CalendarPage () {
   const { getAllDeploymentFunction, isLoading: isDeploymentsLoading } =
@@ -43,19 +51,16 @@ function CalendarPage () {
       if (error) setDeploymentsError(error)
       setAllDeployments(deployments || [])
     }
-
     const handleGetAllTrucks = async () => {
       const { trucks, error } = await getAllTruckFunction({})
       if (error) setTruckError(error)
       setAllTrucks(trucks || [])
     }
-
     const handleGetAllDrivers = async () => {
       const { drivers, error } = await getAllDriverFunction({})
       if (error) setDriverError(error)
       setAllDrivers(drivers || [])
     }
-
     handleGetAllDeployments()
     handleGetAllTrucks()
     handleGetAllDrivers()
@@ -85,6 +90,20 @@ function CalendarPage () {
     return map[status] || 'bg-emerald-500'
   }
 
+  /* Status badge — mirrors Deployments table pill */
+  const StatusBadge = ({ status }) => (
+    <span
+      className={clsx('px-2 py-0.5 rounded-full text-xxs w-fit capitalize', {
+        'bg-orange-50 text-orange-500': status === 'preparing',
+        'bg-emerald-50 text-emerald-600': status === 'ongoing',
+        'bg-blue-50 text-blue-500': status === 'completed',
+        'bg-red-50 text-red-500': status === 'canceled'
+      })}
+    >
+      {status}
+    </span>
+  )
+
   const getTruckPlate = deployment => {
     if (!deployment) return 'UNKNOWN TRUCK'
     return (
@@ -107,7 +126,7 @@ function CalendarPage () {
     )
   }
 
-  // ─── build calendar events from deployment data ────────────────────────────
+  // ─── build calendar events ─────────────────────────────────────────────────
 
   const getCalendarEvents = () => {
     const events = []
@@ -135,7 +154,6 @@ function CalendarPage () {
     }
 
     allDeployments.forEach(deployment => {
-      // 1. Deployment created / canceled marker
       const createdEvent = makeEvent(
         deployment,
         deployment.createdAt,
@@ -147,7 +165,6 @@ function CalendarPage () {
       )
       if (createdEvent) events.push(createdEvent)
 
-      // 2. Departed from station (top-level field)
       const departedEvent = makeEvent(
         deployment,
         deployment.departed,
@@ -155,13 +172,9 @@ function CalendarPage () {
         'Departure',
         FaTruck
       )
-      if (departedEvent)
-        events.push(departedEvent)
-
-        // 3. Per-pickup-stop events — pickupIn / pickupOut live inside pickups[]
+      if (departedEvent) events.push(departedEvent)
       ;(deployment.pickups || []).forEach((stop, index) => {
         const stopLabel = `Stop #${index + 1}`
-
         if (stop.pickupIn) {
           const ev = makeEvent(
             deployment,
@@ -172,7 +185,6 @@ function CalendarPage () {
           )
           if (ev) events.push(ev)
         }
-
         if (stop.pickupOut) {
           const ev = makeEvent(
             deployment,
@@ -185,7 +197,6 @@ function CalendarPage () {
         }
       })
 
-      // 4. Destination arrival / departure (top-level fields)
       const destArrivalEvent = makeEvent(
         deployment,
         deployment.destArrival,
@@ -242,7 +253,10 @@ function CalendarPage () {
     new Date(date.getFullYear(), date.getMonth(), 1).getDay()
 
   const getMonthYearString = () =>
-    currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    currentDate.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric'
+    })
 
   const getWeekRangeString = () => {
     const start = new Date(currentDate)
@@ -256,23 +270,26 @@ function CalendarPage () {
     )} – ${end.toLocaleDateString('en-US', fmt)}`
   }
 
-  // ─── shared event chip ─────────────────────────────────────────────────────
+  // ─── event chip (month / week) ─────────────────────────────────────────────
 
   const EventChip = ({ event }) => (
     <div
-      className={`${event.color} text-white text-xs p-2 rounded cursor-pointer hover:brightness-95 transition-opacity space-y-1`}
+      className={clsx(
+        event.color,
+        'text-white px-1.5 py-1 rounded-md cursor-pointer hover:brightness-95 active:scale-[0.99] transition-all space-y-0.5 shadow-sm'
+      )}
       onClick={() => handleDeploymentSelect(event.deployment)}
       title={`${event.deploymentCode} – ${event.truckPlate} – ${event.shortTitle} at ${event.formattedTime}`}
     >
       <div className='flex items-center justify-between gap-1'>
-        <span className='text-xs font-medium bg-black/20 px-2 py-0.5 rounded-full'>
+        <span className='text-xxs xl:text-xs font-medium bg-black/20 px-1.5 py-1 rounded-full leading-none truncate'>
           {event.deploymentCode}
         </span>
-        <span className='text-xs font-medium opacity-90'>
+        <span className='text-xxs xl:text-xs opacity-90 shrink-0'>
           {event.formattedTime}
         </span>
       </div>
-      <div className='text-xs truncate'>
+      <div className='text-xxs xl:text-xs truncate opacity-90'>
         {event.truckPlate} – {event.shortTitle}
       </div>
     </div>
@@ -284,7 +301,6 @@ function CalendarPage () {
     const daysInMonth = getDaysInMonth(currentDate)
     const firstDayOfMonth = getFirstDayOfMonth(currentDate)
     const events = getCalendarEvents()
-
     const weeks = []
     let currentWeek = []
 
@@ -292,8 +308,10 @@ function CalendarPage () {
       currentWeek.push(
         <td
           key={`pre-${i}`}
-          className='min-h-32 p-2 bg-gray-50 border border-gray-200'
-        />
+          className='bg-gray-50 border border-gray-100 relative p-0'
+        >
+          <div style={{ paddingBottom: '100%' }} />
+        </td>
       )
     }
 
@@ -311,27 +329,34 @@ function CalendarPage () {
       currentWeek.push(
         <td
           key={day}
-          className={`min-h-32 border border-gray-200 transition-colors cursor-pointer align-top ${
+          className={clsx(
+            'border border-gray-100 transition-colors cursor-pointer relative p-0',
             isToday
-              ? 'bg-blue-50 ring-1 ring-blue-200'
+              ? 'bg-blue-50 ring-1 ring-inset ring-blue-200'
               : 'bg-white hover:bg-gray-50'
-          }`}
+          )}
           onClick={() => handleDateCellClick(date)}
         >
-          <div
-            className={`font-semibold pt-2 pl-2 ${
-              isToday ? 'text-blue-600' : 'text-gray-700'
-            }`}
-          >
-            {day}
-          </div>
-          <div
-            className='space-y-1 h-48 overflow-y-auto scrollbar-thin p-1'
-            onClick={e => e.stopPropagation()}
-          >
-            {dayEvents.map(event => (
-              <EventChip key={event.id} event={event} />
-            ))}
+          {/* Spacer: padding-bottom:100% makes height === width (square) */}
+          <div style={{ paddingBottom: '100%' }} />
+          {/* Content sits absolutely over the spacer */}
+          <div className='absolute inset-0 flex flex-col overflow-hidden'>
+            <div
+              className={clsx(
+                'text-sm font-bold pt-2 pl-2 shrink-0',
+                isToday ? 'text-blue-600' : 'text-gray-700'
+              )}
+            >
+              {day}
+            </div>
+            <div
+              className='flex-1 overflow-y-auto scrollbar-thin p-1 space-y-1 min-h-0'
+              onClick={e => e.stopPropagation()}
+            >
+              {dayEvents.map(event => (
+                <EventChip key={event.id} event={event} />
+              ))}
+            </div>
           </div>
         </td>
       )
@@ -346,8 +371,10 @@ function CalendarPage () {
       currentWeek.push(
         <td
           key={`post-${currentWeek.length}`}
-          className='min-h-32 p-2 bg-gray-50 border border-gray-200'
-        />
+          className='bg-gray-50 border border-gray-100 relative p-0'
+        >
+          <div style={{ paddingBottom: '100%' }} />
+        </td>
       )
     }
 
@@ -372,17 +399,19 @@ function CalendarPage () {
       return (
         <th
           key={i}
-          className={`w-[14.28%] p-3 text-center border-b border-gray-200 ${
+          className={clsx(
+            'w-[14.28%] p-3 text-center border-b border-gray-200',
             isToday ? 'bg-blue-50' : 'bg-white'
-          }`}
+          )}
         >
-          <div className='font-semibold text-gray-600 uppercase text-sm'>
+          <div className='text-xs font-semibold text-gray-500 uppercase tracking-wider'>
             {date.toLocaleDateString('en-US', { weekday: 'short' })}
           </div>
           <div
-            className={`text-lg font-bold ${
+            className={clsx(
+              'text-lg font-bold mt-0.5',
               isToday ? 'text-blue-600' : 'text-gray-800'
-            }`}
+            )}
           >
             {date.getDate()}
           </div>
@@ -401,28 +430,29 @@ function CalendarPage () {
       return (
         <td
           key={i}
-          className={`border border-gray-200 transition-colors align-top relative overflow-y-auto scrollbar-thin ${
+          className={clsx(
+            'border border-gray-100 transition-colors align-top',
             isToday
-              ? 'bg-blue-50 ring-1 ring-blue-200'
+              ? 'bg-blue-50 ring-1 ring-inset ring-blue-200'
               : 'bg-white hover:bg-gray-50'
-          }`}
+          )}
+          style={{ minHeight: '300px', height: '100%' }}
         >
-          <div className='absolute top-0 left-0 right-0'>
-            <div
-              className='p-1 space-y-2 cursor-pointer'
-              onClick={() => handleDateCellClick(date)}
-            >
-              <div onClick={e => e.stopPropagation()} className='space-y-1'>
-                {dayEvents.length > 0 ? (
-                  dayEvents.map(event => (
-                    <EventChip key={event.id} event={event} />
-                  ))
-                ) : (
-                  <div className='text-sm italic text-gray-400 text-center py-4'>
-                    No events
-                  </div>
-                )}
-              </div>
+          <div
+            className='p-1.5 space-y-1.5 cursor-pointer h-full'
+            style={{ minHeight: '300px' }}
+            onClick={() => handleDateCellClick(date)}
+          >
+            <div onClick={e => e.stopPropagation()} className='space-y-1.5'>
+              {dayEvents.length > 0 ? (
+                dayEvents.map(event => (
+                  <EventChip key={event.id} event={event} />
+                ))
+              ) : (
+                <p className='text-xs italic text-gray-400 text-center py-4'>
+                  No events
+                </p>
+              )}
             </div>
           </div>
         </td>
@@ -434,8 +464,8 @@ function CalendarPage () {
         <thead className='sticky top-0 z-30 bg-white'>
           <tr>{headers}</tr>
         </thead>
-        <tbody>
-          <tr>{cells}</tr>
+        <tbody className='h-full'>
+          <tr className='h-full'>{cells}</tr>
         </tbody>
       </>
     )
@@ -450,31 +480,29 @@ function CalendarPage () {
 
     const borderColorClass = color => {
       const map = {
-        'bg-orange-500': 'border-orange-500',
-        'bg-emerald-500': 'border-emerald-500',
-        'bg-blue-500': 'border-blue-500',
-        'bg-red-500': 'border-red-500'
+        'bg-orange-500': 'border-l-orange-400',
+        'bg-emerald-500': 'border-l-emerald-400',
+        'bg-blue-500': 'border-l-blue-400',
+        'bg-red-500': 'border-l-red-400'
       }
-      return map[color] || 'border-gray-400'
+      return map[color] || 'border-l-gray-300'
     }
 
     if (events.length === 0) {
       return (
-        <div className='flex-1 overflow-y-auto scrollbar-thin relative'>
-          <div className='text-center text-gray-500 py-8 italic'>
+        <div className='flex-1 flex items-center justify-center'>
+          <p className='text-sm italic text-gray-400'>
             No deployment events for this day
-          </div>
+          </p>
         </div>
       )
     }
 
     return (
-      <div className='flex-1 overflow-y-auto scrollbar-thin relative'>
-        <div className='space-y-3 absolute top-0 left-0 right-0'>
+      <div className='flex-1 overflow-y-auto scrollbar-thin'>
+        <div className='space-y-2 sm:space-y-3'>
           {events.map(event => {
             const deployment = event.deployment
-
-            // Collect pickup site names for display
             const pickupSites = (deployment.pickups || [])
               .map(p => p.pickupSite)
               .filter(Boolean)
@@ -483,47 +511,62 @@ function CalendarPage () {
             return (
               <div
                 key={event.id}
-                className={`border-l-4 ${borderColorClass(
-                  event.color
-                )} p-4 bg-white outline outline-gray-100 rounded overflow-hidden cursor-pointer hover:bg-gray-100 transition-colors`}
+                className={clsx(
+                  'border-l-4 bg-white rounded-xl shadow-sm',
+                  'border-t border-r border-b border-gray-200',
+                  'cursor-pointer hover:bg-gray-50 active:scale-[0.99] transition-all duration-200',
+                  borderColorClass(event.color)
+                )}
                 onClick={() => handleDeploymentSelect(deployment)}
               >
-                <div className='flex items-start space-x-4'>
-                  <div className='text-sm min-w-20 font-medium'>
+                {/* Time strip on mobile, inline on sm+ */}
+                <div className='flex sm:hidden items-center gap-1.5 px-2.5 pt-2.5 pb-1'>
+                  <span
+                    className={clsx(
+                      'text-xxs px-1.5 py-0.5 rounded-full text-white',
+                      event.color
+                    )}
+                  >
+                    {event.formattedTime}
+                  </span>
+                  <span className='text-xxs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full'>
+                    {event.deploymentCode}
+                  </span>
+                </div>
+
+                <div className='flex items-start gap-3 p-2.5 sm:p-3'>
+                  {/* Time — desktop only */}
+                  <div className='hidden sm:block text-xs font-medium text-gray-500 min-w-16 shrink-0 pt-0.5'>
                     {event.formattedTime}
                   </div>
-                  <div className='flex-1'>
-                    <div className='flex items-center gap-2 mb-1'>
-                      <div className='text-xs font-medium bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full'>
+
+                  {/* Content */}
+                  <div className='flex-1 min-w-0'>
+                    <div className='flex flex-wrap items-center gap-1.5 mb-1'>
+                      <span className='hidden sm:inline text-xxs font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full'>
                         {event.deploymentCode}
-                      </div>
-                      <div className='font-semibold text-gray-800'>
+                      </span>
+                      <span className='font-semibold text-gray-800 text-xxs sm:text-xs capitalize'>
                         {event.truckPlate} – {event.shortTitle}
-                      </div>
+                      </span>
                     </div>
 
                     {pickupSites && (
-                      <div className='text-sm text-gray-600 capitalize'>
+                      <p className='text-xxs sm:text-xs text-gray-500 capitalize'>
                         {pickupSites} → {deployment.destination}
-                      </div>
+                      </p>
                     )}
 
-                    <div className='text-sm text-gray-500 mt-1 capitalize'>
-                      Driver: {getDriverName(deployment)}
-                    </div>
-                    <div className='text-sm text-gray-500 capitalize'>
-                      Status: {deployment.status}
+                    <div className='flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xxs sm:text-xs text-gray-500 capitalize'>
+                      <span>Driver: {getDriverName(deployment)}</span>
+                      <StatusBadge status={deployment.status} />
                     </div>
 
-                    {/* Show pickup stops summary */}
                     {(deployment.pickups || []).length > 0 && (
-                      <div className='text-xs text-gray-400 mt-1'>
+                      <p className='text-xxs text-gray-400 mt-1'>
                         {deployment.pickups.length} pickup stop
                         {deployment.pickups.length !== 1 ? 's' : ''}
-                        {deployment.pickups.some(p => p.pickupIn || p.pickupOut)
-                          ? ' (timeline logged)'
-                          : ''}
-                      </div>
+                      </p>
                     )}
                   </div>
                 </div>
@@ -535,14 +578,16 @@ function CalendarPage () {
     )
   }
 
-  // ─── loading / error states ────────────────────────────────────────────────
+  // ─── loading / error states (mirrors Deployments page) ────────────────────
 
   if (isDeploymentsLoading || isDriverLoading || isTruckLoading) {
     return (
       <div className='flex-1 flex items-center justify-center'>
-        <div className='flex flex-col items-center justify-center gap-4 text-center'>
-          <span className='loading loading-spinner loading-lg text-emerald-500' />
-          <p className='text-gray-600 font-medium'>Loading deployments...</p>
+        <div className='flex flex-col items-center gap-4 text-center'>
+          <span className='loading loading-spinner loading-lg text-primaryColor' />
+          <p className='text-gray-500 text-sm font-medium'>
+            Loading content...
+          </p>
         </div>
       </div>
     )
@@ -551,13 +596,13 @@ function CalendarPage () {
   if (deploymentsError || truckError || driverError) {
     return (
       <div className='flex-1 flex justify-center items-center'>
-        <div className='flex flex-col justify-center items-center gap-4 px-4 text-center'>
-          <img src={error_illustration} alt='error' className='w-56' />
-          <div className='space-y-2'>
-            <h1 className='text-xl font-semibold text-gray-700'>
+        <div className='flex flex-col items-center gap-4 text-center px-4'>
+          <img src={error_illustration} alt='error' className='w-52' />
+          <div>
+            <h1 className='text-lg font-semibold text-gray-700'>
               Something went wrong
             </h1>
-            <p className='text-gray-500 max-w-md leading-relaxed'>
+            <p className='text-gray-400 text-sm mt-1 max-w-md leading-relaxed'>
               We encountered an unexpected error. Please try again later.
             </p>
           </div>
@@ -570,105 +615,138 @@ function CalendarPage () {
 
   return (
     <>
-      <div className='flex-1 flex flex-col gap-6'>
-        {/* Header / controls */}
-        <div className='bg-white shadow-card3 outline outline-gray-200 rounded flex items-center justify-between gap-4'>
-          <div className='text-2xl font-semibold px-4'>
-            {view === 'month' && getMonthYearString()}
-            {view === 'week' && getWeekRangeString()}
-            {view === 'day' &&
-              currentDate.toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+      <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className='flex flex-wrap max-xl:flex-col justify-between xl:items-start gap-y-4'>
+          {/* Left: title + description */}
+          <div className='flex justify-between flex-1 items-center'>
+            <div>
+              <h1 className='font-bold text-lg sm:text-xl md:text-2xl text-gray-800'>
+                Calendar
+              </h1>
+              <p className='text-xs text-gray-400 mt-0.5'>
+                {view === 'month' && getMonthYearString()}
+                {view === 'week' && getWeekRangeString()}
+                {view === 'day' &&
+                  currentDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+              </p>
+            </div>
           </div>
 
-          <div className='flex gap-6'>
-            <div className='flex items-center py-1'>
-              <button
-                onClick={prevPeriod}
-                className='py-4 px-6 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 hover:text-gray-800 text-xl cursor-pointer'
-              >
-                <MdKeyboardArrowLeft />
-              </button>
-              <button
-                onClick={goToToday}
-                className='px-3 py-4 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer'
-              >
-                Today
-              </button>
-              <button
-                onClick={nextPeriod}
-                className='py-4 px-6 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 hover:text-gray-800 text-xl cursor-pointer'
-              >
-                <MdKeyboardArrowRight />
-              </button>
-            </div>
+          {/* Right: controls */}
+          <div className='flex-1 flex max-sm:flex-col justify-between gap-2 sm:gap-4'>
+            {/* Spacer so controls push to the right on larger screens */}
+            <div className='hidden xl:block flex-1' />
 
-            <div className='flex space-x-1 p-1 rounded-lg'>
-              {['month', 'week', 'day'].map(v => (
+            <div className='flex gap-2 max-sm:justify-between max-sm:w-full'>
+              {/* Prev / Today / Next */}
+              <div className='flex items-center bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden'>
                 <button
-                  key={v}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer ${
-                    view === v
-                      ? 'bg-blue-500/10 text-blue-500'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                  onClick={() => setView(v)}
+                  onClick={prevPeriod}
+                  className='p-2 text-xl hover:bg-gray-50 cursor-pointer border-r border-gray-200 text-gray-600 hover:text-gray-800 transition-colors active:scale-95'
                 >
-                  {v.charAt(0).toUpperCase() + v.slice(1)}
+                  <MdOutlineKeyboardArrowLeft />
                 </button>
-              ))}
+                <button
+                  onClick={goToToday}
+                  className='px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer active:scale-95'
+                >
+                  Today
+                </button>
+                <button
+                  onClick={nextPeriod}
+                  className='p-2 text-xl hover:bg-gray-50 cursor-pointer border-l border-gray-200 text-gray-600 hover:text-gray-800 transition-colors active:scale-95'
+                >
+                  <MdOutlineKeyboardArrowRight />
+                </button>
+              </div>
+
+              {/* View switcher */}
+              <div className='flex items-center bg-white border border-gray-200 rounded-xl shadow-sm p-1 gap-0.5'>
+                {['month', 'week', 'day'].map(v => (
+                  <button
+                    key={v}
+                    onClick={() => setView(v)}
+                    className={clsx(
+                      'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer capitalize',
+                      view === v
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    )}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Calendar container */}
-        <div className='flex-1 flex flex-col relative shadow-card3 outline outline-gray-200 rounded overflow-hidden'>
+        {/* ── Calendar container ──────────────────────────────────────────── */}
+        <div className='flex-1 flex flex-col relative bg-white border border-gray-200 rounded-xl overflow-hidden'>
+          {/* Month */}
           {view === 'month' && (
-            <div className='absolute inset-0'>
-              <div className='h-full flex flex-col'>
-                <div className='flex-1 overflow-auto scrollbar-thin'>
-                  <table className='w-full h-full border-collapse'>
-                    <thead className='sticky top-0 z-30 bg-white'>
-                      <tr>
-                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
-                          day => (
-                            <th
-                              key={day}
-                              className='w-[14.28%] p-4 text-center font-semibold text-gray-600 uppercase text-sm border-b border-gray-200'
-                            >
-                              {day}
-                            </th>
-                          )
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>{renderMonthView()}</tbody>
-                  </table>
-                </div>
-              </div>
+            <div className='absolute inset-0 overflow-auto scrollbar-thin'>
+              <table
+                className='border-collapse table-fixed w-full'
+                style={{ minWidth: '1200px' }}
+              >
+                <colgroup>
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <col key={i} style={{ width: '14.2857%' }} />
+                  ))}
+                </colgroup>
+                <thead className='sticky top-0 z-30 bg-white'>
+                  <tr>
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
+                      day => (
+                        <th
+                          key={day}
+                          className='p-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200'
+                        >
+                          {day}
+                        </th>
+                      )
+                    )}
+                  </tr>
+                </thead>
+                <tbody>{renderMonthView()}</tbody>
+              </table>
             </div>
           )}
 
+          {/* Week */}
           {view === 'week' && (
-            <div className='flex-1 flex flex-col overflow-hidden'>
-              <table className='w-full h-full border-collapse'>
+            <div className='absolute inset-0 overflow-auto scrollbar-thin'>
+              <table
+                className='border-collapse table-fixed w-full h-full'
+                style={{ minWidth: '1200px', minHeight: '100%' }}
+              >
+                <colgroup>
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <col key={i} style={{ width: '14.2857%' }} />
+                  ))}
+                </colgroup>
                 {renderWeekView()}
               </table>
             </div>
           )}
 
+          {/* Day */}
           {view === 'day' && (
-            <div className='flex-1 flex flex-col overflow-hidden bg-white p-4'>
+            <div className='absolute inset-0 overflow-y-auto scrollbar-thin bg-gray-50 p-3 sm:p-4'>
               {renderDayView()}
             </div>
           )}
         </div>
       </div>
 
+      {/* ── Modals ──────────────────────────────────────────────────────────── */}
       <DeploymentDetailsModal
         isOpen={isDeploymentDetailsModalOpen}
         onClose={() => setIsDeploymentDetailsModalOpen(false)}
@@ -679,7 +757,6 @@ function CalendarPage () {
         openReplacementHistory={() => setShowReplacementHistory(true)}
         updatable={false}
       />
-
       <ReplacementHistoryModal
         isOpen={showReplacementHistory}
         onClose={() => setShowReplacementHistory(false)}

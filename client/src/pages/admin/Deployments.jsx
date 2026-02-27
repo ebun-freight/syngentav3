@@ -691,7 +691,7 @@ function Deployments () {
                       </td>
                     )}
                     <td>{total}</td>
-                    <td>Code</td>
+                    <td>DP Code</td>
                     <td>Truck Details</td>
                     <td>Status</td>
                     <td>Departed</td>
