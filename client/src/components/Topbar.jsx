@@ -21,7 +21,7 @@ function TopBar () {
 
   return (
     <>
-      <header className='bg-white py-2.5 px-4 sm:px-8 flex items-center shadow-sm border-b border-gray-100'>
+      <header className='bg-purple-200 py-2.5 px-4 sm:px-8 flex items-center shadow-sm border-b border-gray-100'>
         {/* Burger button */}
         <button
           onClick={handleOpenSideBar}
