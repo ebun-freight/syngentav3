@@ -408,7 +408,7 @@ function DriverManagement () {
                     <tr
                       key={index}
                       onClick={() => handleShowDriverDetailsModal(driver)}
-                      className='border-b border-gray-100 last:border-none hover:bg-gray-50 capitalize cursor-pointer align-top transition-colors'
+                      className='border-b border-gray-100 last:border-none hover:bg-gray-50 capitalize cursor-pointer align-top transition-colors text-gray-600'
                     >
                       <td className='text-xxs sm:text-xs font-semibold text-gray-400'>
                         {(page - 1) * filters.perPage + index + 1}
@@ -424,34 +424,32 @@ function DriverManagement () {
                         />
                       </td>
                       <td>
-                        <p className='max-sm:text-xxs text-nowrap capitalize font-medium text-gray-800'>
+                        <p className='max-sm:text-xxs text-nowrap capitalize'>
                           {`${driver.firstname} ${driver.lastname}`}
                         </p>
                       </td>
-                      <td className='max-sm:text-xxs text-gray-600'>
-                        {driver.phoneNo}
-                      </td>
+                      <td className='max-sm:text-xxs'>{driver.phoneNo}</td>
                       <td>
                         {driver.licenseNo ? (
-                          <p className='text-nowrap uppercase max-sm:text-xxs text-gray-600'>
+                          <p className='text-nowrap uppercase max-sm:text-xxs'>
                             {driver.licenseNo}
                           </p>
                         ) : (
-                          <p className='text-gray-400 max-sm:text-xxs'>N/A</p>
+                          <p className='text-gray-400 max-sm:text-xxs font-light'>
+                            N/A
+                          </p>
                         )}
                       </td>
-                      <td className='max-sm:text-xxs text-nowrap text-gray-600'>
+                      <td className='max-sm:text-xxs text-nowrap'>
                         {driver.subcon
                           ? driver.subcon.replace(/_/g, ' ')
                           : 'N/A'}
                       </td>
-                      <td className='max-sm:text-xxs text-gray-600'>
-                        {driver.tripCount}
-                      </td>
+                      <td className='max-sm:text-xxs'>{driver.tripCount}</td>
                       <td>
                         <div
                           className={clsx(
-                            'px-2.5 py-1 rounded-full w-fit text-xs font-medium',
+                            'px-2.5 py-1 rounded-full w-fit text-xxs xs:text-xs',
                             {
                               'bg-emerald-50 text-emerald-600':
                                 driver.status === 'available',

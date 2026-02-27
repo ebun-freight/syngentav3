@@ -339,7 +339,7 @@ function VisitorManagement () {
                     <tr
                       key={index}
                       onClick={() => handleShowDVisitorDetailsModal(visitor)}
-                      className='border-b border-gray-100 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top transition-colors'
+                      className='border-b border-gray-100 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top transition-colors text-gray-600'
                     >
                       <td className='text-xxs sm:text-xs font-semibold text-gray-400'>
                         {(page - 1) * filters.perPage + index + 1}
@@ -355,23 +355,21 @@ function VisitorManagement () {
                         />
                       </td>
                       <td>
-                        <p className='max-sm:text-xxs text-nowrap capitalize font-medium text-gray-800'>
+                        <p className='max-sm:text-xxs text-nowrap capitalize'>
                           {`${visitor.firstname} ${visitor.lastname}`}
                         </p>
                       </td>
-                      <td className='max-sm:text-xxs text-gray-600'>
+                      <td className='max-sm:text-xxs lowercase'>
                         {visitor.email}
                       </td>
-                      <td className='max-sm:text-xxs text-gray-600'>
-                        {visitor.phoneNo}
-                      </td>
-                      <td className='capitalize max-sm:text-xxs text-gray-600'>
+                      <td className='max-sm:text-xxs'>{visitor.phoneNo}</td>
+                      <td className='capitalize max-sm:text-xxs'>
                         {visitor.role}
                       </td>
                       <td>
                         <div
                           className={clsx(
-                            'px-2.5 py-1 rounded-full w-fit text-xs font-medium',
+                            'px-2.5 py-1 rounded-full w-fit text-xxs xs:text-xs',
                             {
                               'bg-orange-50 text-orange-500':
                                 visitor.status === 'pending',
@@ -388,9 +386,7 @@ function VisitorManagement () {
                           {visitor.status}
                         </div>
                       </td>
-                      <td className='max-sm:text-xxs text-gray-600'>
-                        {visitor.loginCount}
-                      </td>
+                      <td className='max-sm:text-xxs'>{visitor.loginCount}</td>
                     </tr>
                   ))}
                 </tbody>

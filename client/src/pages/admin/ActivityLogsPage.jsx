@@ -256,7 +256,7 @@ function ActivityLogsPage () {
           </div>
         </div>
       ) : (
-        <div className='relative flex-1 overflow-y-auto scrollbar-thin bg-white border border-gray-200 rounded-xl shadow-sm'>
+        <div className='relative flex-1 overflow-y-auto scrollbar-thin bg-white'>
           <div className='absolute inset-0'>
             <table className='table text-xs sm:table-sm table-pin-rows table-pin-cols'>
               <thead>
@@ -272,21 +272,21 @@ function ActivityLogsPage () {
                 {allActivityLogs.map((activityLog, index) => (
                   <tr
                     key={index}
-                    className='border-b border-gray-100 last:border-none hover:bg-gray-50 capitalize align-top transition-colors'
+                    className='border-b border-gray-100 last:border-none hover:bg-gray-50 capitalize align-top transition-colors text-gray-600'
                   >
                     <td className='text-xxs sm:text-xs font-semibold text-gray-400'>
                       {(page - 1) * filters.perPage + index + 1}
                     </td>
-                    <td className='capitalize max-sm:text-xxs text-nowrap text-gray-600'>
+                    <td className='capitalize max-sm:text-xxs text-nowrap'>
                       {activityLog?.performedBy?.role?.replace(/_/g, ' ')}
                     </td>
-                    <td className='capitalize max-sm:text-xxs text-nowrap font-medium text-gray-800'>
+                    <td className='capitalize max-sm:text-xxs text-nowrap'>
                       {`${activityLog?.performedBy?.firstname} ${activityLog?.performedBy?.lastname}`}
                     </td>
-                    <td className='max-sm:text-xxs text-gray-600 line-clamp-2'>
+                    <td className='max-sm:text-xxs line-clamp-2'>
                       {activityLog?.action}
                     </td>
-                    <td className='max-sm:text-xxs text-nowrap text-gray-600'>
+                    <td className='max-sm:text-xxs text-nowrap'>
                       {DateTime.fromISO(activityLog?.createdAt)
                         .setZone('Asia/Manila')
                         .toFormat('MMM d, yyyy hh:mm a')}

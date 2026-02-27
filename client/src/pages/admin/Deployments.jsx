@@ -708,7 +708,7 @@ function Deployments () {
                       key={index}
                       onClick={() => handleShowTruckDetailsModal(deployment)}
                       className={clsx(
-                        'border-b border-gray-100 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top transition-colors',
+                        'border-b border-gray-100 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top transition-colors text-gray-600',
                         {
                           'bg-blue-50 hover:bg-blue-100': selectedIds.has(
                             deployment._id
@@ -763,25 +763,25 @@ function Deployments () {
                         <div className='space-y-0.5 max-sm:text-xxs'>
                           {deployment?.replacement?.replacementTruckId?._id ? (
                             <>
-                              <p className='text-nowrap font-semibold text-gray-800'>
+                              <p className='text-nowrap text-gray-800'>
                                 <span className='uppercase'>
                                   {
                                     deployment.replacement.replacementTruckId
                                       .plateNo
                                   }{' '}
                                 </span>
-                                <span className='text-gray-400 font-normal'>
+                                <span className='text-gray-400'>
                                   ({deployment.replacement.replacementTruckType}
                                   )
                                 </span>
                               </p>
-                              <p className='text-nowrap text-gray-500 font-light'>
+                              <p className='text-nowrap text-gray-500'>
                                 {`${deployment.replacement.replacementDriverId.firstname} ${deployment.replacement.replacementDriverId.lastname}`}
                               </p>
                             </>
                           ) : (
                             <>
-                              <p className='text-nowrap font-semibold text-gray-800'>
+                              <p className='text-nowrap'>
                                 <span className='uppercase'>
                                   {deployment.truckId.plateNo}{' '}
                                 </span>
@@ -800,7 +800,7 @@ function Deployments () {
                       <td>
                         <div
                           className={clsx(
-                            'px-2.5 py-1 rounded-full w-fit text-xs font-medium',
+                            'px-2.5 py-1 rounded-full w-fit text-xxs xs:text-xs',
                             {
                               'bg-orange-50 text-orange-500':
                                 deployment.status === 'preparing',
@@ -876,7 +876,7 @@ function Deployments () {
 
                       <td>
                         {deployment.destArrival && deployment.destDeparture ? (
-                          <div className='text-nowrap w-fit px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 font-medium text-xs border border-emerald-100'>
+                          <div className='text-nowrap w-fit px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs border border-emerald-100'>
                             {(() => {
                               const { hours, minutes } = DateTime.fromISO(
                                 deployment.destDeparture

@@ -438,7 +438,7 @@ function TruckManagement () {
                     <tr
                       key={index}
                       onClick={() => handleShowTruckDetailsModal(truck)}
-                      className='border-b border-gray-100 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top transition-colors'
+                      className='border-b border-gray-100 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top transition-colors text-gray-600'
                     >
                       <td className='text-xxs sm:text-xs font-semibold text-gray-400'>
                         {(page - 1) * filters.perPage + index + 1}
@@ -453,25 +453,23 @@ function TruckManagement () {
                           )}
                         />
                       </td>
-                      <td className='uppercase max-sm:text-xxs font-medium text-gray-800'>
+                      <td className='uppercase max-sm:text-xxs'>
                         {truck.plateNo}
                       </td>
-                      <td className='capitalize max-sm:text-xxs text-gray-600'>
+                      <td className='capitalize max-sm:text-xxs'>
                         {truck.truckType}
                       </td>
-                      <td className='capitalize max-sm:text-xxs text-nowrap text-gray-600'>
+                      <td className='capitalize max-sm:text-xxs text-nowrap'>
                         {truck.subcon ? truck.subcon.replace(/_/g, ' ') : 'N/A'}
                       </td>
-                      <td className='max-sm:text-xxs text-gray-600'>
+                      <td className='max-sm:text-xxs'>
                         {truck.maxLoad?.toLocaleString()}
                       </td>
-                      <td className='max-sm:text-xxs text-gray-600'>
-                        {truck.tripCount}
-                      </td>
+                      <td className='max-sm:text-xxs'>{truck.tripCount}</td>
                       <td>
                         <div
                           className={clsx(
-                            'px-2.5 py-1 rounded-full w-fit text-xs font-medium',
+                            'px-2.5 py-1 rounded-full w-fit text-xxs xs:text-xs',
                             {
                               'bg-emerald-50 text-emerald-600':
                                 truck.status === 'available',

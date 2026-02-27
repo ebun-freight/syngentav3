@@ -5,11 +5,7 @@ import {
   MdOutlineKeyboardArrowLeft,
   MdOutlineKeyboardArrowRight
 } from 'react-icons/md'
-import {
-  empty_illustration,
-  error_illustration,
-  user_placeholder
-} from '../../consts/images'
+import { empty_illustration, error_illustration } from '../../consts/images'
 import useGetAllTimelineLogs from '../../hooks/useGetAllTimelineLogs'
 import clsx from 'clsx'
 import { DateTime } from 'luxon'
@@ -32,8 +28,6 @@ function TimelineLogs () {
   const [isTimelineLogDetailsModalOpen, setIsTimelineLogDetailsModalOpen] =
     useState(false)
   const [selectedTimelineLog, setSelectedTimelineLog] = useState({})
-  const [isDeploymentDetailsModalOpen, setIsDeploymentDetailsModalOpen] =
-    useState(false)
   const [showReplacementHistory, setShowReplacementHistory] = useState(false)
 
   const { getAllTimelineLogsFunction, isLoading } = useGetAllTimelineLogs()
@@ -54,13 +48,11 @@ function TimelineLogs () {
     setTempFilters(prev => ({ ...prev, [name]: value }))
   }
 
-  // Auto-apply search only when search bar is cleared (becomes empty)
   useEffect(() => {
     if (tempFilters.search === '' && filters.search !== '') {
       const delaySearch = setTimeout(() => {
         setFilters(prev => ({ ...prev, search: '' }))
       }, 300)
-
       return () => clearTimeout(delaySearch)
     }
   }, [tempFilters.search, filters.search])
@@ -74,7 +66,6 @@ function TimelineLogs () {
     const isDefault = Object.keys(defaultFilters).every(
       key => tempFilters[key] === defaultFilters[key]
     )
-
     if (!isDefault) {
       setTempFilters(defaultFilters)
       setFilters(defaultFilters)
@@ -87,11 +78,10 @@ function TimelineLogs () {
   }
 
   const handleChangePage = direction => {
-    if (direction === 'prev' && filters.page > 1) {
+    if (direction === 'prev' && filters.page > 1)
       setFilters(prev => ({ ...prev, page: prev.page - 1 }))
-    } else if (direction === 'next' && filters.page < totalPages) {
+    else if (direction === 'next' && filters.page < totalPages)
       setFilters(prev => ({ ...prev, page: prev.page + 1 }))
-    }
   }
 
   const handleShowTimelineLogDetailsModal = data => {
@@ -99,7 +89,6 @@ function TimelineLogs () {
     setIsTimelineLogDetailsModalOpen(true)
   }
 
-  // Format date for display using Luxon
   const formatDate = dateString => {
     try {
       const dt = DateTime.fromISO(dateString)
@@ -109,43 +98,15 @@ function TimelineLogs () {
     }
   }
 
-  // Get the action timestamp directly from the log's timestamps field
   const getActionTimestamp = log => {
-    // Use the timestamps field from the schema
-    if (log.timestamp) {
-      return formatDate(log.timestamp)
-    }
-    // Fallback to createdAt if timestamps is not available
+    if (log.timestamp) return formatDate(log.timestamp)
     return formatDate(log.createdAt)
   }
 
-  // Get deployment code from timeline log
   const getDeploymentCode = log => {
     return log.targetDeployment?.deploymentCode || 'N/A'
   }
 
-  // Get user's full name
-  const getUserFullName = log => {
-    if (log.performedBy) {
-      return `${log.performedBy.firstname || ''} ${
-        log.performedBy.lastname || ''
-      }`.trim()
-    }
-    return 'Unknown User'
-  }
-
-  // Get truck plate from deployment
-  const getTruckPlate = log => {
-    if (log.targetDeployment?.replacement?.replacementTruckId?.plateNo) {
-      return log.targetDeployment.replacement.replacementTruckId.plateNo
-    }
-    if (log.targetDeployment?.truckId?.plateNo) {
-      return log.targetDeployment.truckId.plateNo
-    }
-    return 'N/A'
-  }
-
-  // Get driver name from deployment
   const getDriverName = log => {
     if (log.targetDeployment?.replacement?.replacementDriverId) {
       const driver = log.targetDeployment.replacement.replacementDriverId
@@ -159,52 +120,65 @@ function TimelineLogs () {
     return 'Unknown Driver'
   }
 
-  // Get status badge color
+  const getTruckPlate = log => {
+    if (log.targetDeployment?.replacement?.replacementTruckId?.plateNo) {
+      return log.targetDeployment.replacement.replacementTruckId.plateNo
+    }
+    if (log.targetDeployment?.truckId?.plateNo) {
+      return log.targetDeployment.truckId.plateNo
+    }
+    return 'N/A'
+  }
+
   const getStatusBadgeColor = status => {
     const statusColors = {
-      preparing: 'bg-orange-500/10 text-orange-500',
-      ongoing: 'bg-emerald-500/10 text-emerald-500',
-      completed: 'bg-blue-500/10 text-blue-500',
-      canceled: 'bg-red-500/10 text-red-500'
+      preparing: 'bg-orange-50 text-orange-500',
+      ongoing: 'bg-emerald-50 text-emerald-600',
+      completed: 'bg-blue-50 text-blue-500',
+      canceled: 'bg-red-50 text-red-500'
     }
-    return statusColors[status] || 'bg-gray-500/10 text-gray-500'
+    return statusColors[status] || 'bg-gray-100 text-gray-500'
   }
 
   useEffect(() => {
     const handleGetAllTimelineLogs = async () => {
       const { timelineLogs, total, page, totalPages, error } =
         await getAllTimelineLogsFunction(filters)
-
-      if (error) {
-        setError(error)
-      }
-
+      if (error) setError(error)
       setAllTimelineLogs(timelineLogs || [])
       setTotal(total)
       setPage(page)
       setTotalPages(totalPages)
     }
-
     handleGetAllTimelineLogs()
   }, [filters])
 
+  const btnBase =
+    'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium cursor-pointer active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+
   return (
     <>
-      <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
-        {/* header */}
-        <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-16 gap-y-4'>
-          <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-nowrap'>
-            Deployment Logs
-          </h1>
+      <div className='flex-1 flex flex-col gap-4 lg:gap-6'>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className='flex flex-wrap justify-between items-start gap-4'>
+          <div className='flex justify-between flex-1 items-center'>
+            <div>
+              <h1 className='font-bold text-lg sm:text-xl md:text-2xl text-gray-800'>
+                Deployment Logs
+              </h1>
+              <p className='text-xs text-gray-400 mt-0.5'>
+                View and track all deployment timeline activity
+              </p>
+            </div>
+          </div>
 
-          {/* right side */}
-          <div className='flex justify-between max-sm:flex-col gap-2 sm:gap-4 max-xs:flex-1 w-full xl:w-auto'>
-            {/* search */}
+          <div className='flex flex-wrap justify-between gap-2 w-full xl:w-auto'>
+            {/* Search */}
             <form
               onSubmit={handleApplyFilters}
-              className='flex max-md:flex-1 items-center outline outline-gray-200 rounded pl-3 pr-1 focus-within:outline-gray-300 transition-all'
+              className='flex flex-1 min-w-0 xl:w-64 items-center bg-white border border-gray-200 rounded-xl px-3 py-2 gap-2 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'
             >
-              <FaSearch className='text-xs sm:text-sm' />
+              <FaSearch className='text-gray-400 text-xs shrink-0' />
               <input
                 type='text'
                 name='search'
@@ -212,114 +186,140 @@ function TimelineLogs () {
                 value={tempFilters.search}
                 onChange={handleChangeFilter}
                 autoComplete='off'
-                className='w-full focus:outline-none ml-3 mr-1 py-1 text-sm sm:text-base'
+                className='w-full min-w-0 focus:outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent'
               />
               <button
                 type='button'
                 onClick={handleClearSearch}
                 className={clsx(
-                  'rounded-full p-1 hover:bg-gray-50 cursor-pointer transition-all duration-300',
+                  'rounded-full p-0.5 hover:bg-gray-100 cursor-pointer transition-all duration-200',
                   {
                     'opacity-100': tempFilters.search,
-                    'opacity-0 -z-10': !tempFilters.search
+                    'opacity-0 pointer-events-none': !tempFilters.search
                   }
                 )}
               >
-                <IoClose className='text-lg sm:text-xl' />
+                <IoClose className='text-base text-gray-400' />
               </button>
             </form>
 
-            <div className='flex max-sm:justify-between gap-4'>
-              {/* filters */}
+            <div className='flex gap-2 max-sm:justify-between max-sm:w-full'>
+              {/* Filter */}
               <div className='dropdown dropdown-start sm:dropdown-center'>
-                {/* button */}
                 <div
                   tabIndex={0}
                   role='button'
-                  className='flex items-center gap-4 ring-1 ring-gray-200 hover:bg-gray-50 rounded px-3 py-1 cursor-pointer active:scale-95 transition-all'
+                  className={clsx(
+                    btnBase,
+                    'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'
+                  )}
                 >
-                  <FaFilter className='text-xs sm:text-sm' />
-                  <p className='text-sm sm:text-base'>Filter</p>
+                  <FaFilter className='text-xs' />
+                  <span>Filter</span>
                 </div>
 
-                {/* menu */}
                 <div
                   tabIndex='0'
-                  className='dropdown-content menu mt-3 bg-white shadow-sm rounded ring-1 ring-gray-300
-           w-[calc(100vw-2rem)] max-w-sm'
+                  className='dropdown-content menu mt-2 bg-white shadow-md rounded-xl border border-gray-100 w-[calc(100vw-2rem)] max-w-sm p-3 sm:p-4'
                 >
-                  <div className='grid grid-cols-2 gap-4 p-2 sm:p-4'>
-                    <label className='flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
-                      <p className='font-semibold'>Sort</p>
-                      <select
-                        name='sort'
-                        value={tempFilters.sort}
-                        onChange={handleChangeFilter}
-                        className='w-full focus:outline-none'
-                      >
-                        <option value='latest'>Latest</option>
-                        <option value='oldest'>Oldest</option>
-                      </select>
+                  <p className='text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3'>
+                    Filter Options
+                  </p>
+                  <div className='grid grid-cols-2 gap-3'>
+                    <label className='flex flex-col gap-1'>
+                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+                        Sort
+                      </span>
+                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+                        <select
+                          name='sort'
+                          value={tempFilters.sort}
+                          onChange={handleChangeFilter}
+                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+                        >
+                          <option value='latest'>Latest</option>
+                          <option value='oldest'>Oldest</option>
+                        </select>
+                      </div>
                     </label>
 
-                    <label className='flex items-center text-xxs xs:text-sm  outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
-                      <p className='font-semibold'>Status</p>
-                      <select
-                        name='status'
-                        value={tempFilters.status}
-                        onChange={handleChangeFilter}
-                        className='w-full focus:outline-none'
-                      >
-                        <option value=''>All</option>
-                        <option value='preparing'>Preparing</option>
-                        <option value='ongoing'>Ongoing</option>
-                        <option value='completed'>Completed</option>
-                        <option value='canceled'>Canceled</option>
-                      </select>
+                    <label className='flex flex-col gap-1'>
+                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+                        Status
+                      </span>
+                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+                        <select
+                          name='status'
+                          value={tempFilters.status}
+                          onChange={handleChangeFilter}
+                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+                        >
+                          <option value=''>All</option>
+                          <option value='preparing'>Preparing</option>
+                          <option value='ongoing'>Ongoing</option>
+                          <option value='completed'>Completed</option>
+                          <option value='canceled'>Canceled</option>
+                        </select>
+                      </div>
                     </label>
 
                     {['head_admin', 'admin'].includes(userData.data.role) && (
-                      <label className='col-span-full flex items-center text-xxs xs:text-sm outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
-                        <p className='font-semibold'>Subcon</p>
-                        <select
-                          name='subcon'
-                          value={tempFilters.subcon}
-                          onChange={handleChangeFilter}
-                          className='w-full focus:outline-none capitalize'
-                        >
-                          <option value=''>All</option>
-                          {settings.trucksDrivers.subcon.map((item, index) => (
-                            <option key={index} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </select>
+                      <label className='col-span-full flex flex-col gap-1'>
+                        <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+                          Subcon
+                        </span>
+                        <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+                          <select
+                            name='subcon'
+                            value={tempFilters.subcon}
+                            onChange={handleChangeFilter}
+                            className='w-full focus:outline-none text-sm text-gray-700 bg-transparent capitalize'
+                          >
+                            <option value=''>All</option>
+                            {settings.trucksDrivers.subcon.map(
+                              (item, index) => (
+                                <option key={index} value={item}>
+                                  {item}
+                                </option>
+                              )
+                            )}
+                          </select>
+                        </div>
                       </label>
                     )}
 
-                    <label className='col-span-2 flex items-center justify-between text-xxs xs:text-sm  outline outline-gray-200 rounded py-1.5 sm:py-2 px-1.5 sm:px-3 gap-2'>
-                      <p className='font-semibold whitespace-nowrap'>Date</p>
-                      <input
-                        type='date'
-                        name='date'
-                        value={tempFilters.date}
-                        onChange={handleChangeFilter}
-                        className='focus:outline-none'
-                      />
+                    <label className='col-span-2 flex flex-col gap-1'>
+                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+                        Date
+                      </span>
+                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+                        <input
+                          type='date'
+                          name='date'
+                          value={tempFilters.date}
+                          onChange={handleChangeFilter}
+                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+                        />
+                      </div>
                     </label>
 
                     <button
                       onClick={handleResetFilters}
                       disabled={isLoading}
-                      className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600 rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95 max-xs:text-xs'
+                      className={clsx(
+                        btnBase,
+                        'justify-center bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      )}
                     >
                       Reset
                     </button>
-
                     <button
                       onClick={handleApplyFilters}
                       disabled={isLoading}
-                      className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white  rounded py-2 px-8 font-semibold uppercase active:scale-95 transition-all text-sm cursor-pointer hover:brightness-95 max-xs:text-xs'
+                      className={clsx(
+                        btnBase,
+                        'justify-center bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'
+                      )}
                     >
                       Apply
                     </button>
@@ -327,26 +327,24 @@ function TimelineLogs () {
                 </div>
               </div>
 
-              {/* pagination */}
-              <div className='flex gap-4 items-center outline outline-gray-200 rounded'>
+              {/* Pagination */}
+              <div className='flex items-center bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden'>
                 <button
                   onClick={() => handleChangePage('prev')}
-                  disabled={isLoading}
-                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-r border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                  disabled={isLoading || filters.page === 1}
+                  className='p-2 text-xl hover:bg-gray-50 cursor-pointer border-r border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
                 >
                   <MdOutlineKeyboardArrowLeft />
                 </button>
-
-                <p className='text-xs sm:text-sm sm:min-w-22 text-center'>
+                <p className='text-xs text-gray-600 sm:min-w-24 text-center px-2'>
                   {!isLoading &&
                     allTimelineLogs &&
-                    `Page ${total > 0 ? page : total} of ${totalPages}`}
+                    `Page ${total > 0 ? page : 0} of ${totalPages}`}
                 </p>
-
                 <button
                   onClick={() => handleChangePage('next')}
-                  disabled={isLoading}
-                  className='p-1 text-xl sm:text-2xl hover:bg-gray-50 cursor-pointer border-l border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                  disabled={isLoading || filters.page === totalPages}
+                  className='p-2 text-xl hover:bg-gray-50 cursor-pointer border-l border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
                 >
                   <MdOutlineKeyboardArrowRight />
                 </button>
@@ -355,25 +353,25 @@ function TimelineLogs () {
           </div>
         </div>
 
-        {/* table */}
+        {/* ── Table / States ──────────────────────────────────────────────── */}
         {isLoading ? (
           <div className='flex-1 flex items-center justify-center'>
-            <div className='flex flex-col items-center justify-center gap-4 text-center'>
-              <div className='relative'>
-                <span className='loading loading-spinner loading-lg text-primaryColor'></span>
-              </div>
-              <p className='text-gray-600 font-medium'>Loading content...</p>
+            <div className='flex flex-col items-center gap-4 text-center'>
+              <span className='loading loading-spinner loading-lg text-primaryColor' />
+              <p className='text-gray-500 text-sm font-medium'>
+                Loading content...
+              </p>
             </div>
           </div>
         ) : error ? (
           <div className='flex-1 flex justify-center items-center'>
-            <div className='flex flex-col justify-center items-center gap-4 px-4 text-center'>
-              <img src={error_illustration} alt='empty list' className='w-56' />
-              <div className='space-y-2'>
-                <h1 className='text-xl font-semibold text-gray-700'>
+            <div className='flex flex-col items-center gap-4 text-center px-4'>
+              <img src={error_illustration} alt='error' className='w-52' />
+              <div>
+                <h1 className='text-lg font-semibold text-gray-700'>
                   Something went wrong
                 </h1>
-                <p className='text-gray-500 max-w-md leading-relaxed'>
+                <p className='text-gray-400 text-sm mt-1 max-w-md leading-relaxed'>
                   We encountered an unexpected error. Please try again later.
                 </p>
               </div>
@@ -381,33 +379,33 @@ function TimelineLogs () {
           </div>
         ) : !allTimelineLogs || allTimelineLogs.length === 0 ? (
           <div className='flex-1 flex justify-center items-center'>
-            <div className='flex flex-col justify-center items-center gap-4 px-4 text-center'>
-              <img src={empty_illustration} alt='empty list' className='w-56' />
-              <div className='space-y-2'>
-                <h1 className='text-xl font-semibold text-gray-700'>
+            <div className='flex flex-col items-center gap-4 text-center px-4'>
+              <img src={empty_illustration} alt='empty' className='w-52' />
+              <div>
+                <h1 className='text-lg font-semibold text-gray-700'>
                   Nothing to show here
                 </h1>
-                <p className='text-gray-500 max-w-md leading-relaxed'>
-                  {tempFilters.search
-                    ? 'Try adjusting your search terms to see more results'
+                <p className='text-gray-400 text-sm mt-1 max-w-md leading-relaxed'>
+                  {tempFilters.search || tempFilters.status
+                    ? 'Try adjusting your search terms or filters to see more results'
                     : 'No timeline activity has been recorded yet'}
                 </p>
               </div>
             </div>
           </div>
         ) : (
-          <div className='relative flex-1 overflow-y-auto scrollbar-thin'>
+          <div className='relative flex-1 overflow-y-auto scrollbar-thin bg-white'>
             <div className='absolute inset-0'>
-              <table className='table table-sm sm:table-md table-pin-rows table-pin-cols'>
+              <table className='table text-xs sm:table-sm table-pin-rows table-pin-cols'>
                 <thead>
-                  <tr className='bg-white border-b border-gray-200 text-gray-800'>
-                    <td className='max-sm:text-xs'>{total}</td>
-                    <td className='max-sm:text-xs'>Code</td>
-                    <td className='max-sm:text-xs'>Action Details</td>
-                    <td className='max-sm:text-xs'>Status</td>
-                    <td className='max-sm:text-xs'>Truck Plate</td>
-                    <td className='max-sm:text-xs'>Driver</td>
-                    <td className='max-sm:text-xs'>Timestamp</td>
+                  <tr className='bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wide'>
+                    <td>{total}</td>
+                    <td>Code</td>
+                    <td>Action Details</td>
+                    <td>Status</td>
+                    <td>Truck Plate</td>
+                    <td>Driver</td>
+                    <td>Timestamp</td>
                   </tr>
                 </thead>
                 <tbody>
@@ -415,9 +413,9 @@ function TimelineLogs () {
                     <tr
                       key={log._id || index}
                       onClick={() => handleShowTimelineLogDetailsModal(log)}
-                      className='border-b border-gray-200 last:border-none hover:bg-gray-50 cursor-pointer '
+                      className='border-b border-gray-100 last:border-none hover:bg-gray-50 cursor-pointer capitalize align-top transition-colors text-gray-600'
                     >
-                      <td className='text-xxs sm:text-xs font-bold text-gray-600'>
+                      <td className='text-xxs sm:text-xs font-semibold text-gray-400'>
                         {(page - 1) * filters.perPage + index + 1}
                       </td>
 
@@ -429,20 +427,15 @@ function TimelineLogs () {
                             const code = getDeploymentCode(log)
                             navigator.clipboard.writeText(code)
 
-                            // Show feedback tooltip
                             const div = e.currentTarget
                             const tooltip = document.createElement('div')
                             tooltip.className =
                               'absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50'
                             tooltip.textContent = 'Copied'
-
                             div.appendChild(tooltip)
-
-                            // Remove after 1 second
                             setTimeout(() => {
-                              if (div.contains(tooltip)) {
+                              if (div.contains(tooltip))
                                 div.removeChild(tooltip)
-                              }
                             }, 1000)
                           }}
                           title='Click to copy'
@@ -453,7 +446,7 @@ function TimelineLogs () {
 
                       <td>
                         <p
-                          className='max-sm:text-xxs text-sm max-w-xs line-clamp-2 min-w-40'
+                          className='max-sm:text-xxs max-w-xs line-clamp-2 min-w-40  '
                           title={log.action}
                         >
                           {log.action}
@@ -462,30 +455,25 @@ function TimelineLogs () {
 
                       <td>
                         <span
-                          className={`px-2 py-1 rounded-full max-sm:text-xxs text-xs capitalize ${getStatusBadgeColor(
-                            log.status
-                          )}`}
+                          className={clsx(
+                            'px-2.5 py-1 rounded-full w-fit text-xxs xs:text-xs capitalize',
+                            getStatusBadgeColor(log.status)
+                          )}
                         >
                           {log.status}
                         </span>
                       </td>
 
-                      <td>
-                        <div className='max-sm:text-xxs text-sm uppercase line-clamp-2'>
-                          {getTruckPlate(log)}
-                        </div>
+                      <td className='max-sm:text-xxs uppercase'>
+                        {getTruckPlate(log)}
                       </td>
 
-                      <td>
-                        <p className='max-sm:text-xxs text-nowrap capitalize line-clamp-2'>
-                          {getDriverName(log)}
-                        </p>
+                      <td className='max-sm:text-xxs text-nowrap'>
+                        {getDriverName(log)}
                       </td>
 
-                      <td>
-                        <div className='max-sm:text-xxs text-sm text-gray-600 text-nowrap'>
-                          {getActionTimestamp(log)}
-                        </div>
+                      <td className='max-sm:text-xxs text-nowrap'>
+                        {getActionTimestamp(log)}
                       </td>
                     </tr>
                   ))}
