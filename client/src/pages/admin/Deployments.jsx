@@ -364,7 +364,7 @@ function Deployments () {
           </div>
 
           {/* Right: search + filter + pagination + xl export+create */}
-          <div className='flex flex-wrap justify-between gap-2 w-full xl:w-auto'>
+          <div className='flex flex-wrap justify-between gap-2   xl:w-auto'>
             {/* Search */}
             <form
               onSubmit={handleApplyFilters}
@@ -671,7 +671,7 @@ function Deployments () {
             </div>
           </div>
         ) : (
-          <div className='relative flex-1   scrollbar-thin bg-white border border-gray-200 rounded-xl shadow-sm'>
+          <div className='relative flex-1 scrollbar-thin bg-white border border-gray-200 rounded-xl shadow-sm'>
             <div className='absolute inset-0 overflow-x-auto'>
               <table className='table text-xs sm:table-sm table-pin-rows table-pin-cols'>
                 <thead>
