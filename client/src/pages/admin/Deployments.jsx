@@ -310,7 +310,7 @@ function Deployments () {
 
   return (
     <>
-      <div className='flex-1 flex flex-col gap-4 lg:gap-6 overflow-x-hidden'>
+      <div className='flex-1 flex flex-col gap-4 lg:gap-6 min-w-0'>
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className='flex flex-wrap justify-between items-start gap-4 bg-amber-300'>
           {/* Left: title + sm/md export+create */}

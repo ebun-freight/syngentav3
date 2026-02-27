@@ -21,7 +21,7 @@ function UserLayout () {
   }, [])
 
   return (
-    <div className='h-screen w-screen flex text-gray-800 bg-gray-50'>
+    <div className='h-screen w-full flex text-gray-800 bg-gray-50'>
       {/* sidenav */}
       <SideNav user={userData.data} />
 
