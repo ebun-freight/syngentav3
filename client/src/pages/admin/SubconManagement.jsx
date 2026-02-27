@@ -156,7 +156,7 @@ function SubconManagement () {
             {/* Search */}
             <form
               onSubmit={handleApplyFilters}
-              className='flex flex-1 xl:w-64 items-center bg-white border border-gray-200 rounded-xl px-3 py-2 gap-2 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'
+              className='flex flex-1 min-w-0 xl:w-64 items-center bg-white border border-gray-200 rounded-xl px-3 py-2 gap-2 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'
             >
               <FaSearch className='text-gray-400 text-xs shrink-0' />
               <input
@@ -166,7 +166,7 @@ function SubconManagement () {
                 value={tempFilters.search}
                 onChange={handleChangeFilter}
                 autoComplete='off'
-                className='flex-1 min-w-0 focus:outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent'
+                className='w-full min-w-0 focus:outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent'
               />
               <button
                 type='button'
