@@ -418,9 +418,9 @@ function TruckManagement () {
             </div>
           </div>
         ) : (
-          <div className='relative flex-1 overflow-y-auto scrollbar-thin bg-white border border-gray-200 rounded-xl shadow-sm'>
+          <div className='relative flex-1 overflow-y-auto scrollbar-thin bg-white'>
             <div className='absolute inset-0'>
-              <table className='table table-xs sm:table-md table-pin-rows table-pin-cols'>
+              <table className='table text-xs sm:table-sm table-pin-rows table-pin-cols'>
                 <thead>
                   <tr className='bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wide'>
                     <td>{total}</td>
