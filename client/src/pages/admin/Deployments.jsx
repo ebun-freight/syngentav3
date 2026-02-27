@@ -312,7 +312,7 @@ function Deployments () {
     <>
       <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className='flex flex-wrap justify-between items-start gap-4 bg-green-300'>
+        <div className='flex flex-wrap justify-between items-start gap-4 bg-red-300'>
           {/* Left: title + sm/md export+create */}
           <div className='flex justify-between flex-1 items-center'>
             <div>
@@ -364,7 +364,7 @@ function Deployments () {
           </div>
 
           {/* Right: search + filter + pagination + xl export+create */}
-          <div className='flex flex-wrap justify-between gap-2   xl:w-auto'>
+          <div className='flex flex-wrap justify-between gap-2  xl:w-auto'>
             {/* Search */}
             <form
               onSubmit={handleApplyFilters}
