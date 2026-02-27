@@ -313,7 +313,7 @@ function Deployments () {
       {/* ── Copied exact container structure from ActivityLogsPage ── */}
       <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-99 gap-y-4 bg-blue-200'>
+        <div className='flex flex-wrap justify-between max-xs:gap-x-36 gap-x-99 gap-y-4 bg-red-200'>
           {/* Left: title + description + sm/md export+create */}
           <div className='flex justify-between flex-1 items-center bg-amber-200'>
             <div>
@@ -365,11 +365,11 @@ function Deployments () {
           </div>
 
           {/* Right: search + filter + pagination + xl export+create */}
-          <div className='flex-1 flex max-sm:flex-col justify-between gap-2 sm:gap-4 bg-green-200'>
+          <div className='flex-1 bg-blue-400 flex max-sm:flex-col justify-between gap-2 sm:gap-4'>
             {/* Search */}
             <form
               onSubmit={handleApplyFilters}
-              className='flex flex-1 xl:w-64 items-center bg-white border border-gray-200 rounded-xl px-3 py-2 gap-2 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'
+              className='flex flex-1 min-w-0 xl:w-64 items-center bg-white border border-gray-200 rounded-xl px-3 py-2 gap-2 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'
             >
               <FaSearch className='text-gray-400 text-xs shrink-0' />
               <input
@@ -379,7 +379,7 @@ function Deployments () {
                 value={tempFilters.search}
                 onChange={handleChangeFilter}
                 autoComplete='off'
-                className='flex-1 min-w-0 focus:outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent'
+                className='w-full min-w-0 focus:outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent'
               />
               <button
                 type='button'
