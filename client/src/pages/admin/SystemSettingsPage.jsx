@@ -69,14 +69,14 @@ function SystemSettingsPage () {
           options.map((option, index) => (
             <div
               key={index}
-              className='flex items-center gap-1.5 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg max-sm:text-xs text-sm capitalize group pl-2.5 max-sm:pr-2.5 max-sm:py-1'
+              className='flex items-center gap-1.5 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg max-sm:text-xs text-sm capitalize group pl-2.5 '
             >
               <span>{option}</span>
               <button
                 type='button'
                 onClick={() => openDeleteModal(category, field, option)}
                 disabled={isRemoving}
-                className='text-gray-300 hover:text-gray-600 transition-colors disabled:opacity-40 px-2 py-1 border-l border-gray-200 hover:bg-gray-100 cursor-pointer max-sm:text-sm rounded-r-lg max-sm:hidden'
+                className='text-gray-300 hover:text-gray-600 transition-colors disabled:opacity-40 px-2 py-1 border-l border-gray-200 hover:bg-gray-100 cursor-pointer max-sm:text-sm rounded-r-lg '
               >
                 <IoClose className='max-sm:text-sm text-base' />
               </button>
