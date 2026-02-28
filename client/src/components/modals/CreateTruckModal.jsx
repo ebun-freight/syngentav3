@@ -409,7 +409,7 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
                     >
                       {isLoading ? (
                         <>
-                          <span className='loading loading-spinner loading-sm' />
+                          <span className='loading loading-spinner loading-xs sm:loading-sm' />
                           <span>Creating...</span>
                         </>
                       ) : (

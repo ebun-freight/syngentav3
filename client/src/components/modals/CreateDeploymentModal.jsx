@@ -563,7 +563,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 >
                   {isLoading ? (
                     <>
-                      <span className='loading loading-spinner loading-sm' />
+                      <span className='loading loading-spinner loading-xs sm:loading-sm' />
                       <span>Deploying...</span>
                     </>
                   ) : (
