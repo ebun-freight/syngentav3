@@ -13,12 +13,35 @@ import {
 import { IoClose } from 'react-icons/io5'
 import { useState } from 'react'
 import { MdKeyboardArrowDown } from 'react-icons/md'
-import { LuUpload } from 'react-icons/lu'
-import useCreateDriver from '../../hooks/useCreateDriver'
+import { RiFolderUploadLine } from 'react-icons/ri'
 import { FaSave } from 'react-icons/fa'
+import useCreateDriver from '../../hooks/useCreateDriver'
 import { toast } from 'react-toastify'
 import clsx from 'clsx'
 import { useSettingsContext } from '../../contexts/SettingsContext'
+import { no_image } from '../../consts/images'
+
+/* ─── Decorative dot pattern ────────────────────────────────────────────── */
+const DotPattern = () => (
+  <svg
+    className='absolute inset-0 w-full h-full opacity-10 pointer-events-none'
+    xmlns='http://www.w3.org/2000/svg'
+  >
+    <defs>
+      <pattern
+        id='dots-create-driver'
+        x='0'
+        y='0'
+        width='20'
+        height='20'
+        patternUnits='userSpaceOnUse'
+      >
+        <circle cx='2' cy='2' r='1.2' fill='white' />
+      </pattern>
+    </defs>
+    <rect width='100%' height='100%' fill='url(#dots-create-driver)' />
+  </svg>
+)
 
 function CreateDriverModal ({ isOpen, onClose, onCreate }) {
   const { settings } = useSettingsContext()
@@ -29,7 +52,7 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
     phoneNo: '',
     status: 'available',
     licenseNo: '',
-    licenseExpiryDate: '',
+    subcon: '',
     image: {}
   })
 
@@ -37,19 +60,13 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
   const [subconQuery, setSubconQuery] = useState('')
   const { createDriverFunction, isLoading } = useCreateDriver()
 
-  // Filter subcon options from settings based on query
   const filteredSubcons = settings.trucksDrivers.subcon.filter(subcon =>
     subcon.toLowerCase().includes(subconQuery.toLowerCase())
   )
 
   const handleClose = () => {
-    // Clean up preview URL
-    if (previewImage) {
-      URL.revokeObjectURL(previewImage)
-    }
-
+    if (previewImage) URL.revokeObjectURL(previewImage)
     onClose()
-
     setPreviewImage(null)
     setSubconQuery('')
     setFormData({
@@ -58,7 +75,7 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
       phoneNo: '',
       status: 'available',
       licenseNo: '',
-      licenseExpiryDate: '',
+      subcon: '',
       image: {}
     })
   }
@@ -70,37 +87,20 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
 
   const handleFileChange = e => {
     const file = e.target.files[0]
-
     if (file) {
-      const reader = new FileReader()
-      reader.onload = () => {
-        setPreviewImage(reader.result)
-        setFormData(prev => ({
-          ...prev,
-          image: file
-        }))
-      }
-      reader.readAsDataURL(file)
+      setPreviewImage(URL.createObjectURL(file))
+      setFormData(prev => ({ ...prev, image: file }))
     } else {
       setPreviewImage(null)
-      setFormData(prev => ({
-        ...prev,
-        image: null
-      }))
+      setFormData(prev => ({ ...prev, image: null }))
     }
   }
 
-  // create driver
   const handleSubmit = async e => {
     e.preventDefault()
-
-    console.log('FROM MODAL', formData)
-
     const result = await createDriverFunction(formData)
-
     if (result.driver) {
       toast.success(result.message)
-      console.log(result.driver)
       onCreate(result.driver)
       handleClose()
     } else {
@@ -109,8 +109,11 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
   }
 
   return (
-    <Dialog open={isOpen} onClose={handleClose} className='relative z-50'>
-      {/* Backdrop */}
+    <Dialog
+      open={isOpen}
+      onClose={isLoading ? () => {} : handleClose}
+      className='relative z-50'
+    >
       <TransitionChild
         enter='ease-out duration-300'
         enterFrom='opacity-0'
@@ -119,182 +122,268 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
         leaveFrom='opacity-100'
         leaveTo='opacity-0'
       >
-        <DialogBackdrop className='fixed inset-0 bg-black/30 backdrop-blur-sm' />
+        <DialogBackdrop className='fixed inset-0 bg-black/40 backdrop-blur-sm' />
       </TransitionChild>
 
-      {/* Modal container */}
       <div className='fixed inset-0 flex items-center justify-center p-4'>
         <TransitionChild
           enter='ease-out duration-300'
-          enterFrom='opacity-0 -translate-y-8'
-          enterTo='opacity-100 translate-y-0'
+          enterFrom='opacity-0 scale-95 translate-y-2'
+          enterTo='opacity-100 scale-100 translate-y-0'
           leave='ease-in duration-200'
-          leaveFrom='opacity-100 translate-y-0'
-          leaveTo='opacity-0 -translate-y-8'
+          leaveFrom='opacity-100 scale-100'
+          leaveTo='opacity-0 scale-95'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-5xl rounded-2xl bg-white shadow-xl overflow-hidden flex relative'>
-            {/* close button */}
-            <button
-              onClick={handleClose}
-              className='absolute top-4 right-4 hover:bg-gray-100 p-1 rounded-full text-2xl text-gray-600 cursor-pointer transition-all'
+          <DialogPanel className='font-poppins w-full max-w-4xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col sm:flex-row max-h-[90vh] sm:max-h-none'>
+            {/* ══ LEFT PANEL ══════════════════════════════════════════════════════ */}
+            <div
+              className='relative flex flex-col overflow-hidden sm:w-72 shrink-0 p-8 pb-10'
+              style={{
+                background:
+                  'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
+              }}
             >
-              <IoClose />
-            </button>
+              <DotPattern />
 
-            {/* image */}
-            <div className='w-[20rem] bg-gray-50 p-6 flex flex-col items-center justify-center'>
-              <div className='w-full aspect-square bg-white border-3 border-gray-200 border-dashed rounded-xl overflow-hidden p-3 relative'>
-                <input
-                  type='file'
-                  accept='image/*'
-                  onChange={handleFileChange}
-                  className='absolute inset-0 opacity-0 cursor-pointer'
-                />
+              {/* Radial glows */}
+              <div
+                className='absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-10 pointer-events-none'
+                style={{
+                  background:
+                    'radial-gradient(circle, #475569 0%, transparent 70%)'
+                }}
+              />
+              <div
+                className='absolute -bottom-12 -left-12 w-44 h-44 rounded-full opacity-10 pointer-events-none'
+                style={{
+                  background:
+                    'radial-gradient(circle, #334155 0%, transparent 70%)'
+                }}
+              />
 
-                {previewImage ? (
+              {/* Avatar / Image Upload */}
+              <div className='relative z-10 flex flex-col items-center gap-3'>
+                <div className='w-32 h-32 rounded-2xl overflow-hidden relative border-2 border-dashed border-white/40 hover:border-white/70 cursor-pointer group transition-all'>
                   <img
-                    src={previewImage}
-                    alt=''
-                    className='w-full h-full object-center object-cover rounded-xl'
+                    src={previewImage || no_image}
+                    alt='Preview'
+                    className={clsx(
+                      'w-full h-full object-cover object-center transition-opacity',
+                      { 'opacity-10': !previewImage }
+                    )}
                   />
-                ) : (
-                  <div className='h-full flex flex-col gap-2 items-center justify-center text-gray-600'>
-                    <LuUpload className='text-4xl ' />
-                    Upload Image
+                  <div className='absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white gap-1'>
+                    <RiFolderUploadLine className='text-2xl' />
+                    <span className='text-xs font-medium'>Upload Photo</span>
                   </div>
-                )}
+                  <input
+                    type='file'
+                    accept='image/*'
+                    onChange={handleFileChange}
+                    className='absolute inset-0 opacity-0 cursor-pointer'
+                  />
+                </div>
+
+                <div className='text-center'>
+                  <p className='text-white/80 font-semibold text-sm leading-tight'>
+                    {formData.firstname || formData.lastname
+                      ? `${formData.firstname} ${formData.lastname}`.trim()
+                      : 'New Driver'}
+                  </p>
+                  <span className='inline-flex mt-1.5 px-3 py-1 rounded-full text-xxs font-semibold border bg-emerald-50 text-emerald-600 border-emerald-100 capitalize'>
+                    {formData.status}
+                  </span>
+                </div>
               </div>
 
-              {formData.image && formData.image.name ? (
-                <p className='mt-4 text-sm line-clamp-2 text-center w-full text-gray-600'>
-                  {formData.image.name}
+              {/* Divider */}
+              <div className='relative z-10 w-full h-px bg-white/10 my-4' />
+
+              {/* Helper text */}
+              <div className='relative z-10'>
+                <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-1'>
+                  Instructions
                 </p>
-              ) : (
-                <p className='mt-4 text-sm line-clamp-2 text-center w-full text-gray-600 opacity-0'>
-                  None
+                <p className='text-white/50 text-xs leading-relaxed'>
+                  Fill in the driver details on the right. Fields marked with{' '}
+                  <span className='text-red-400 font-bold'>*</span> are
+                  required.
                 </p>
-              )}
+              </div>
             </div>
 
-            {/* desc */}
-            <div className='flex-1 bg-white px-6 py-8'>
-              <h2 className='text-lg font-semibold'>Create New Driver</h2>
+            {/* ══ RIGHT PANEL ═════════════════════════════════════════════════════ */}
+            <div className='flex-1 flex flex-col min-w-0 overflow-y-auto'>
+              {/* Header */}
+              <div className='flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 shrink-0'>
+                <div>
+                  <h2 className='text-gray-900 font-bold text-lg'>
+                    Create New Driver
+                  </h2>
+                  <p className='text-gray-400 text-xs mt-0.5'>
+                    Fill in the details to add a new driver.
+                  </p>
+                </div>
+                <button
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className='text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-lg text-xl transition-all cursor-pointer disabled:opacity-40 shrink-0 ml-4'
+                >
+                  <IoClose />
+                </button>
+              </div>
 
-              <form
-                onSubmit={handleSubmit}
-                className='mt-4 grid grid-cols-2 gap-x-6 gap-y-4'
-              >
-                <InputField
-                  label='Firstname'
-                  type='text'
-                  name='firstname'
-                  placeholder='Firstname'
-                  value={formData.firstname}
-                  onChange={handleChange}
-                />
+              {/* Form */}
+              <form onSubmit={handleSubmit} className='flex-1 flex flex-col'>
+                <div className='flex-1 px-6 py-5 grid grid-cols-2 gap-x-4 gap-y-4 content-start'>
+                  <InputField
+                    label='First Name'
+                    type='text'
+                    name='firstname'
+                    placeholder='First name'
+                    value={formData.firstname}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                  />
+                  <InputField
+                    label='Last Name'
+                    type='text'
+                    name='lastname'
+                    placeholder='Last name'
+                    value={formData.lastname}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                  />
+                  <InputField
+                    label='Phone No.'
+                    type='tel'
+                    name='phoneNo'
+                    placeholder='09XXXXXXXXX'
+                    pattern='^(09|\+639)\d{9}$'
+                    value={formData.phoneNo}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    maxLength={11}
+                  />
+                  <InputField
+                    label='License No.'
+                    type='text'
+                    name='licenseNo'
+                    placeholder='License No.'
+                    value={formData.licenseNo}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    isRequired={false}
+                    isUppercase
+                  />
 
-                <InputField
-                  label='Lastname'
-                  type='text'
-                  name='lastname'
-                  placeholder='Lastname'
-                  value={formData.lastname}
-                  onChange={handleChange}
-                />
+                  {/* Status */}
+                  <div className='flex flex-col gap-1.5'>
+                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                      Status <span className='text-red-400'>*</span>
+                    </span>
+                    <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                      <select
+                        name='status'
+                        value={formData.status}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                        className='w-full appearance-none bg-transparent text-sm text-gray-800 focus:outline-none capitalize'
+                      >
+                        <option value='available'>Available</option>
+                        <option value='deployed'>Deployed</option>
+                        <option value='unavailable'>Unavailable</option>
+                      </select>
+                      <MdKeyboardArrowDown className='absolute right-4 text-gray-400 text-lg pointer-events-none' />
+                    </div>
+                  </div>
 
-                <InputField
-                  label='Phone No.'
-                  type='tel'
-                  name='phoneNo'
-                  placeholder='Phone No.'
-                  pattern='^(09|\+639)\d{9}$'
-                  value={formData.phoneNo}
-                  onChange={handleChange}
-                  phoneMaxLength={11}
-                />
-
-                <InputField
-                  label='License No.'
-                  type='text'
-                  name='licenseNo'
-                  placeholder='License No.'
-                  value={formData.licenseNo}
-                  onChange={handleChange}
-                  isUppercase={true}
-                  isRequired={false}
-                />
-
-                {/* Subcon */}
-                <div className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Subcon
-                  </span>
-                  <Combobox
-                    value={formData.subcon}
-                    onChange={value =>
-                      setFormData(prev => ({ ...prev, subcon: value }))
-                    }
-                  >
-                    <div className='relative'>
-                      <ComboboxInput
-                        className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400'
-                        displayValue={() => formData.subcon || ''}
-                        onChange={event => setSubconQuery(event.target.value)}
-                        placeholder='Search subcon'
-                        required
-                        autoComplete='off'
-                      />
-                      <ComboboxButton className='absolute inset-y-0 right-0 flex items-center px-2 hover:bg-gray-100 rounded-sm'>
-                        <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                      </ComboboxButton>
-                      <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
+                  {/* Subcon */}
+                  <div className='flex flex-col gap-1.5'>
+                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                      Subcon <span className='text-red-400'>*</span>
+                    </span>
+                    <Combobox
+                      value={formData.subcon}
+                      onChange={value =>
+                        setFormData(prev => ({ ...prev, subcon: value }))
+                      }
+                    >
+                      <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                        <ComboboxInput
+                          className='w-full bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none capitalize min-w-0'
+                          displayValue={v => v || ''}
+                          onChange={e => setSubconQuery(e.target.value)}
+                          placeholder='Search subcon...'
+                          required
+                          autoComplete='off'
+                        />
+                        <ComboboxButton className='absolute right-4 text-gray-400'>
+                          <MdKeyboardArrowDown className='text-lg' />
+                        </ComboboxButton>
+                      </div>
+                      <ComboboxOptions
+                        portal
+                        anchor={{ to: 'bottom start', gap: 8 }}
+                        className='z-999 max-h-48 w-(--input-width) overflow-auto rounded-xl bg-white border border-gray-200 shadow-md py-1 text-sm focus:outline-none'
+                      >
                         {filteredSubcons.length === 0 ? (
-                          <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
+                          <div className='px-4 py-2 text-gray-400 italic'>
                             Nothing found.
                           </div>
                         ) : (
-                          filteredSubcons.map((subcon, index) => (
+                          filteredSubcons.map((subcon, i) => (
                             <ComboboxOption
-                              key={index}
+                              key={i}
                               value={subcon}
                               className={({ focus }) =>
-                                `relative cursor-default select-none py-2 px-4 text-base ${
-                                  focus ? 'bg-gray-50' : 'text-gray-900'
-                                } ${
-                                  formData.subcon === subcon
-                                    ? 'bg-gray-100'
-                                    : ''
-                                }`
+                                clsx(
+                                  'px-4 py-2 cursor-default select-none capitalize transition-colors',
+                                  {
+                                    'bg-gray-50': focus,
+                                    'bg-gray-100 font-medium':
+                                      formData.subcon === subcon
+                                  }
+                                )
                               }
                             >
-                              <span className='block truncate capitalize'>
-                                {subcon}
-                              </span>
+                              {subcon}
                             </ComboboxOption>
                           ))
                         )}
                       </ComboboxOptions>
-                    </div>
-                  </Combobox>
+                    </Combobox>
+                  </div>
                 </div>
 
-                <div className='mt-12 col-span-full'>
-                  <button
-                    type='submit'
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
-                  >
-                    {isLoading ? (
-                      <>
-                        <span className='loading loading-spinner loading-xs'></span>
-                        Creating
-                      </>
-                    ) : (
-                      <>
-                        <FaSave className='text-base -mt-0.5' />
-                        Create
-                      </>
-                    )}
-                  </button>
+                {/* Actions */}
+                <div className='px-6 pb-5 pt-4 border-t border-gray-100 shrink-0'>
+                  <div className='flex gap-3'>
+                    <button
+                      type='submit'
+                      disabled={isLoading}
+                      className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                                 shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
+                                 transition-all disabled:opacity-70 disabled:cursor-not-allowed
+                                 flex items-center justify-center gap-2'
+                      style={{
+                        background:
+                          'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                      }}
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className='loading loading-spinner loading-sm' />
+                          <span>Creating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaSave className='text-sm shrink-0' />
+                          <span>Create </span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -305,45 +394,51 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
   )
 }
 
+/* ─── Reusable InputField ───────────────────────────────────────────────── */
 const InputField = ({
-  colSpan = 1,
   label,
   type,
   name,
+  placeholder,
   value,
-  pattern,
   onChange,
   disabled,
-  phoneMaxLength,
+  pattern,
+  maxLength,
   isRequired = true,
-  isCapitalize = true,
   isUppercase = false
-}) => {
-  return (
-    <label className={`col-span-${colSpan} flex flex-col gap-1`}>
-      <span className='uppercase text-xs text-gray-500 font-semibold'>
-        {label}
-      </span>
+}) => (
+  <label className='flex flex-col gap-1.5'>
+    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+      {label} {isRequired && <span className='text-red-400'>*</span>}
+    </span>
+    <div
+      className={clsx(
+        'flex items-center border rounded-xl px-4 py-3 transition-all duration-200 shadow-sm',
+        disabled
+          ? 'bg-gray-50 border-gray-200'
+          : 'bg-white border-gray-200 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20'
+      )}
+    >
       <input
         type={type}
         name={name}
+        placeholder={placeholder}
         value={value}
         minLength={2}
-        maxLength={phoneMaxLength || 30}
+        maxLength={maxLength || 30}
         pattern={pattern}
         onChange={onChange}
         disabled={disabled}
         required={isRequired}
         className={clsx(
-          'outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400',
-          {
-            capitalize: isCapitalize,
-            uppercase: isUppercase
-          }
+          'flex-1 text-sm placeholder-gray-400 bg-transparent focus:outline-none capitalize min-w-0',
+          disabled ? 'text-gray-500' : 'text-gray-800',
+          { uppercase: isUppercase }
         )}
       />
-    </label>
-  )
-}
+    </div>
+  </label>
+)
 
 export default CreateDriverModal

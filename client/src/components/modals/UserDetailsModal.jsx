@@ -7,20 +7,80 @@ import {
   Dialog,
   DialogBackdrop,
   DialogPanel,
+  Transition,
   TransitionChild
 } from '@headlessui/react'
 import React, { useEffect, useState } from 'react'
-import { IoClose, IoWarning } from 'react-icons/io5'
+import { IoClose } from 'react-icons/io5'
 import useUpdateUser from '../../hooks/useUpdateUser'
 import { no_image } from '../../consts/images'
 import clsx from 'clsx'
 import { DateTime } from 'luxon'
-import { FaSave, FaTrash, FaUserEdit } from 'react-icons/fa'
+import {
+  FaPhoneAlt,
+  FaSave,
+  FaSignInAlt,
+  FaTrash,
+  FaUser,
+  FaUserEdit
+} from 'react-icons/fa'
+import { MdLogin, MdSecurity, MdPhone } from 'react-icons/md'
 import { MdKeyboardArrowDown } from 'react-icons/md'
 import { USER_STATUS_TYPES } from '../../utils/userOptions'
 import { toast } from 'react-toastify'
-import { RiFolderUploadLine } from 'react-icons/ri'
+import {
+  RiFolderUploadLine,
+  RiLoginBoxFill,
+  RiPhoneFill,
+  RiShieldUserFill
+} from 'react-icons/ri'
 import { useSettingsContext } from '../../contexts/SettingsContext'
+
+/* ─── Decorative dot pattern ────────────────────────────────────────────── */
+const DotPattern = () => (
+  <svg
+    className='absolute inset-0 w-full h-full opacity-10 pointer-events-none'
+    xmlns='http://www.w3.org/2000/svg'
+  >
+    <defs>
+      <pattern
+        id='dots-user'
+        x='0'
+        y='0'
+        width='20'
+        height='20'
+        patternUnits='userSpaceOnUse'
+      >
+        <circle cx='2' cy='2' r='1.2' fill='white' />
+      </pattern>
+    </defs>
+    <rect width='100%' height='100%' fill='url(#dots-user)' />
+  </svg>
+)
+
+/* ─── Stat badge ────────────────────────────────────────────────────────── */
+const StatBadge = ({ icon: Icon, value, label }) => (
+  <div className='flex flex-col items-center gap-1 flex-1'>
+    <div className='bg-white/10 rounded-xl p-2 border border-white/10'>
+      <Icon className='text-white/80 text-sm' />
+    </div>
+    <span className='text-white font-bold text-sm leading-none capitalize'>
+      {value}
+    </span>
+    <span className='text-white/50 text-xs text-center leading-tight'>
+      {label}
+    </span>
+  </div>
+)
+
+/* ─── Status badge colours ──────────────────────────────────────────────── */
+const userStatusStyles = {
+  active: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  pending: 'bg-orange-50 text-orange-500 border-orange-100',
+  inactive: 'bg-red-50 text-red-500 border-red-100',
+  rejected: 'bg-gray-100 text-gray-500 border-gray-200',
+  revoked: 'bg-gray-100 text-gray-500 border-gray-200'
+}
 
 function UserDetailsModal ({
   isOpen,
@@ -35,7 +95,6 @@ function UserDetailsModal ({
   const [editForm, setEditForm] = useState({})
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
-
   const [subconQuery, setSubconQuery] = useState('')
 
   const { updateUserFunction, isLoading } = useUpdateUser()
@@ -43,53 +102,39 @@ function UserDetailsModal ({
   const filteredSubcons = settings.trucksDrivers.subcon.filter(subcon =>
     subcon.toLowerCase().includes(subconQuery.toLowerCase())
   )
+
   const handleChange = e => {
     const { name, value } = e.target
     setEditForm(prev => ({ ...prev, [name]: value }))
   }
 
-  // Handle combobox changes
   const handleComboboxChange = (name, value) => {
     setEditForm(prev => ({ ...prev, [name]: value }))
   }
 
-  // Handle file selection
   const handleFileChange = e => {
     const file = e.target.files[0]
     if (file) {
       setSelectedFile(file)
-      // Create preview URL
       setPreviewImage(URL.createObjectURL(file))
-      // Update form state
       setEditForm(prev => ({ ...prev, image: file }))
     }
   }
 
   const handleUpdateUser = async e => {
     e.preventDefault()
-
-    console.log(editForm)
-
     const result = await updateUserFunction(user._id, editForm)
-
     if (result.success) {
       onUpdate(result.data.user)
-
       toast.success(result.data.message)
-
       setIsEditMode(false)
-
       onClose()
     } else {
-      console.log(result.error)
       toast.error(result.error)
     }
   }
 
-  const handleCloseModal = () => {
-    // setEditForm(user)
-    onClose()
-  }
+  const handleCloseModal = () => onClose()
 
   const handleCancelEditMode = () => {
     setIsEditMode(false)
@@ -107,136 +152,224 @@ function UserDetailsModal ({
     }
   }, [isOpen, user])
 
+  const roleLabel =
+    editForm.role === 'admin' || editForm.role === 'head_admin'
+      ? 'Admin'
+      : editForm.role === 'visitor'
+      ? 'Visitor'
+      : 'Subcon'
+
   return (
-    <Dialog
-      open={isOpen}
-      onClose={isLoading ? () => {} : handleCloseModal}
-      className='relative z-50'
-    >
-      {/* Backdrop */}
-      <TransitionChild
-        enter='ease-out duration-300'
-        enterFrom='opacity-0'
-        enterTo='opacity-100'
-        leave='ease-in duration-200'
-        leaveFrom='opacity-100'
-        leaveTo='opacity-0'
+    <Transition show={isOpen} as={React.Fragment}>
+      <Dialog
+        onClose={isLoading ? () => {} : handleCloseModal}
+        className='relative z-50'
       >
-        <DialogBackdrop className='fixed inset-0 bg-black/30 backdrop-blur-sm' />
-      </TransitionChild>
-
-      {/* Modal container */}
-      <div className='fixed inset-0 flex items-center justify-center p-4'>
         <TransitionChild
+          as={React.Fragment}
           enter='ease-out duration-300'
-          enterFrom='opacity-0 -translate-y-8'
-          enterTo='opacity-100 translate-y-0'
+          enterFrom='opacity-0'
+          enterTo='opacity-100'
           leave='ease-in duration-200'
-          leaveFrom='opacity-100 translate-y-0'
-          leaveTo='opacity-0 -translate-y-8'
+          leaveFrom='opacity-100'
+          leaveTo='opacity-0'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-5xl rounded-2xl bg-white shadow-xl overflow-hidden relative '>
-            {/* edit mode warning */}
-            <p
-              className={clsx(
-                'bg-orange-500 text-white px-4 right-20 font-medium py-3 text-sm flex items-center gap-2  transition-all absolute rounded-b-md shadow-warning tracking-wider',
-                {
-                  '-translate-y-12': !isEditMode,
-                  'translate-y-0': isEditMode
-                }
-              )}
-            >
-              <IoWarning className='text-xl' />
-              EDIT MODE
-            </p>
+          <DialogBackdrop className='fixed inset-0 bg-black/40 backdrop-blur-sm' />
+        </TransitionChild>
 
-            {/* close button */}
-            <button
-              onClick={handleCloseModal}
-              disabled={isLoading}
-              className='absolute top-4 right-4 hover:bg-gray-100 p-1 rounded-full text-2xl text-gray-600 cursor-pointer transition-all'
+        <div className='fixed inset-0 flex items-center justify-center p-4'>
+          <DialogPanel
+            className='font-poppins w-full max-w-4xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col sm:flex-row max-h-[90vh] sm:max-h-none
+              transition duration-300 ease-out
+              data-closed:opacity-0 data-closed:translate-y-4
+              data-leave:duration-200 data-leave:ease-in data-leave:opacity-0 data-leave:scale-95'
+          >
+            {/* ══ LEFT PANEL — dark identity panel ══════════════════════════════ */}
+            <div
+              className='relative flex flex-col overflow-hidden sm:w-72 shrink-0 p-8 pb-16'
+              style={{
+                background:
+                  'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
+              }}
             >
-              <IoClose />
-            </button>
+              <DotPattern />
 
-            <form onSubmit={handleUpdateUser} className='flex'>
-              {/* image left side */}
-              <div className='w-[20rem] bg-gray-50 p-6 flex flex-col items-center justify-center relative'>
+              {/* Radial glows */}
+              <div
+                className='absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-10 pointer-events-none'
+                style={{
+                  background:
+                    'radial-gradient(circle, #475569 0%, transparent 70%)'
+                }}
+              />
+              <div
+                className='absolute -bottom-12 -left-12 w-44 h-44 rounded-full opacity-10 pointer-events-none'
+                style={{
+                  background:
+                    'radial-gradient(circle, #334155 0%, transparent 70%)'
+                }}
+              />
+
+              {/* Avatar */}
+              <div className='relative z-10 flex flex-col items-center gap-3'>
                 <div
                   className={clsx(
-                    'w-full aspect-square bg-white border-3 border-dashed rounded-xl overflow-hidden p-3 relative group',
-                    {
-                      'border-gray-200': isEditMode,
-                      'border-white': !isEditMode
-                    }
+                    'w-32 h-32 rounded-2xl overflow-hidden relative border-2 transition-all',
+                    isEditMode
+                      ? 'border-dashed border-white/40 hover:border-white/70 cursor-pointer group'
+                      : 'border-white/20'
                   )}
                 >
                   <img
                     src={previewImage || user?.imageUrl || no_image}
                     alt={user?.firstname}
                     className={clsx(
-                      'w-full h-full object-center object-cover rounded-xl',
-                      {
-                        'opacity-20': !previewImage && !user?.imageUrl
-                      }
+                      'w-full h-full object-cover object-center transition-opacity',
+                      { 'opacity-10': !previewImage && !user?.imageUrl }
                     )}
                   />
-
                   {isEditMode && (
                     <>
-                      {/* Hover overlay */}
-                      <div className='absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl cursor-pointer text-whit font-medium text-white'>
-                        <RiFolderUploadLine className='text-4xl ' />
-                        Upload Image
+                      <div className='absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white gap-1'>
+                        <RiFolderUploadLine className='text-2xl' />
+                        <span className='text-xs font-medium'>Change</span>
                       </div>
-
-                      {/* Hidden file input */}
                       <input
                         type='file'
                         accept='image/*'
                         onChange={handleFileChange}
-                        className='absolute inset-0 w-full h-full opacity-0 cursor-pointer'
+                        className='absolute inset-0 opacity-0 cursor-pointer'
                       />
                     </>
                   )}
                 </div>
 
-                {isEditMode && selectedFile && (
-                  <p className='mt-4 text-sm line-clamp-2 text-center w-full text-gray-600'>
-                    {selectedFile.name}
-                  </p>
-                )}
+                <div className='text-center'>
+                  <h3 className='text-white font-bold text-base leading-tight capitalize'>
+                    {user?.firstname} {user?.lastname}
+                  </h3>
+                  <span
+                    className={clsx(
+                      'inline-flex mt-1.5 px-3 py-1 rounded-full text-xxs font-semibold border capitalize',
+                      userStatusStyles[user?.status] ||
+                        'bg-gray-100 text-gray-500 border-gray-200'
+                    )}
+                  >
+                    {user?.status}
+                  </span>
+                </div>
               </div>
 
-              {/* right side */}
-              <div className='px-6 py-8 flex-1'>
-                <h2 className='text-lg font-semibold'>
-                  {editForm.role === 'admin'
-                    ? 'Admin'
-                    : editForm.role === 'visitor'
-                    ? 'Visitor'
-                    : 'Subcon'}{' '}
-                  Details
-                </h2>
+              {/* Divider */}
+              <div className='relative z-10 w-full h-px bg-white/10 my-4' />
 
-                {/* fields */}
-                <div className='mt-4 grid grid-cols-2 gap-x-6 gap-y-4 '>
+              {/* Stats */}
+              <div className='relative z-10 flex'>
+                <StatBadge
+                  icon={FaSignInAlt}
+                  value={user?.loginCount ?? 0}
+                  label='Logins'
+                />
+                <div className='w-px bg-white/10' />
+                <StatBadge icon={FaUser} value={roleLabel} label='Role' />
+                <div className='w-px bg-white/10' />
+                <StatBadge
+                  icon={FaPhoneAlt}
+                  value={user?.phoneNo ? '✓' : '—'}
+                  label='Contact'
+                />
+              </div>
+
+              {/* Divider */}
+              <div className='relative z-10 w-full h-px bg-white/10 my-4' />
+
+              {/* Meta info */}
+              <div className='relative z-10 flex justify-between'>
+                <div>
+                  <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-0.5'>
+                    {user?.role === 'admin' || user?.role === 'head_admin'
+                      ? 'Created'
+                      : 'Requested'}
+                  </p>
+                  <p className='text-white/70 text-xs'>
+                    {user?.createdAt
+                      ? DateTime.fromISO(user.createdAt).toFormat('MMM d, yyyy')
+                      : '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-0.5'>
+                    Last Login
+                  </p>
+                  <p className='text-white/70 text-xs'>
+                    {user?.lastLogin
+                      ? DateTime.fromISO(user.lastLogin).toFormat('MMM d, yyyy')
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Edit mode indicator */}
+              <div
+                className='absolute bottom-5 left-5 right-5 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2'
+                style={{
+                  opacity: isEditMode ? 1 : 0,
+                  transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
+                  pointerEvents: isEditMode ? 'auto' : 'none'
+                }}
+              >
+                <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
+                <p className='text-orange-300 text-xs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
+                  Edit mode active
+                </p>
+              </div>
+            </div>
+
+            {/* ══ RIGHT PANEL — form fields ═══════════════════════════════════════ */}
+            <div className='flex-1 flex flex-col min-w-0 overflow-y-auto'>
+              {/* Header */}
+              <div className='flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 shrink-0'>
+                <div>
+                  <h2 className='text-gray-900 font-bold text-lg'>
+                    {roleLabel} Details
+                  </h2>
+                  <p className='text-gray-400 text-xs mt-0.5'>
+                    {isEditMode
+                      ? 'Make changes and save to update.'
+                      : "View this user's information."}
+                  </p>
+                </div>
+                <button
+                  onClick={handleCloseModal}
+                  disabled={isLoading}
+                  className='text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-lg text-xl transition-all cursor-pointer disabled:opacity-40 shrink-0 ml-4'
+                >
+                  <IoClose />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form
+                onSubmit={handleUpdateUser}
+                className='flex-1 flex flex-col'
+              >
+                <div className='flex-1 px-6 py-5 grid grid-cols-2 gap-x-4 gap-y-4 content-start'>
                   <InputField
-                    label='Firstname'
+                    label='First Name'
                     type='text'
                     name='firstname'
-                    placeholder='Firstname'
-                    value={editForm?.firstname}
+                    placeholder='First name'
+                    value={editForm?.firstname || ''}
                     disabled={!isEditMode || isLoading}
                     onChange={handleChange}
                   />
 
                   <InputField
-                    label='Lastname'
+                    label='Last Name'
                     type='text'
                     name='lastname'
-                    placeholder='Lastname'
-                    value={editForm?.lastname}
+                    placeholder='Last name'
+                    value={editForm?.lastname || ''}
                     disabled={!isEditMode || isLoading}
                     onChange={handleChange}
                   />
@@ -245,8 +378,8 @@ function UserDetailsModal ({
                     label='Email'
                     type='email'
                     name='email'
-                    placeholder='Email'
-                    value={editForm?.email}
+                    placeholder='Email address'
+                    value={editForm?.email || ''}
                     disabled={!isEditMode || isLoading}
                     onChange={handleChange}
                     isCapitalize={false}
@@ -257,267 +390,261 @@ function UserDetailsModal ({
                     type='tel'
                     name='phoneNo'
                     placeholder='Phone No.'
-                    value={editForm?.phoneNo}
+                    value={editForm?.phoneNo || ''}
                     disabled={!isEditMode || isLoading}
                     onChange={handleChange}
                   />
 
+                  {/* Subcon (role=subcon) OR Role (read-only) */}
                   {editForm?.role === 'subcon' ? (
-                    <label className='flex flex-col gap-1'>
-                      <span className='uppercase text-xs text-gray-500 font-semibold'>
+                    <div className='flex flex-col gap-1.5'>
+                      <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                         Subcon
                       </span>
                       {isEditMode ? (
                         <Combobox
                           value={editForm?.subcon || ''}
-                          onChange={value =>
-                            handleComboboxChange('subcon', value)
-                          }
+                          onChange={v => handleComboboxChange('subcon', v)}
                         >
-                          <div className='relative'>
+                          <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
                             <ComboboxInput
-                              className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
-                              displayValue={value => value || ''}
-                              onChange={event =>
-                                setSubconQuery(event.target.value)
-                              }
-                              placeholder='Search'
-                              required={false}
+                              className='w-full bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none capitalize min-w-0'
+                              displayValue={v => v || ''}
+                              onChange={e => setSubconQuery(e.target.value)}
+                              placeholder='Search subcon...'
                               autoComplete='off'
                             />
-                            <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                              <MdKeyboardArrowDown className='h-5 w-5 text-gray-400 pointer-events-none' />
+                            <ComboboxButton className='absolute right-4 text-gray-400'>
+                              <MdKeyboardArrowDown className='text-lg' />
                             </ComboboxButton>
-                            <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                              {filteredSubcons.length === 0 ? (
-                                <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                                  Nothing found.
-                                </div>
-                              ) : (
-                                filteredSubcons.map((subcon, index) => (
-                                  <ComboboxOption
-                                    key={index}
-                                    value={subcon}
-                                    className={({ focus }) =>
-                                      `relative cursor-default select-none py-2 px-4 text-base ${
-                                        focus ? 'bg-gray-50' : 'text-gray-900'
-                                      } ${
-                                        editForm?.subcon === subcon
-                                          ? 'bg-gray-100'
-                                          : ''
-                                      }`
-                                    }
-                                  >
-                                    {({ selected }) => (
-                                      <span className='block truncate capitalize'>
-                                        {subcon}
-                                      </span>
-                                    )}
-                                  </ComboboxOption>
-                                ))
-                              )}
-                            </ComboboxOptions>
                           </div>
+                          <ComboboxOptions
+                            portal
+                            anchor={{ to: 'bottom start', gap: 8 }}
+                            className='z-999 max-h-48 w-(--input-width) overflow-auto rounded-xl bg-white border border-gray-200 shadow-md py-1 text-sm focus:outline-none'
+                          >
+                            {filteredSubcons.length === 0 ? (
+                              <div className='px-4 py-2 text-gray-400 italic'>
+                                Nothing found.
+                              </div>
+                            ) : (
+                              filteredSubcons.map((subcon, i) => (
+                                <ComboboxOption
+                                  key={i}
+                                  value={subcon}
+                                  className={({ focus }) =>
+                                    clsx(
+                                      'px-4 py-2 cursor-default select-none capitalize transition-colors',
+                                      {
+                                        'bg-gray-50': focus,
+                                        'bg-gray-100 font-medium':
+                                          editForm?.subcon === subcon
+                                      }
+                                    )
+                                  }
+                                >
+                                  {subcon}
+                                </ComboboxOption>
+                              ))
+                            )}
+                          </ComboboxOptions>
                         </Combobox>
                       ) : (
-                        <p className='outline outline-gray-200 px-3 py-2 rounded break-all capitalize overflow-x-auto text-nowrap scrollbar-none'>
-                          {editForm?.subcon || 'Not assigned'}
-                        </p>
+                        <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 shadow-sm'>
+                          <p className='text-sm text-gray-700 capitalize truncate'>
+                            {editForm?.subcon?.replace(/_/g, ' ') ||
+                              'Not assigned'}
+                          </p>
+                        </div>
                       )}
-                    </label>
+                    </div>
                   ) : (
                     <InputField
                       label='Role'
                       type='text'
                       name='role'
                       placeholder='Role'
-                      value={editForm?.role}
-                      disabled={true}
+                      value={editForm?.role?.replace(/_/g, ' ') || ''}
+                      disabled
                       onChange={handleChange}
                     />
                   )}
 
-                  <div className='grid grid-cols-2 gap-x-4'>
-                    <label className='flex flex-col gap-1'>
-                      <span className='uppercase text-xs text-gray-500 font-semibold'>
-                        Status
-                      </span>
-
-                      {isEditMode ? (
-                        <div className='relative'>
-                          <select
-                            name='status'
-                            value={editForm?.status}
-                            disabled={!isEditMode || isLoading}
-                            onChange={handleChange}
-                            className='outline outline-gray-200 px-3 py-2 rounded focus:outline-gray-400 appearance-none w-full'
-                          >
-                            {USER_STATUS_TYPES.map((status, index) => (
-                              <option key={index} value={status.value}>
-                                {status.label}
-                              </option>
-                            ))}
-                          </select>
-                          <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
-                        </div>
-                      ) : (
-                        <div className='outline outline-gray-200 px-3 py-2 rounded'>
-                          <p
-                            className={clsx(
-                              'capitalize w-fit px-2 py-0.5 rounded-full text-sm font-medium',
-                              {
-                                'bg-orange-500/10 text-orange-500':
-                                  editForm.status === 'pending',
-                                'bg-gray-500/10 text-gray-500':
-                                  editForm.status === 'rejected' ||
-                                  editForm.status === 'revoked',
-                                'bg-emerald-500/10 text-emerald-500':
-                                  editForm.status === 'active',
-                                'bg-red-500/10 text-red-500':
-                                  editForm.status === 'inactive'
-                              }
-                            )}
-                          >
-                            {editForm?.status}
-                          </p>
-                        </div>
-                      )}
-                    </label>
-
-                    <InputField
-                      label='Login Count'
-                      type='text'
-                      name='loginCount'
-                      placeholder='Login Count'
-                      value={editForm?.loginCount}
-                      disabled={true}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  {isEditMode && (
-                    <>
-                      <InputField
-                        label='Password'
-                        type='password'
-                        name='password'
-                        placeholder='Password'
-                        value={editForm?.password}
-                        disabled={!isEditMode || isLoading}
-                        onChange={handleChange}
-                        isRequired={false}
-                      />
-
-                      <InputField
-                        label='Confirm Password'
-                        type='password'
-                        name='confirmPassword'
-                        placeholder='Confirm Password'
-                        value={editForm?.confirmPassword}
-                        disabled={!isEditMode || isLoading}
-                        onChange={handleChange}
-                        isRequired={false}
-                      />
-                    </>
-                  )}
-
-                  <div className='col-span-full grid grid-cols-2 gap-6 border-t-2 border-dashed border-gray-100 mt-6 pt-6 transition-all'>
-                    <label className='flex flex-col gap-1'>
-                      <span className='uppercase text-xs text-gray-500 font-semibold'>
-                        {user.role === 'admin' || user.role === 'head_admin'
-                          ? 'Created At'
-                          : 'Access Request At'}
-                      </span>
-                      <p className='outline outline-gray-200 px-3 py-2 rounded'>
-                        {DateTime.fromISO(user.createdAt).toLocaleString(
-                          DateTime.DATETIME_MED
-                        )}
-                      </p>
-                    </label>
-
-                    <label className='flex flex-col gap-1'>
-                      <span className='uppercase text-xs text-gray-500 font-semibold'>
-                        Last Login
-                      </span>
-                      <p className='outline outline-gray-200 px-3 py-2 rounded'>
-                        {user?.lastLogin ? (
-                          DateTime.fromISO(user?.lastLogin).toLocaleString(
-                            DateTime.DATETIME_MED
-                          )
-                        ) : (
-                          <span className='italic text-gray-500'>
-                            No record
-                          </span>
-                        )}
-                      </p>
-                    </label>
-                  </div>
-
-                  <div className='flex gap-4 col-span-full mt-4'>
+                  {/* Status */}
+                  <div className='flex flex-col gap-1.5'>
+                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                      Status
+                    </span>
                     {isEditMode ? (
-                      <>
-                        <button
-                          type='button'
-                          onClick={handleCancelEditMode}
-                          disabled={isLoading}
-                          className='bg-linear-to-b from-gray-100 to-gray-200 text-gray-600  px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
+                      <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                        <select
+                          name='status'
+                          value={editForm?.status || ''}
+                          onChange={handleChange}
+                          className='w-full appearance-none bg-transparent text-sm text-gray-800 focus:outline-none capitalize'
                         >
-                          Cancel
-                        </button>
-                        <button
-                          type='submit'
-                          disabled={isLoading}
-                          className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
-                        >
-                          {isLoading ? (
-                            <>
-                              <span className='loading loading-spinner loading-xs'></span>
-                              Saving
-                            </>
-                          ) : (
-                            <>
-                              <FaSave className='text-base -mt-0.5' />
-                              Save
-                            </>
-                          )}
-                        </button>
-                      </>
+                          {USER_STATUS_TYPES.map((s, i) => (
+                            <option key={i} value={s.value}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                        <MdKeyboardArrowDown className='absolute right-4 text-gray-400 text-lg pointer-events-none' />
+                      </div>
                     ) : (
-                      <>
-                        <button
-                          type='button'
-                          onClick={() => setIsEditMode(true)}
-                          disabled={isLoading}
-                          className='bg-linear-to-b from-blue-500 to-blue-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
-                        >
-                          <FaUserEdit className='text-base -mt-0.5' />
-                          Edit
-                        </button>
-
-                        <button
-                          type='button'
-                          onClick={openDeleteModal}
-                          disabled={isLoading}
-                          className='bg-linear-to-b from-red-500 to-red-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
-                        >
-                          <FaTrash className='text-base -mt-0.5' />
-                          Delete
-                        </button>
-                      </>
+                      <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 shadow-sm'>
+                        <p className='text-sm text-gray-500 capitalize'>
+                          {editForm?.status}
+                        </p>
+                      </div>
                     )}
                   </div>
+
+                  {/*
+                   * ── Password fields ──────────────────────────────────────────────
+                   *
+                   * Strategy: pure CSS transition on a wrapper div.
+                   *
+                   * • `max-height` handles the space collapse — kept tight to the
+                   *   real content (~120 px) so the easing feels proportional.
+                   * • `opacity` fades the content in/out independently.
+                   * • `translateY` adds a 6 px upward nudge on exit so the reveal
+                   *   feels like the fields are "dropping in" rather than just
+                   *   appearing. `transformOrigin: top` keeps the scale anchor correct.
+                   * • Two distinct cubic-beziers:
+                   *     enter → spring-ish overshoot (0.34, 1.56, 0.64, 1)
+                   *     leave → snappy ease-in     (0.4,  0,    1,    1)
+                   *   so enter feels lively and exit feels decisive.
+                   * • `pointer-events-none` while hidden prevents accidental tab focus.
+                   * • `overflow-hidden` only while hidden so it doesn't clip any
+                   *   future focus rings when visible.
+                   */}
+                  <div
+                    className={clsx(
+                      'col-span-2 grid grid-cols-2 gap-x-4 overflow-hidden',
+                      !isEditMode && 'pointer-events-none'
+                    )}
+                    style={{
+                      maxHeight: isEditMode ? '120px' : '0px',
+                      opacity: isEditMode ? 1 : 0,
+                      transition:
+                        'max-height 600ms cubic-bezier(0.4,0,0.2,1), opacity 500ms cubic-bezier(0.4,0,0.2,1)'
+                    }}
+                  >
+                    <InputField
+                      label='Password'
+                      type='password'
+                      name='password'
+                      placeholder='New password'
+                      value={editForm?.password || ''}
+                      disabled={!isEditMode || isLoading}
+                      onChange={handleChange}
+                      isRequired={false}
+                      isCapitalize={false}
+                    />
+                    <InputField
+                      label='Confirm Password'
+                      type='password'
+                      name='confirmPassword'
+                      placeholder='Confirm password'
+                      value={editForm?.confirmPassword || ''}
+                      disabled={!isEditMode || isLoading}
+                      onChange={handleChange}
+                      isRequired={false}
+                      isCapitalize={false}
+                    />
+                  </div>
                 </div>
-              </div>
-            </form>
+
+                {/* ── Actions ── */}
+                <div className='px-6 pb-5 pt-4 border-t border-gray-100 shrink-0'>
+                  {isEditMode ? (
+                    <div className='flex gap-3'>
+                      <button
+                        type='button'
+                        onClick={handleCancelEditMode}
+                        disabled={isLoading}
+                        className='px-8 py-2.5 rounded-xl font-semibold text-sm uppercase tracking-wide
+                                   bg-gray-100 text-gray-600 hover:bg-gray-200
+                                   cursor-pointer active:scale-[0.99] transition-all
+                                   disabled:opacity-50 disabled:cursor-not-allowed
+                                   flex items-center justify-center gap-2'
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type='submit'
+                        disabled={isLoading}
+                        className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                                   shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
+                                   transition-all disabled:opacity-70 disabled:cursor-not-allowed
+                                   flex items-center justify-center gap-2'
+                        style={{
+                          background:
+                            'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                        }}
+                      >
+                        {isLoading ? (
+                          <>
+                            <span className='loading loading-spinner loading-sm' />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaSave className='text-sm shrink-0' />
+                            <span>Save </span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className='flex gap-3'>
+                      <button
+                        type='button'
+                        onClick={() => setIsEditMode(true)}
+                        disabled={isLoading}
+                        className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                                   shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
+                                   transition-all disabled:opacity-70 disabled:cursor-not-allowed
+                                   flex items-center justify-center gap-2'
+                        style={{
+                          background:
+                            'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                        }}
+                      >
+                        <FaUserEdit className='text-sm shrink-0' />
+                        <span>Edit </span>
+                      </button>
+                      <button
+                        type='button'
+                        onClick={openDeleteModal}
+                        disabled={isLoading}
+                        className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                                   shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
+                                   transition-all disabled:opacity-70 disabled:cursor-not-allowed
+                                   flex items-center justify-center gap-2'
+                        style={{
+                          background:
+                            'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                        }}
+                      >
+                        <FaTrash className='text-sm shrink-0' />
+                        <span>Delete </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </form>
+            </div>
           </DialogPanel>
-        </TransitionChild>
-      </div>
-    </Dialog>
+        </div>
+      </Dialog>
+    </Transition>
   )
 }
 
+/* ─── Reusable InputField ───────────────────────────────────────────────── */
 const InputField = ({
-  colSpan = 1,
   label,
   type,
   name,
@@ -527,31 +654,37 @@ const InputField = ({
   disabled,
   isRequired = true,
   isCapitalize = true
-}) => {
-  return (
-    <label className={`col-span-${colSpan} flex flex-col gap-1`}>
-      <span className='uppercase text-xs text-gray-500 font-semibold'>
-        {label}
-      </span>
+}) => (
+  <label className='flex flex-col gap-1.5'>
+    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+      {label} {isRequired && <span className='text-red-400'>*</span>}
+    </span>
+    <div
+      className={clsx(
+        'flex items-center border rounded-xl px-4 py-3 transition-all duration-200 shadow-sm',
+        disabled
+          ? 'bg-gray-50 border-gray-200'
+          : 'bg-white border-gray-200 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20'
+      )}
+    >
       <input
         type={type}
         name={name}
         placeholder={placeholder}
         value={value}
         minLength={2}
-        maxLength={30}
+        maxLength={50}
         onChange={onChange}
         disabled={disabled}
         required={isRequired}
         className={clsx(
-          'outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 w-full ',
-          {
-            capitalize: isCapitalize
-          }
+          'flex-1 text-sm placeholder-gray-400 bg-transparent focus:outline-none min-w-0',
+          disabled ? 'text-gray-500' : 'text-gray-800',
+          { capitalize: isCapitalize }
         )}
       />
-    </label>
-  )
-}
+    </div>
+  </label>
+)
 
 export default UserDetailsModal

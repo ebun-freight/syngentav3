@@ -67,7 +67,7 @@ function SideNav () {
       >
         {/* ── Logo Section with dot background ─────────────────────────── */}
         <div
-          className='relative flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10 overflow-hidden rounded-b-2xl'
+          className='relative flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10 overflow-hidden'
           style={{
             background:
               'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'

@@ -491,7 +491,7 @@ function CalendarPage () {
     if (events.length === 0) {
       return (
         <div className='flex-1 flex items-center justify-center'>
-          <p className='text-sm italic text-gray-400'>
+          <p className='text-xs sm:text-sm italic text-gray-400 font-light mt-6'>
             No deployment events for this day
           </p>
         </div>

@@ -51,7 +51,7 @@ const PickupStopsCell = ({ pickups = [], field, status }) => {
 
   if (stopsWithValue.length === 0) {
     return (
-      <p className='italic text-gray-400 font-light text-xs'>
+      <p className='italic text-gray-400 font-light text-xxs sm:text-xs'>
         {status === 'canceled' ? 'Canceled' : 'Pending'}
       </p>
     )
@@ -65,9 +65,11 @@ const PickupStopsCell = ({ pickups = [], field, status }) => {
             S{i + 1}
           </span>
           {stop[field] ? (
-            <span className='text-xs'>{formatISO(stop[field])}</span>
+            <span className='text-xxs sm:text-xs'>
+              {formatISO(stop[field])}
+            </span>
           ) : (
-            <span className='italic text-gray-400 font-light text-xs'>
+            <span className='italic text-gray-400 font-light text-xxs sm:text-xs'>
               {status === 'canceled' ? 'Canceled' : 'Pending'}
             </span>
           )}
@@ -763,7 +765,7 @@ function Deployments () {
                         <div className='space-y-0.5'>
                           {deployment?.replacement?.replacementTruckId?._id ? (
                             <>
-                              <p className='text-nowrap text-gray-800'>
+                              <p className='text-nowrap'>
                                 <span className='uppercase'>
                                   {
                                     deployment.replacement.replacementTruckId
@@ -782,10 +784,10 @@ function Deployments () {
                           ) : (
                             <>
                               <p className='text-nowrap'>
-                                <span className='uppercase'>
+                                <span className='uppercase font-medium max-xs:text-xxs'>
                                   {deployment.truckId.plateNo}{' '}
                                 </span>
-                                <span className='text-gray-400 font-normal'>
+                                <span className='text-gray-400 max-xs:text-xxs'>
                                   ({deployment.truckType})
                                 </span>
                               </p>
@@ -800,7 +802,7 @@ function Deployments () {
                       <td>
                         <div
                           className={clsx(
-                            'px-2.5 py-1 rounded-full w-fit text-xxs xs:text-xs',
+                            'px-2.5 py-1 rounded-full w-fit text-xxs sm:text-xs',
                             {
                               'bg-orange-50 text-orange-500':
                                 deployment.status === 'preparing',
@@ -819,11 +821,11 @@ function Deployments () {
 
                       <td>
                         {deployment.departed ? (
-                          <span className='text-nowrap text-xs'>
+                          <span className='text-nowrap text-xxs sm:text-xs'>
                             {formatISO(deployment.departed)}
                           </span>
                         ) : (
-                          <p className='italic text-gray-400 font-light text-xs'>
+                          <p className='italic text-gray-400 font-light text-xxs sm:text-xs'>
                             {deployment.status === 'canceled'
                               ? 'Canceled'
                               : 'Pending'}
@@ -848,11 +850,11 @@ function Deployments () {
 
                       <td>
                         {deployment.destArrival ? (
-                          <span className='text-nowrap text-xs'>
+                          <span className='text-nowrap text-xxs sm:text-xs'>
                             {formatISO(deployment.destArrival)}
                           </span>
                         ) : (
-                          <p className='italic text-gray-400 font-light text-xs'>
+                          <p className='italic text-gray-400 font-light text-xxs sm:text-xs'>
                             {deployment.status === 'canceled'
                               ? 'Canceled'
                               : 'Pending'}
@@ -862,11 +864,11 @@ function Deployments () {
 
                       <td>
                         {deployment.destDeparture ? (
-                          <span className='text-nowrap text-xs'>
+                          <span className='text-nowrap text-xxs sm:text-xs'>
                             {formatISO(deployment.destDeparture)}
                           </span>
                         ) : (
-                          <p className='italic text-gray-400 font-light text-xs'>
+                          <p className='italic text-gray-400 font-light text-xxs sm:text-xs'>
                             {deployment.status === 'canceled'
                               ? 'Canceled'
                               : 'Pending'}
@@ -876,7 +878,7 @@ function Deployments () {
 
                       <td>
                         {deployment.destArrival && deployment.destDeparture ? (
-                          <div className='text-nowrap w-fit px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs border border-emerald-100'>
+                          <div className='text-nowrap w-fit px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xxs sm:text-xs border border-emerald-100'>
                             {(() => {
                               const { hours, minutes } = DateTime.fromISO(
                                 deployment.destDeparture
@@ -890,7 +892,7 @@ function Deployments () {
                             })()}
                           </div>
                         ) : (
-                          <p className='italic text-gray-400 font-light text-xs'>
+                          <p className='italic text-gray-400 font-light text-xxs sm:text-xs'>
                             {deployment.status === 'canceled'
                               ? 'Canceled'
                               : 'Pending'}

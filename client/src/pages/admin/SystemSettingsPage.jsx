@@ -4,6 +4,7 @@ import { IoClose } from 'react-icons/io5'
 import { useSettingsContext } from '../../contexts/SettingsContext'
 import CreateOptionModal from '../../components/modals/CreateOptionModal'
 import DeleteOptionModal from '../../components/modals/DeleteOptionModal'
+import clsx from 'clsx'
 
 function SystemSettingsPage () {
   const {
@@ -15,7 +16,6 @@ function SystemSettingsPage () {
     removeOption
   } = useSettingsContext()
 
-  // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -24,34 +24,20 @@ function SystemSettingsPage () {
     value: null
   })
 
-  // Open delete confirmation modal
   const openDeleteModal = (category, field, value) => {
-    setDeleteModal({
-      isOpen: true,
-      category,
-      field,
-      value
-    })
+    setDeleteModal({ isOpen: true, category, field, value })
   }
 
-  // Close delete confirmation modal
   const closeDeleteModal = () => {
-    setDeleteModal({
-      isOpen: false,
-      category: null,
-      field: null,
-      value: null
-    })
+    setDeleteModal({ isOpen: false, category: null, field: null, value: null })
   }
 
-  // Handle confirmed delete
   const handleConfirmDelete = async () => {
     const { category, field, value } = deleteModal
     await removeOption({ category, field, value })
     closeDeleteModal()
   }
 
-  // Handle create option
   const handleCreateOption = async formData => {
     return await addOption({
       category: formData.category,
@@ -60,18 +46,9 @@ function SystemSettingsPage () {
     })
   }
 
-  const getFieldLabel = field => {
-    const labels = {
-      truckType: 'Truck Type',
-      status: 'Status',
-      subcon: 'Subcon',
-      hybrid: 'Hybrid',
-      territory: 'Territory',
-      flagging: 'Flagging',
-      destination: 'Destination'
-    }
-    return labels[field] || field
-  }
+  /* ── shared button style (matches Deployments / ActivityLogs) ── */
+  const btnBase =
+    'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium cursor-pointer active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
 
   const renderOptionsList = (category, field, fieldLabel, options) => (
     <div>
@@ -92,14 +69,14 @@ function SystemSettingsPage () {
           options.map((option, index) => (
             <div
               key={index}
-              className='flex items-center gap-1.5 bg-gray-50 border border-gray-200 text-gray-700 rounded max-sm:text-xs text-sm font-medium capitalize group pl-2.5'
+              className='flex items-center gap-1.5 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg max-sm:text-xs text-sm capitalize group pl-2.5 max-sm:pr-2.5 max-sm:py-1'
             >
               <span>{option}</span>
               <button
                 type='button'
                 onClick={() => openDeleteModal(category, field, option)}
                 disabled={isRemoving}
-                className='text-gray-300 hover:text-gray-600 transition-colors disabled:opacity-40 px-2 py-1 border-l border-gray-200 hover:bg-gray-100 cursor-pointer max-sm:text-sm'
+                className='text-gray-300 hover:text-gray-600 transition-colors disabled:opacity-40 px-2 py-1 border-l border-gray-200 hover:bg-gray-100 cursor-pointer max-sm:text-sm rounded-r-lg max-sm:hidden'
               >
                 <IoClose className='max-sm:text-sm text-base' />
               </button>
@@ -113,11 +90,11 @@ function SystemSettingsPage () {
   if (isLoadingSettings) {
     return (
       <div className='flex-1 flex items-center justify-center'>
-        <div className='flex flex-col items-center justify-center gap-4 text-center'>
-          <div className='relative'>
-            <span className='loading loading-spinner loading-lg text-emerald-500'></span>
-          </div>
-          <p className='text-gray-600 font-medium'>Loading settings...</p>
+        <div className='flex flex-col items-center gap-4 text-center'>
+          <span className='loading loading-spinner loading-lg text-primaryColor' />
+          <p className='text-gray-500 text-sm font-medium'>
+            Loading content...
+          </p>
         </div>
       </div>
     )
@@ -126,38 +103,65 @@ function SystemSettingsPage () {
   return (
     <>
       <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
-        {/* header */}
-        <div className='flex flex-wrap justify-between items-center gap-y-4'>
-          <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-nowrap'>
-            System Settings
-          </h1>
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className='flex flex-wrap justify-between items-start gap-4'>
+          <div className='flex justify-between flex-1 items-center'>
+            <div>
+              <h1 className='font-bold text-lg sm:text-xl md:text-2xl text-gray-800'>
+                System Settings
+              </h1>
+              <p className='text-xs text-gray-400 mt-0.5'>
+                Manage dropdown options used across the platform
+              </p>
+            </div>
 
-          {/* create button */}
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            disabled={isLoadingSettings}
-            className='flex items-center gap-2 sm:gap-4 bg-linear-to-b from-emerald-500 to-emerald-600 text-white text-nowrap rounded px-3 py-1 cursor-pointer active:scale-95 transition-all hover:brightness-95 max-sm:text-sm'
-          >
-            <FaPlus className='text-xs sm:text-sm' />
-            <p>Create New</p>
-          </button>
+            {/* sm–lg Create button (hidden on xs and xl+) */}
+            <div className='flex gap-2 max-sm:hidden xl:hidden'>
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                disabled={isLoadingSettings}
+                className={clsx(
+                  btnBase,
+                  'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'
+                )}
+              >
+                <FaPlus className='text-xs' />
+                <span>Create New</span>
+              </button>
+            </div>
+          </div>
+
+          {/* xl+ Create button */}
+          <div className='flex gap-2 max-xl:hidden'>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              disabled={isLoadingSettings}
+              className={clsx(
+                btnBase,
+                'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'
+              )}
+            >
+              <FaPlus className='text-xs' />
+              <span>Create New</span>
+            </button>
+          </div>
         </div>
 
-        {/* options display - side by side */}
+        {/* ── Options panels ──────────────────────────────────────────────── */}
         <div className='flex-1 flex flex-col md:flex-row gap-5'>
           {/* Trucks & Drivers */}
-          <div className='flex-1 flex flex-col bg-white rounded-md border border-gray-200 overflow-auto'>
+          <div className='flex-1 flex flex-col bg-white rounded-xl border border-gray-200 overflow-auto'>
             <div className='px-6 py-4 border-b border-gray-100'>
               <h2 className='max-sm:text-sm font-semibold text-gray-800'>
-                Trucks & Drivers
+                Trucks &amp; Drivers
               </h2>
-              <p className='max-sm:text-xs text-sm text-gray-500 mt-0.5'>
+              <p className='max-sm:text-xs text-sm text-gray-400 mt-0.5'>
                 Options for truck and driver forms
               </p>
             </div>
 
             <div className='flex-1 relative overflow-y-auto'>
-              <div className='absolute top-0 left-0 right-0 px-6 py-2'>
+              <div className='absolute top-0 left-0 right-0 px-6 py-5'>
                 {settings.trucksDrivers &&
                 Object.keys(settings.trucksDrivers).length > 0 ? (
                   <div className='flex flex-col gap-6'>
@@ -184,7 +188,7 @@ function SystemSettingsPage () {
                   </div>
                 ) : (
                   <div className='flex flex-col items-center justify-center h-full text-center'>
-                    <p className='text-gray-500 max-sm:text-sm'>
+                    <p className='text-gray-400 max-sm:text-sm text-sm'>
                       No options available
                     </p>
                   </div>
@@ -194,12 +198,12 @@ function SystemSettingsPage () {
           </div>
 
           {/* Deployments */}
-          <div className='flex-1 flex flex-col bg-white rounded-md border border-gray-200 overflow-auto'>
+          <div className='flex-1 flex flex-col bg-white rounded-xl border border-gray-200 overflow-auto'>
             <div className='px-6 py-4 border-b border-gray-100'>
               <h2 className='max-sm:text-sm font-semibold text-gray-800'>
                 Deployments
               </h2>
-              <p className='max-sm:text-xs text-sm text-gray-500 mt-0.5'>
+              <p className='max-sm:text-xs text-sm text-gray-400 mt-0.5'>
                 Options used in deployment forms
               </p>
             </div>
@@ -239,7 +243,7 @@ function SystemSettingsPage () {
                   </div>
                 ) : (
                   <div className='flex flex-col items-center justify-center h-full text-center'>
-                    <p className='text-gray-500 max-sm:text-sm'>
+                    <p className='text-gray-400 max-sm:text-sm text-sm'>
                       No options available
                     </p>
                   </div>
@@ -250,7 +254,6 @@ function SystemSettingsPage () {
         </div>
       </div>
 
-      {/* Create Option Modal */}
       <CreateOptionModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -258,7 +261,6 @@ function SystemSettingsPage () {
         isLoading={isAdding}
       />
 
-      {/* Delete Confirmation Modal */}
       <DeleteOptionModal
         isOpen={deleteModal.isOpen}
         onClose={closeDeleteModal}

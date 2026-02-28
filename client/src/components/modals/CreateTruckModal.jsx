@@ -13,13 +13,43 @@ import {
 import { IoClose } from 'react-icons/io5'
 import { useState } from 'react'
 import { MdKeyboardArrowDown } from 'react-icons/md'
-import { LuUpload } from 'react-icons/lu'
+import { RiFolderUploadLine } from 'react-icons/ri'
 import { FaSave } from 'react-icons/fa'
-import { toast } from 'react-toastify'
 import useCreateTruck from '../../hooks/useCreateTruck'
 import { NumericFormat } from 'react-number-format'
+import { toast } from 'react-toastify'
 import clsx from 'clsx'
 import { useSettingsContext } from '../../contexts/SettingsContext'
+import { no_image } from '../../consts/images'
+
+/* ─── Decorative dot pattern ────────────────────────────────────────────── */
+const DotPattern = () => (
+  <svg
+    className='absolute inset-0 w-full h-full opacity-10 pointer-events-none'
+    xmlns='http://www.w3.org/2000/svg'
+  >
+    <defs>
+      <pattern
+        id='dots-create-truck'
+        x='0'
+        y='0'
+        width='20'
+        height='20'
+        patternUnits='userSpaceOnUse'
+      >
+        <circle cx='2' cy='2' r='1.2' fill='white' />
+      </pattern>
+    </defs>
+    <rect width='100%' height='100%' fill='url(#dots-create-truck)' />
+  </svg>
+)
+
+/* ─── Status badge colours ──────────────────────────────────────────────── */
+const statusStyles = {
+  available: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  deployed: 'bg-blue-50 text-blue-500 border-blue-100',
+  unavailable: 'bg-red-50 text-red-500 border-red-100'
+}
 
 function CreateTruckModal ({ isOpen, onClose, onCreate }) {
   const { settings } = useSettingsContext()
@@ -27,7 +57,7 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
   const [formData, setFormData] = useState({
     plateNo: '',
     truckType: '',
-    status: '',
+    status: 'available',
     subcon: '',
     maxLoad: '',
     image: {}
@@ -37,24 +67,19 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
   const [subconQuery, setSubconQuery] = useState('')
   const { createTruckFunction, isLoading } = useCreateTruck()
 
-  // Filter subcon options from settings based on query
   const filteredSubcons = settings.trucksDrivers.subcon.filter(subcon =>
     subcon.toLowerCase().includes(subconQuery.toLowerCase())
   )
 
   const handleClose = () => {
-    if (previewImage) {
-      URL.revokeObjectURL(previewImage)
-    }
-
+    if (previewImage) URL.revokeObjectURL(previewImage)
     onClose()
-
     setPreviewImage(null)
     setSubconQuery('')
     setFormData({
       plateNo: '',
       truckType: '',
-      status: '',
+      status: 'available',
       subcon: '',
       maxLoad: '',
       image: {}
@@ -68,37 +93,20 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
 
   const handleFileChange = e => {
     const file = e.target.files[0]
-
     if (file) {
-      const reader = new FileReader()
-      reader.onload = () => {
-        setPreviewImage(reader.result)
-        setFormData(prev => ({
-          ...prev,
-          image: file
-        }))
-      }
-      reader.readAsDataURL(file)
+      setPreviewImage(URL.createObjectURL(file))
+      setFormData(prev => ({ ...prev, image: file }))
     } else {
       setPreviewImage(null)
-      setFormData(prev => ({
-        ...prev,
-        image: null
-      }))
+      setFormData(prev => ({ ...prev, image: null }))
     }
   }
 
-  // create truck
   const handleSubmit = async e => {
     e.preventDefault()
-
-    console.log('FROM MODAL', formData)
-
     const result = await createTruckFunction(formData)
-
     if (result.truck) {
       toast.success(result.message)
-      console.log(result.truck)
       onCreate(result.truck)
       handleClose()
     } else {
@@ -107,8 +115,11 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
   }
 
   return (
-    <Dialog open={isOpen} onClose={handleClose} className='relative z-50'>
-      {/* Backdrop */}
+    <Dialog
+      open={isOpen}
+      onClose={isLoading ? () => {} : handleClose}
+      className='relative z-50'
+    >
       <TransitionChild
         enter='ease-out duration-300'
         enterFrom='opacity-0'
@@ -117,215 +128,298 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
         leaveFrom='opacity-100'
         leaveTo='opacity-0'
       >
-        <DialogBackdrop className='fixed inset-0 bg-black/30 backdrop-blur-sm' />
+        <DialogBackdrop className='fixed inset-0 bg-black/40 backdrop-blur-sm' />
       </TransitionChild>
 
-      {/* Modal container */}
       <div className='fixed inset-0 flex items-center justify-center p-4'>
         <TransitionChild
           enter='ease-out duration-300'
-          enterFrom='opacity-0 -translate-y-8'
-          enterTo='opacity-100 translate-y-0'
+          enterFrom='opacity-0 scale-95 translate-y-2'
+          enterTo='opacity-100 scale-100 translate-y-0'
           leave='ease-in duration-200'
-          leaveFrom='opacity-100 translate-y-0'
-          leaveTo='opacity-0 -translate-y-8'
+          leaveFrom='opacity-100 scale-100'
+          leaveTo='opacity-0 scale-95'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-5xl rounded-2xl bg-white shadow-xl overflow-hidden flex relative'>
-            {/* close button */}
-            <button
-              onClick={handleClose}
-              className='absolute top-4 right-4 hover:bg-gray-100 p-1 rounded-full text-2xl text-gray-600 cursor-pointer transition-all'
+          <DialogPanel className='font-poppins w-full max-w-4xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col sm:flex-row max-h-[90vh] sm:max-h-none'>
+            {/* ══ LEFT PANEL ══════════════════════════════════════════════════════ */}
+            <div
+              className='relative flex flex-col overflow-hidden sm:w-72 shrink-0 p-8 pb-10'
+              style={{
+                background:
+                  'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
+              }}
             >
-              <IoClose />
-            </button>
+              <DotPattern />
 
-            {/* image */}
-            <div className='w-[20rem] bg-gray-50 p-6 flex flex-col items-center justify-center'>
-              <div className='w-full aspect-square bg-white border-3 border-gray-200 border-dashed rounded-xl overflow-hidden p-3 relative'>
-                <input
-                  type='file'
-                  accept='image/*'
-                  onChange={handleFileChange}
-                  className='absolute inset-0 opacity-0 cursor-pointer'
-                />
+              {/* Radial glows */}
+              <div
+                className='absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-10 pointer-events-none'
+                style={{
+                  background:
+                    'radial-gradient(circle, #475569 0%, transparent 70%)'
+                }}
+              />
+              <div
+                className='absolute -bottom-12 -left-12 w-44 h-44 rounded-full opacity-10 pointer-events-none'
+                style={{
+                  background:
+                    'radial-gradient(circle, #334155 0%, transparent 70%)'
+                }}
+              />
 
-                {previewImage ? (
+              {/* Image Upload */}
+              <div className='relative z-10 flex flex-col items-center gap-3'>
+                <div className='w-32 h-32 rounded-2xl overflow-hidden relative border-2 border-dashed border-white/40 hover:border-white/70 cursor-pointer group transition-all'>
                   <img
-                    src={previewImage}
-                    alt=''
-                    className='w-full h-full object-center object-cover rounded-xl'
+                    src={previewImage || no_image}
+                    alt='Preview'
+                    className={clsx(
+                      'w-full h-full object-cover object-center transition-opacity',
+                      { 'opacity-10': !previewImage }
+                    )}
                   />
-                ) : (
-                  <div className='h-full flex flex-col gap-2 items-center justify-center text-gray-600'>
-                    <LuUpload className='text-4xl' />
-                    Upload Image
+                  <div className='absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white gap-1'>
+                    <RiFolderUploadLine className='text-2xl' />
+                    <span className='text-xs font-medium'>Upload Photo</span>
                   </div>
-                )}
-              </div>
-
-              {formData.image && (
-                <p className='mt-4 text-sm line-clamp-2 text-center w-full text-gray-600'>
-                  {formData.image.name}
-                </p>
-              )}
-            </div>
-
-            {/* input field */}
-            <div className='flex-1 bg-white px-6 py-8'>
-              <h2 className='text-lg font-semibold'>Create New Truck</h2>
-
-              <form
-                onSubmit={handleSubmit}
-                className='mt-4 grid grid-cols-2 gap-x-6 gap-y-4'
-              >
-                <InputField
-                  label='Plate No.'
-                  type='text'
-                  name='plateNo'
-                  placeholder='Plate No.'
-                  plateNoMaxLength={7}
-                  value={formData.plateNo}
-                  isUppercase={true}
-                  onChange={handleChange}
-                />
-
-                {/* Truck Type */}
-                <label className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Type
-                  </span>
-                  <div className='relative'>
-                    <select
-                      name='truckType'
-                      value={formData.truckType}
-                      onChange={handleChange}
-                      required
-                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-2 focus:outline-gray-400 appearance-none w-full capitalize'
-                    >
-                      <option value='' disabled>
-                        Select
-                      </option>
-                      {settings.trucksDrivers.truckType.map((item, index) => (
-                        <option key={index} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
-                  </div>
-                </label>
-
-                {/* Subcon */}
-                <div className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Subcon
-                  </span>
-                  <Combobox
-                    value={formData.subcon}
-                    onChange={value =>
-                      setFormData(prev => ({ ...prev, subcon: value }))
-                    }
-                  >
-                    <div className='relative'>
-                      <ComboboxInput
-                        className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400'
-                        displayValue={() => formData.subcon || ''}
-                        onChange={event => setSubconQuery(event.target.value)}
-                        placeholder='Search subcon'
-                        required
-                        autoComplete='off'
-                      />
-                      <ComboboxButton className='absolute inset-y-0 right-0 flex items-center px-2 hover:bg-gray-100 rounded-sm'>
-                        <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                      </ComboboxButton>
-                      <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                        {filteredSubcons.length === 0 ? (
-                          <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                            Nothing found.
-                          </div>
-                        ) : (
-                          filteredSubcons.map((subcon, index) => (
-                            <ComboboxOption
-                              key={index}
-                              value={subcon}
-                              className={({ focus }) =>
-                                `relative cursor-default select-none py-2 px-4 text-base ${
-                                  focus ? 'bg-gray-50' : 'text-gray-900'
-                                } ${
-                                  formData.subcon === subcon
-                                    ? 'bg-gray-100'
-                                    : ''
-                                }`
-                              }
-                            >
-                              <span className='block truncate capitalize'>
-                                {subcon}
-                              </span>
-                            </ComboboxOption>
-                          ))
-                        )}
-                      </ComboboxOptions>
-                    </div>
-                  </Combobox>
+                  <input
+                    type='file'
+                    accept='image/*'
+                    onChange={handleFileChange}
+                    className='absolute inset-0 opacity-0 cursor-pointer'
+                  />
                 </div>
 
-                <div className='grid grid-cols-2 gap-x-6'>
-                  {/* Status */}
-                  <label className='flex flex-col gap-1'>
-                    <span className='uppercase text-xs text-gray-500 font-semibold'>
-                      Status
+                <div className='text-center'>
+                  <h3 className='text-white font-bold text-base leading-tight uppercase tracking-widest'>
+                    {formData.plateNo || 'New Truck'}
+                  </h3>
+                  <span
+                    className={clsx(
+                      'inline-flex mt-1.5 px-3 py-1 rounded-full text-xxs font-semibold border capitalize',
+                      statusStyles[formData.status] || statusStyles.available
+                    )}
+                  >
+                    {formData.status || 'available'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className='relative z-10 w-full h-px bg-white/10 my-4' />
+
+              {/* Helper text */}
+              <div className='relative z-10'>
+                <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-1'>
+                  Instructions
+                </p>
+                <p className='text-white/50 text-xs leading-relaxed'>
+                  Fill in the truck details on the right. Fields marked with{' '}
+                  <span className='text-red-400 font-bold'>*</span> are
+                  required.
+                </p>
+              </div>
+            </div>
+
+            {/* ══ RIGHT PANEL ═════════════════════════════════════════════════════ */}
+            <div className='flex-1 flex flex-col min-w-0 overflow-y-auto'>
+              {/* Header */}
+              <div className='flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 shrink-0'>
+                <div>
+                  <h2 className='text-gray-900 font-bold text-lg'>
+                    Create New Truck
+                  </h2>
+                  <p className='text-gray-400 text-xs mt-0.5'>
+                    Fill in the details to add a new truck.
+                  </p>
+                </div>
+                <button
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className='text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-lg text-xl transition-all cursor-pointer disabled:opacity-40 shrink-0 ml-4'
+                >
+                  <IoClose />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} className='flex-1 flex flex-col'>
+                <div className='flex-1 px-6 py-5 grid grid-cols-2 gap-x-4 gap-y-4 content-start'>
+                  {/* Plate No. */}
+                  <InputField
+                    label='Plate No.'
+                    type='text'
+                    name='plateNo'
+                    placeholder='Plate No.'
+                    value={formData.plateNo}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    maxLength={7}
+                    isUppercase
+                  />
+
+                  {/* Truck Type */}
+                  <div className='flex flex-col gap-1.5'>
+                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                      Type <span className='text-red-400'>*</span>
                     </span>
-                    <div className='relative'>
+                    <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
                       <select
-                        name='status'
-                        value={formData.status}
+                        name='truckType'
+                        value={formData.truckType}
                         onChange={handleChange}
+                        disabled={isLoading}
                         required
-                        className='outline outline-gray-300 px-3 py-2 rounded focus:outline-2 focus:outline-gray-400 appearance-none w-full capitalize'
+                        className='w-full appearance-none bg-transparent text-sm text-gray-800 focus:outline-none capitalize'
                       >
                         <option value='' disabled>
-                          Select
+                          Select type
                         </option>
-                        {settings.trucksDrivers.status.map((item, index) => (
-                          <option key={index} value={item}>
+                        {settings.trucksDrivers.truckType.map((item, i) => (
+                          <option key={i} value={item}>
                             {item}
                           </option>
                         ))}
                       </select>
-                      <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
+                      <MdKeyboardArrowDown className='absolute right-4 text-gray-400 text-lg pointer-events-none' />
                     </div>
-                  </label>
+                  </div>
 
                   {/* Max Load */}
-                  <InputField
-                    label='Max Load'
-                    type='number'
-                    name='maxLoad'
-                    placeholder='Max Load'
-                    value={formData.maxLoad}
-                    formatNumber={true}
-                    onChange={handleChange}
-                    isRequired={false}
-                  />
+                  <div className='flex flex-col gap-1.5'>
+                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                      Max Load
+                    </span>
+                    <div className='flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                      <NumericFormat
+                        thousandSeparator
+                        decimalScale={0}
+                        allowNegative={false}
+                        value={formData.maxLoad}
+                        onValueChange={values =>
+                          handleChange({
+                            target: {
+                              name: 'maxLoad',
+                              value: values.floatValue || ''
+                            }
+                          })
+                        }
+                        placeholder='Max Load (kg)'
+                        disabled={isLoading}
+                        className='flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none min-w-0'
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div className='flex flex-col gap-1.5'>
+                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                      Status <span className='text-red-400'>*</span>
+                    </span>
+                    <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                      <select
+                        name='status'
+                        value={formData.status}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                        className='w-full appearance-none bg-transparent text-sm text-gray-800 focus:outline-none capitalize'
+                      >
+                        {settings.trucksDrivers.status.map((item, i) => (
+                          <option key={i} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                      <MdKeyboardArrowDown className='absolute right-4 text-gray-400 text-lg pointer-events-none' />
+                    </div>
+                  </div>
+
+                  {/* Subcon */}
+                  <div className='col-span-2 flex flex-col gap-1.5'>
+                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                      Subcon <span className='text-red-400'>*</span>
+                    </span>
+                    <Combobox
+                      value={formData.subcon}
+                      onChange={value =>
+                        setFormData(prev => ({ ...prev, subcon: value }))
+                      }
+                    >
+                      <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                        <ComboboxInput
+                          className='w-full bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none capitalize min-w-0'
+                          displayValue={v => v || ''}
+                          onChange={e => setSubconQuery(e.target.value)}
+                          placeholder='Search subcon...'
+                          required
+                          autoComplete='off'
+                        />
+                        <ComboboxButton className='absolute right-4 text-gray-400'>
+                          <MdKeyboardArrowDown className='text-lg' />
+                        </ComboboxButton>
+                      </div>
+                      <ComboboxOptions
+                        portal
+                        anchor={{ to: 'bottom start', gap: 8 }}
+                        className='z-999 max-h-48 w-(--input-width) overflow-auto rounded-xl bg-white border border-gray-200 shadow-md py-1 text-sm focus:outline-none'
+                      >
+                        {filteredSubcons.length === 0 ? (
+                          <div className='px-4 py-2 text-gray-400 italic'>
+                            Nothing found.
+                          </div>
+                        ) : (
+                          filteredSubcons.map((subcon, i) => (
+                            <ComboboxOption
+                              key={i}
+                              value={subcon}
+                              className={({ focus }) =>
+                                clsx(
+                                  'px-4 py-2 cursor-default select-none capitalize transition-colors',
+                                  {
+                                    'bg-gray-50': focus,
+                                    'bg-gray-100 font-medium':
+                                      formData.subcon === subcon
+                                  }
+                                )
+                              }
+                            >
+                              {subcon}
+                            </ComboboxOption>
+                          ))
+                        )}
+                      </ComboboxOptions>
+                    </Combobox>
+                  </div>
                 </div>
 
-                <div className='mt-12 col-span-full'>
-                  <button
-                    type='submit'
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
-                  >
-                    {isLoading ? (
-                      <>
-                        <span className='loading loading-spinner loading-xs'></span>
-                        Creating
-                      </>
-                    ) : (
-                      <>
-                        <FaSave className='text-base -mt-0.5' />
-                        Create
-                      </>
-                    )}
-                  </button>
+                {/* Actions */}
+                <div className='px-6 pb-5 pt-4 border-t border-gray-100 shrink-0'>
+                  <div className='flex gap-3'>
+                    <button
+                      type='submit'
+                      disabled={isLoading}
+                      className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                                 shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
+                                 transition-all disabled:opacity-70 disabled:cursor-not-allowed
+                                 flex items-center justify-center gap-2'
+                      style={{
+                        background:
+                          'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                      }}
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className='loading loading-spinner loading-sm' />
+                          <span>Creating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaSave className='text-sm shrink-0' />
+                          <span>Create</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -336,78 +430,49 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
   )
 }
 
+/* ─── Reusable InputField ───────────────────────────────────────────────── */
 const InputField = ({
-  colSpan = 1,
   label,
   type,
   name,
   placeholder,
-  plateNoMaxLength,
   value,
   onChange,
   disabled,
+  maxLength,
   isRequired = true,
-  isUppercase = false,
-  isCapitalize = false,
-  formatNumber = false,
-  thousandSeparator = true,
-  decimalScale = 0,
-  allowNegative = false
-}) => {
-  if (formatNumber && type === 'number') {
-    return (
-      <label className={`col-span-${colSpan} flex flex-col gap-1`}>
-        <span className='uppercase text-xs text-gray-500 font-semibold text-nowrap'>
-          {label}
-        </span>
-        <NumericFormat
-          thousandSeparator={thousandSeparator}
-          decimalScale={decimalScale}
-          allowNegative={allowNegative}
-          value={value}
-          onValueChange={values => {
-            const syntheticEvent = {
-              target: {
-                name: name,
-                value: values.floatValue || ''
-              }
-            }
-            onChange(syntheticEvent)
-          }}
-          placeholder={placeholder}
-          disabled={disabled}
-          required={isRequired}
-          className='outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400'
-        />
-      </label>
-    )
-  }
-
-  return (
-    <label className={`col-span-${colSpan} flex flex-col gap-1`}>
-      <span className='uppercase text-xs text-gray-500 font-semibold'>
-        {label}
-      </span>
+  isUppercase = false
+}) => (
+  <label className='flex flex-col gap-1.5'>
+    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+      {label} {isRequired && <span className='text-red-400'>*</span>}
+    </span>
+    <div
+      className={clsx(
+        'flex items-center border rounded-xl px-4 py-3 transition-all duration-200 shadow-sm',
+        disabled
+          ? 'bg-gray-50 border-gray-200'
+          : 'bg-white border-gray-200 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20'
+      )}
+    >
       <input
         type={type}
         name={name}
         placeholder={placeholder}
         value={value}
         minLength={2}
-        maxLength={plateNoMaxLength || 30}
+        maxLength={maxLength || 30}
         onChange={onChange}
         disabled={disabled}
         required={isRequired}
         className={clsx(
-          'outline outline-gray-300 px-3 py-2 rounded break-all focus:outline-gray-400 w-full',
-          {
-            uppercase: isUppercase,
-            capitalize: isCapitalize
-          }
+          'flex-1 text-sm placeholder-gray-400 bg-transparent focus:outline-none min-w-0',
+          disabled ? 'text-gray-500' : 'text-gray-800',
+          isUppercase ? 'uppercase' : 'capitalize'
         )}
       />
-    </label>
-  )
-}
+    </div>
+  </label>
+)
 
 export default CreateTruckModal

@@ -6,9 +6,8 @@ import {
   TransitionChild
 } from '@headlessui/react'
 import { IoClose } from 'react-icons/io5'
-import { MdAdd, MdKeyboardArrowDown } from 'react-icons/md'
 import { FaSave } from 'react-icons/fa'
-import clsx from 'clsx'
+import { MdKeyboardArrowDown } from 'react-icons/md'
 
 function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
   const [formData, setFormData] = useState({
@@ -19,11 +18,7 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
 
   useEffect(() => {
     if (!isOpen) {
-      setFormData({
-        category: 'trucksDrivers',
-        field: 'truckType',
-        value: ''
-      })
+      setFormData({ category: 'trucksDrivers', field: 'truckType', value: '' })
     }
   }, [isOpen])
 
@@ -45,34 +40,50 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
         { value: 'status', label: 'Status' },
         { value: 'subcon', label: 'Subcon' }
       ]
-    } else {
-      return [
-        { value: 'hybrid', label: 'Hybrid' },
-        { value: 'territory', label: 'Territory' },
-        { value: 'flagging', label: 'Flagging' },
-        { value: 'destination', label: 'Destination' }
-      ]
     }
+    return [
+      { value: 'hybrid', label: 'Hybrid' },
+      { value: 'territory', label: 'Territory' },
+      { value: 'flagging', label: 'Flagging' },
+      { value: 'destination', label: 'Destination' }
+    ]
   }
 
   const handleSubmit = async e => {
     e.preventDefault()
     if (!formData.value.trim()) return
-
     const success = await onCreate(formData)
-    if (success) {
-      onClose()
-    }
+    if (success) onClose()
   }
 
   const handleClose = () => {
-    setFormData({
-      category: 'trucksDrivers',
-      field: 'truckType',
-      value: ''
-    })
+    setFormData({ category: 'trucksDrivers', field: 'truckType', value: '' })
     onClose()
   }
+
+  const SelectField = ({ label, name, value, onChange, options, disabled }) => (
+    <div>
+      <label className='block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
+        {label} <span className='text-red-400'>*</span>
+      </label>
+      <div className='relative group flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          className='w-full appearance-none bg-transparent text-sm text-gray-800 focus:outline-none disabled:opacity-50 capitalize'
+        >
+          {options.map((opt, i) => (
+            <option key={i} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <MdKeyboardArrowDown className='absolute right-4 text-gray-400 group-focus-within:text-primaryColor text-lg pointer-events-none transition-colors' />
+      </div>
+    </div>
+  )
 
   return (
     <Dialog open={isOpen} onClose={handleClose} className='relative z-50'>
@@ -92,114 +103,99 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
       <div className='fixed inset-0 flex items-center justify-center p-4'>
         <TransitionChild
           enter='ease-out duration-300'
-          enterFrom='opacity-0 -translate-y-8'
-          enterTo='opacity-100 translate-y-0'
+          enterFrom='opacity-0 scale-95'
+          enterTo='opacity-100 scale-100'
           leave='ease-in duration-200'
-          leaveFrom='opacity-100 translate-y-0'
-          leaveTo='opacity-0 -translate-y-8'
+          leaveFrom='opacity-100 scale-100'
+          leaveTo='opacity-0 scale-95'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-lg rounded-2xl bg-white shadow-xl overflow-hidden relative'>
-            {/* close button */}
-            <button
-              onClick={handleClose}
-              className='absolute top-4 right-4 hover:bg-gray-100 p-1 rounded-full text-2xl text-gray-600 cursor-pointer transition-all z-10'
-            >
-              <IoClose />
-            </button>
-
-            {/* content */}
-            <div className='bg-white px-6 py-8'>
-              <h2 className='text-lg font-semibold'>Add New Option</h2>
-
-              <form
-                onSubmit={handleSubmit}
-                className='mt-6 flex flex-col gap-4'
+          <DialogPanel className='font-poppins w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden'>
+            {/* ── Header ── */}
+            <div className='flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100'>
+              <div>
+                <h2 className='text-gray-900 font-bold text-xl'>
+                  Add New Option
+                </h2>
+                <p className='text-gray-500 text-sm mt-0.5'>
+                  Extend a dropdown list in the system.
+                </p>
+              </div>
+              <button
+                onClick={handleClose}
+                className='text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-lg text-xl transition-all cursor-pointer'
               >
-                {/* Category */}
-                <div className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Category <span className='text-red-500'>*</span>
-                  </span>
-                  <div className='relative'>
-                    <select
-                      name='category'
-                      value={formData.category}
-                      onChange={handleCategoryChange}
-                      disabled={isLoading}
-                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none disabled:opacity-50 disabled:bg-gray-50'
-                    >
-                      <option value='trucksDrivers'>Trucks & Drivers</option>
-                      <option value='deployments'>Deployments</option>
-                    </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
-                  </div>
-                </div>
+                <IoClose />
+              </button>
+            </div>
 
-                {/* Field - Now using simple select */}
-                <div className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Field <span className='text-red-500'>*</span>
-                  </span>
-                  <div className='relative'>
-                    <select
-                      name='field'
-                      value={formData.field}
-                      onChange={handleChange}
-                      disabled={isLoading}
-                      className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 appearance-none disabled:opacity-50 disabled:bg-gray-50 capitalize'
-                    >
-                      {getCategoryOptions().map((field, index) => (
-                        <option
-                          key={index}
-                          value={field.value}
-                          className='capitalize'
-                        >
-                          {field.label}
-                        </option>
-                      ))}
-                    </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none' />
-                  </div>
-                </div>
+            {/* ── Form body ── */}
+            <div className='px-6 py-6'>
+              <form onSubmit={handleSubmit} className='space-y-4'>
+                {/* Category */}
+                <SelectField
+                  label='Category'
+                  name='category'
+                  value={formData.category}
+                  onChange={handleCategoryChange}
+                  disabled={isLoading}
+                  options={[
+                    { value: 'trucksDrivers', label: 'Trucks & Drivers' },
+                    { value: 'deployments', label: 'Deployments' }
+                  ]}
+                />
+
+                {/* Field */}
+                <SelectField
+                  label='Field'
+                  name='field'
+                  value={formData.field}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  options={getCategoryOptions()}
+                />
 
                 {/* Value */}
-                <div className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Option Value <span className='text-red-500'>*</span>
-                  </span>
-                  <input
-                    type='text'
-                    name='value'
-                    value={formData.value}
-                    onChange={handleChange}
-                    placeholder='Enter new option'
-                    required
-                    disabled={isLoading}
-                    autoFocus
-                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 disabled:opacity-50 disabled:bg-gray-50 capitalize'
-                  />
+                <div>
+                  <label className='block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
+                    Option Value <span className='text-red-400'>*</span>
+                  </label>
+                  <div className='flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
+                    <input
+                      type='text'
+                      name='value'
+                      value={formData.value}
+                      onChange={handleChange}
+                      placeholder='Enter new option...'
+                      required
+                      disabled={isLoading}
+                      autoFocus
+                      className='flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none capitalize disabled:opacity-50'
+                    />
+                  </div>
                 </div>
 
-                {/* Actions */}
-                <div className='flex gap-3 mt-6'>
-                  <button
-                    type='submit'
-                    disabled={isLoading}
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed'
-                  >
-                    {isLoading ? (
-                      <>
-                        <span className='loading loading-spinner loading-xs'></span>
-                        Adding
-                      </>
-                    ) : (
-                      <>
-                        <FaSave className='text-base -mt-0.5' />
-                        Add Option
-                      </>
-                    )}
-                  </button>
-                </div>
+                {/* Submit */}
+                <button
+                  type='submit'
+                  disabled={isLoading}
+                  className='w-full py-3 mt-6 rounded-xl font-semibold text-white text-sm
+                             bg-emerald-500 hover:bg-emerald-600
+                             shadow-md hover:shadow-lg active:scale-[0.99]
+                             transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed
+                             flex items-center justify-center gap-2.5 cursor-pointer'
+                >
+                  {isLoading ? (
+                    <>
+                      <span className='loading loading-spinner loading-sm' />
+                      <span>Adding...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaSave className='text-md' />
+                      <span className='uppercase'>Add Option </span>
+                    </>
+                  )}
+                </button>
               </form>
             </div>
           </DialogPanel>
