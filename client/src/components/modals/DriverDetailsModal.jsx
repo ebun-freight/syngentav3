@@ -256,10 +256,10 @@ function DriverDetailsModal ({
               </div>
 
               {/* Divider */}
-              <div className='relative z-10 w-full h-px bg-white/10 my-4 max-sm:my-3' />
+              <div className='relative z-10 w-full h-px bg-white/10 my-4 max-sm:hidden' />
 
               {/* Stats */}
-              <div className='relative z-10 flex'>
+              <div className='relative z-10 flex max-sm:hidden'>
                 <StatBadge
                   icon={FaRoute}
                   value={driver?.tripCount ?? 0}
@@ -312,7 +312,7 @@ function DriverDetailsModal ({
 
               {/* Edit mode indicator */}
               <div
-                className='absolute bottom-5 left-5 right-5 max-sm:bottom-3 max-sm:left-3 max-sm:right-3 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2'
+                className='absolute bottom-5 left-5 right-5 max-sm:bottom-3 max-sm:left-3 max-sm:right-3 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2 max-sm:hidden'
                 style={{
                   opacity: isEditMode ? 1 : 0,
                   transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
@@ -321,6 +321,21 @@ function DriverDetailsModal ({
               >
                 <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
                 <p className='text-orange-300 text-xs max-sm:text-xxs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
+                  Edit mode active
+                </p>
+              </div>
+
+              {/* Edit mode indicator - small screen */}
+              <div
+                className='absolute top-0 right-0 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-bl-xl px-3 py-1 sm:hidden'
+                style={{
+                  opacity: isEditMode ? 1 : 0,
+                  transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
+                  pointerEvents: isEditMode ? 'auto' : 'none'
+                }}
+              >
+                <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
+                <p className='text-orange-300 text-xxs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
                   Edit mode active
                 </p>
               </div>
@@ -354,7 +369,7 @@ function DriverDetailsModal ({
                 onSubmit={handleUpdateDriver}
                 className='flex-1 flex flex-col'
               >
-                <div className='flex-1 px-6 py-5 max-sm:px-4 max-sm:py-4 grid grid-cols-2 gap-x-4 gap-y-4 max-sm:gap-x-3 max-sm:gap-y-3 content-start'>
+                <div className='flex-1 px-6 py-5 max-sm:px-4 max-sm:pt-4 grid grid-cols-2 gap-x-4 gap-y-4 max-sm:gap-x-3 max-sm:gap-y-3 content-start'>
                   <InputField
                     label='First Name'
                     type='text'
@@ -497,15 +512,14 @@ function DriverDetailsModal ({
 
                 {/* ── Actions ── */}
                 {isAdmin && (
-                  <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0 max-sm:hidden'>
+                  <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0 '>
                     {isEditMode ? (
                       <div className='flex gap-3 max-sm:gap-2'>
                         <button
                           type='button'
                           onClick={handleCancelEditMode}
                           disabled={isLoading}
-                          className='px-8 py-2.5 max-sm:px-5 max-sm:py-2 rounded-xl font-semibold text-sm max-sm:text-xs uppercase tracking-wide
-                                     bg-gray-100 text-gray-600 hover:bg-gray-200
+                          className='px-8 py-2.5 rounded-xl font-semibold text-sm max-sm:text-xs uppercase tracking-wide bg-gray-100 text-gray-600 hover:bg-gray-200
                                      cursor-pointer active:scale-[0.99] transition-all
                                      disabled:opacity-50 disabled:cursor-not-allowed
                                      flex items-center justify-center gap-2'
@@ -515,7 +529,7 @@ function DriverDetailsModal ({
                         <button
                           type='submit'
                           disabled={isLoading}
-                          className='px-8 py-2.5 max-sm:px-5 max-sm:py-2 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
+                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                      shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                      transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                      flex items-center justify-center gap-2'
@@ -543,7 +557,7 @@ function DriverDetailsModal ({
                           type='button'
                           onClick={() => setIsEditMode(true)}
                           disabled={isLoading}
-                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                      shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                      transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                      flex items-center justify-center gap-2'
@@ -559,7 +573,7 @@ function DriverDetailsModal ({
                           type='button'
                           onClick={openDeleteModal}
                           disabled={isLoading}
-                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                      shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                      transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                      flex items-center justify-center gap-2'
