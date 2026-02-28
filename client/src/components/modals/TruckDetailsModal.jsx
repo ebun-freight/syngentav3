@@ -1,13 +1,13 @@
 import {
-  Dialog,
-  DialogBackdrop,
-  DialogPanel,
-  TransitionChild,
   Combobox,
   ComboboxButton,
   ComboboxInput,
   ComboboxOption,
-  ComboboxOptions
+  ComboboxOptions,
+  Dialog,
+  DialogBackdrop,
+  DialogPanel,
+  TransitionChild
 } from '@headlessui/react'
 import {
   FaRoute,
@@ -17,7 +17,6 @@ import {
   FaUserEdit,
   FaWeightHanging
 } from 'react-icons/fa'
-import { MdAltRoute, MdLocalShipping, MdScale } from 'react-icons/md'
 import { IoClose } from 'react-icons/io5'
 import clsx from 'clsx'
 import { useEffect, useState } from 'react'
@@ -57,12 +56,12 @@ const DotPattern = () => (
 const StatBadge = ({ icon: Icon, value, label }) => (
   <div className='flex flex-col items-center gap-1 flex-1'>
     <div className='bg-white/10 rounded-lg p-2 border border-white/10'>
-      <Icon className='text-white/80 text-base' />
+      <Icon className='text-white/80 text-base max-sm:text-sm' />
     </div>
-    <span className='text-white font-bold text-sm leading-none capitalize'>
+    <span className='text-white font-bold text-sm max-sm:text-xs leading-none capitalize'>
       {value}
     </span>
-    <span className='text-white/50 text-xs text-center leading-tight'>
+    <span className='text-white/50 text-xs max-sm:text-xxs text-center leading-tight'>
       {label}
     </span>
   </div>
@@ -170,7 +169,7 @@ function TruckDetailsModal ({
         <DialogBackdrop className='fixed inset-0 bg-black/40 backdrop-blur-sm' />
       </TransitionChild>
 
-      <div className='fixed inset-0 flex items-center justify-center p-4'>
+      <div className='fixed inset-0 flex items-center justify-center p-4 max-sm:p-2'>
         <TransitionChild
           enter='ease-out duration-300'
           enterFrom='opacity-0 scale-95 translate-y-2'
@@ -179,10 +178,10 @@ function TruckDetailsModal ({
           leaveFrom='opacity-100 scale-100'
           leaveTo='opacity-0 scale-95'
         >
-          <DialogPanel className='font-poppins w-full max-w-4xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col sm:flex-row max-h-[90vh] sm:max-h-none'>
+          <DialogPanel className='font-poppins w-full max-w-4xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col sm:flex-row max-h-[95vh] sm:max-h-none'>
             {/* ══ LEFT PANEL ══════════════════════════════════════════════════════ */}
             <div
-              className='relative flex flex-col overflow-hidden sm:w-72 shrink-0 p-8 pb-16'
+              className='relative flex flex-col overflow-hidden sm:w-72 shrink-0 p-8 pb-16 max-sm:p-5 max-sm:pb-5'
               style={{
                 background:
                   'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
@@ -206,11 +205,11 @@ function TruckDetailsModal ({
                 }}
               />
 
-              {/* Truck Image */}
-              <div className='relative z-10 flex flex-col items-center gap-3'>
+              {/* Truck Image + plate — horizontal on mobile, vertical on desktop */}
+              <div className='relative z-10 flex flex-col items-center gap-3 max-sm:flex-row max-sm:gap-4'>
                 <div
                   className={clsx(
-                    'w-32 h-32 rounded-2xl overflow-hidden relative border-2 transition-all',
+                    'w-32 h-32 rounded-2xl overflow-hidden relative border-2 transition-all max-sm:w-16 max-sm:h-16 max-sm:rounded-xl shrink-0',
                     isEditMode
                       ? 'border-dashed border-white/40 hover:border-white/70 cursor-pointer group'
                       : 'border-white/20'
@@ -227,8 +226,10 @@ function TruckDetailsModal ({
                   {isEditMode && (
                     <>
                       <div className='absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white gap-1'>
-                        <RiFolderUploadLine className='text-2xl' />
-                        <span className='text-xs font-medium'>Change</span>
+                        <RiFolderUploadLine className='text-2xl max-sm:text-base' />
+                        <span className='text-xs font-medium max-sm:hidden'>
+                          Change
+                        </span>
                       </div>
                       <input
                         type='file'
@@ -240,8 +241,8 @@ function TruckDetailsModal ({
                   )}
                 </div>
 
-                <div className='text-center'>
-                  <h3 className='text-white font-bold text-base leading-tight uppercase tracking-widest'>
+                <div className='text-center max-sm:text-left'>
+                  <h3 className='text-white font-bold text-base max-sm:text-sm leading-tight uppercase tracking-widest'>
                     {truck?.plateNo || '—'}
                   </h3>
                   <span
@@ -256,10 +257,10 @@ function TruckDetailsModal ({
               </div>
 
               {/* Divider */}
-              <div className='relative z-10 w-full h-px bg-white/10 my-4' />
+              <div className='relative z-10 w-full h-px bg-white/10 my-4 max-sm:hidden' />
 
               {/* Stats */}
-              <div className='relative z-10 flex gap-2'>
+              <div className='relative z-10 flex gap-2 max-sm:hidden'>
                 <StatBadge
                   icon={FaRoute}
                   value={truck?.tripCount ?? 0}
@@ -284,7 +285,7 @@ function TruckDetailsModal ({
               </div>
 
               {/* Divider */}
-              <div className='relative z-10 w-full h-px bg-white/10 my-4' />
+              <div className='relative z-10 w-full h-px bg-white/10 my-4 max-sm:my-3' />
 
               {/* Meta info */}
               <div className='relative z-10 flex justify-between'>
@@ -292,7 +293,7 @@ function TruckDetailsModal ({
                   <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-0.5'>
                     Created
                   </p>
-                  <p className='text-white/70 text-xs'>
+                  <p className='text-white/70 text-xs max-sm:text-xxs'>
                     {truck?.createdAt
                       ? DateTime.fromISO(truck.createdAt).toFormat(
                           'MMM d, yyyy'
@@ -304,7 +305,7 @@ function TruckDetailsModal ({
                   <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-0.5'>
                     Last Updated
                   </p>
-                  <p className='text-white/70 text-xs'>
+                  <p className='text-white/70 text-xs max-sm:text-xxs'>
                     {truck?.updatedAt
                       ? DateTime.fromISO(truck.updatedAt).toFormat(
                           'MMM d, yyyy'
@@ -314,9 +315,9 @@ function TruckDetailsModal ({
                 </div>
               </div>
 
-              {/* Edit mode indicator — absolute, pure opacity fade */}
+              {/* Edit mode indicator — desktop */}
               <div
-                className='absolute bottom-5 left-5 right-5 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2'
+                className='absolute bottom-5 left-5 right-5 max-sm:bottom-3 max-sm:left-3 max-sm:right-3 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2 max-sm:hidden'
                 style={{
                   opacity: isEditMode ? 1 : 0,
                   transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
@@ -324,7 +325,22 @@ function TruckDetailsModal ({
                 }}
               >
                 <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
-                <p className='text-orange-300 text-xs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
+                <p className='text-orange-300 text-xs max-sm:text-xxs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
+                  Edit mode active
+                </p>
+              </div>
+
+              {/* Edit mode indicator — small screen */}
+              <div
+                className='absolute -top-1 -right-1 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-bl-xl pl-3 pb-1 pt-2.5 pr-3 sm:hidden'
+                style={{
+                  opacity: isEditMode ? 1 : 0,
+                  transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
+                  pointerEvents: isEditMode ? 'auto' : 'none'
+                }}
+              >
+                <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
+                <p className='text-orange-300 text-xxs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
                   Edit mode active
                 </p>
               </div>
@@ -333,9 +349,9 @@ function TruckDetailsModal ({
             {/* ══ RIGHT PANEL ═════════════════════════════════════════════════════ */}
             <div className='flex-1 flex flex-col min-w-0 overflow-y-auto'>
               {/* Header */}
-              <div className='flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 shrink-0'>
+              <div className='flex items-center justify-between px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0'>
                 <div>
-                  <h2 className='text-gray-900 font-bold text-lg'>
+                  <h2 className='text-gray-900 font-bold text-lg max-sm:text-base'>
                     Truck Details
                   </h2>
                   <p className='text-gray-400 text-xs mt-0.5'>
@@ -358,7 +374,7 @@ function TruckDetailsModal ({
                 onSubmit={handleUpdateTruck}
                 className='flex-1 flex flex-col'
               >
-                <div className='flex-1 px-6 py-5 grid grid-cols-2 gap-x-4 gap-y-4 content-start'>
+                <div className='flex-1 px-6 py-5 max-sm:px-4 max-sm:pt-4 grid grid-cols-2 gap-x-4 gap-y-4 max-sm:gap-x-3 max-sm:gap-y-3 content-start'>
                   {/* Plate No. */}
                   <InputField
                     label='Plate No.'
@@ -373,16 +389,16 @@ function TruckDetailsModal ({
 
                   {/* Truck Type */}
                   <div className='flex flex-col gap-1.5'>
-                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                       Type
                     </span>
                     {isEditMode ? (
-                      <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                      <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
                         <select
                           name='truckType'
                           value={editForm?.truckType || ''}
                           onChange={handleChange}
-                          className='w-full appearance-none bg-transparent text-sm text-gray-800 focus:outline-none capitalize'
+                          className='w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize'
                         >
                           {settings.trucksDrivers.truckType.map((item, i) => (
                             <option key={i} value={item}>
@@ -390,11 +406,11 @@ function TruckDetailsModal ({
                             </option>
                           ))}
                         </select>
-                        <MdKeyboardArrowDown className='absolute right-4 text-gray-400 text-lg pointer-events-none' />
+                        <MdKeyboardArrowDown className='absolute right-4 max-sm:right-3 text-gray-400 text-lg pointer-events-none' />
                       </div>
                     ) : (
-                      <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 shadow-sm'>
-                        <p className='text-sm text-gray-500 capitalize'>
+                      <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 shadow-sm'>
+                        <p className='text-sm max-sm:text-xs text-gray-500 capitalize'>
                           {editForm?.truckType}
                         </p>
                       </div>
@@ -403,11 +419,11 @@ function TruckDetailsModal ({
 
                   {/* Max Load */}
                   <div className='flex flex-col gap-1.5'>
-                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                       Max Load
                     </span>
                     {isEditMode ? (
-                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
                         <NumericFormat
                           thousandSeparator
                           decimalScale={0}
@@ -423,12 +439,12 @@ function TruckDetailsModal ({
                           }}
                           placeholder='Max Load'
                           disabled={isLoading}
-                          className='flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none min-w-0'
+                          className='flex-1 text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none min-w-0'
                         />
                       </div>
                     ) : (
-                      <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 shadow-sm'>
-                        <p className='text-sm text-gray-500'>
+                      <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 shadow-sm'>
+                        <p className='text-sm max-sm:text-xs text-gray-500'>
                           {editForm?.maxLoad
                             ? Number(editForm.maxLoad).toLocaleString()
                             : '—'}
@@ -439,16 +455,16 @@ function TruckDetailsModal ({
 
                   {/* Status */}
                   <div className='flex flex-col gap-1.5'>
-                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                       Status
                     </span>
                     {isEditMode ? (
-                      <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                      <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
                         <select
                           name='status'
                           value={editForm?.status || ''}
                           onChange={handleChange}
-                          className='w-full appearance-none bg-transparent text-sm text-gray-800 focus:outline-none capitalize'
+                          className='w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize'
                         >
                           {settings.trucksDrivers.status.map((item, i) => (
                             <option key={i} value={item}>
@@ -456,11 +472,11 @@ function TruckDetailsModal ({
                             </option>
                           ))}
                         </select>
-                        <MdKeyboardArrowDown className='absolute right-4 text-gray-400 text-lg pointer-events-none' />
+                        <MdKeyboardArrowDown className='absolute right-4 max-sm:right-3 text-gray-400 text-lg pointer-events-none' />
                       </div>
                     ) : (
-                      <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 shadow-sm'>
-                        <p className='text-sm text-gray-500 capitalize'>
+                      <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 shadow-sm'>
+                        <p className='text-sm max-sm:text-xs text-gray-500 capitalize'>
                           {editForm?.status}
                         </p>
                       </div>
@@ -480,7 +496,7 @@ function TruckDetailsModal ({
 
                   {/* Subcon */}
                   <div className='flex flex-col gap-1.5'>
-                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                       Subcon
                     </span>
                     {isEditMode ? (
@@ -488,15 +504,15 @@ function TruckDetailsModal ({
                         value={editForm?.subcon || ''}
                         onChange={v => handleComboboxChange('subcon', v)}
                       >
-                        <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                        <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
                           <ComboboxInput
-                            className='w-full bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none capitalize min-w-0'
+                            className='w-full bg-transparent text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 focus:outline-none capitalize min-w-0'
                             displayValue={v => v || ''}
                             onChange={e => setSubconQuery(e.target.value)}
                             placeholder='Search subcon...'
                             autoComplete='off'
                           />
-                          <ComboboxButton className='absolute right-4 text-gray-400'>
+                          <ComboboxButton className='absolute right-4 max-sm:right-3 text-gray-400'>
                             <MdKeyboardArrowDown className='text-lg' />
                           </ComboboxButton>
                         </div>
@@ -532,8 +548,8 @@ function TruckDetailsModal ({
                         </ComboboxOptions>
                       </Combobox>
                     ) : (
-                      <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 shadow-sm'>
-                        <p className='text-sm text-gray-700 capitalize truncate'>
+                      <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 shadow-sm'>
+                        <p className='text-sm max-sm:text-xs text-gray-700 capitalize truncate'>
                           {editForm?.subcon?.replace(/_/g, ' ') ||
                             'Not assigned'}
                         </p>
@@ -544,14 +560,14 @@ function TruckDetailsModal ({
 
                 {/* ── Actions ── */}
                 {isAdmin && (
-                  <div className='px-6 pb-5 pt-4 border-t border-gray-100 shrink-0'>
+                  <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0'>
                     {isEditMode ? (
-                      <div className='flex gap-3'>
+                      <div className='flex gap-3 max-sm:gap-2'>
                         <button
                           type='button'
                           onClick={handleCancelEditMode}
                           disabled={isLoading}
-                          className='px-8 py-2.5 rounded-xl font-semibold text-sm uppercase tracking-wide
+                          className='px-8 py-2.5 rounded-xl font-semibold text-sm max-sm:text-xs uppercase tracking-wide
                                      bg-gray-100 text-gray-600 hover:bg-gray-200
                                      cursor-pointer active:scale-[0.99] transition-all
                                      disabled:opacity-50 disabled:cursor-not-allowed
@@ -562,7 +578,7 @@ function TruckDetailsModal ({
                         <button
                           type='submit'
                           disabled={isLoading}
-                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                      shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                      transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                      flex items-center justify-center gap-2'
@@ -579,18 +595,18 @@ function TruckDetailsModal ({
                           ) : (
                             <>
                               <FaSave className='text-sm shrink-0' />
-                              <span>Save </span>
+                              <span>Save</span>
                             </>
                           )}
                         </button>
                       </div>
                     ) : (
-                      <div className='flex gap-3'>
+                      <div className='flex gap-3 max-sm:gap-2'>
                         <button
                           type='button'
                           onClick={() => setIsEditMode(true)}
                           disabled={isLoading}
-                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                      shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                      transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                      flex items-center justify-center gap-2'
@@ -600,13 +616,13 @@ function TruckDetailsModal ({
                           }}
                         >
                           <FaUserEdit className='text-sm shrink-0' />
-                          <span>Edit </span>
+                          <span>Edit</span>
                         </button>
                         <button
                           type='button'
                           onClick={openDeleteModal}
                           disabled={isLoading}
-                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                      shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                      transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                      flex items-center justify-center gap-2'
@@ -616,7 +632,7 @@ function TruckDetailsModal ({
                           }}
                         >
                           <FaTrash className='text-sm shrink-0' />
-                          <span>Delete </span>
+                          <span>Delete</span>
                         </button>
                       </div>
                     )}
@@ -644,12 +660,12 @@ const InputField = ({
   isUppercase = false
 }) => (
   <label className='flex flex-col gap-1.5'>
-    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
       {label} {isRequired && <span className='text-red-400'>*</span>}
     </span>
     <div
       className={clsx(
-        'flex items-center border rounded-xl px-4 py-3 transition-all duration-200 shadow-sm',
+        'flex items-center border rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 transition-all duration-200 shadow-sm',
         disabled
           ? 'bg-gray-50 border-gray-200'
           : 'bg-white border-gray-200 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20'
@@ -666,7 +682,7 @@ const InputField = ({
         disabled={disabled}
         required={isRequired}
         className={clsx(
-          'flex-1 text-sm placeholder-gray-400 bg-transparent focus:outline-none min-w-0',
+          'flex-1 text-sm max-sm:text-xs placeholder-gray-400 bg-transparent focus:outline-none min-w-0',
           disabled ? 'text-gray-500' : 'text-gray-800',
           isUppercase ? 'uppercase' : 'capitalize'
         )}

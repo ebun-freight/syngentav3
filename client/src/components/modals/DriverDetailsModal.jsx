@@ -1,9 +1,4 @@
 import {
-  Combobox,
-  ComboboxButton,
-  ComboboxInput,
-  ComboboxOption,
-  ComboboxOptions,
   Dialog,
   DialogBackdrop,
   DialogPanel,
@@ -87,8 +82,6 @@ function DriverDetailsModal ({
   const [editForm, setEditForm] = useState({})
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
-  const [subconQuery, setSubconQuery] = useState('')
-  const [filteredSubcons, setFilteredSubcons] = useState([])
 
   const { updateDriverFunction, isLoading } = useUpdateDriver()
 
@@ -96,18 +89,6 @@ function DriverDetailsModal ({
     const { name, value } = e.target
     setEditForm(prev => ({ ...prev, [name]: value }))
   }
-
-  const handleComboboxChange = (name, value) => {
-    setEditForm(prev => ({ ...prev, [name]: value }))
-  }
-
-  useEffect(() => {
-    setFilteredSubcons(
-      settings.trucksDrivers.subcon.filter(s =>
-        s.toLowerCase().includes(subconQuery.toLowerCase())
-      )
-    )
-  }, [subconQuery, settings.trucksDrivers.subcon])
 
   const handleFileChange = e => {
     const file = e.target.files[0]
@@ -327,7 +308,7 @@ function DriverDetailsModal ({
 
               {/* Edit mode indicator - small screen */}
               <div
-                className='absolute top-0 right-0 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-bl-xl px-3 py-1 sm:hidden'
+                className='absolute -top-1 -right-1 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-bl-xl pl-3 pb-1 pt-2.5 pr-3 sm:hidden'
                 style={{
                   opacity: isEditMode ? 1 : 0,
                   transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
@@ -452,53 +433,23 @@ function DriverDetailsModal ({
                       Subcon
                     </span>
                     {isEditMode ? (
-                      <Combobox
-                        value={editForm?.subcon || ''}
-                        onChange={v => handleComboboxChange('subcon', v)}
-                      >
-                        <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
-                          <ComboboxInput
-                            className='w-full bg-transparent text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 focus:outline-none capitalize min-w-0'
-                            displayValue={v => v || ''}
-                            onChange={e => setSubconQuery(e.target.value)}
-                            placeholder='Search subcon...'
-                            autoComplete='off'
-                          />
-                          <ComboboxButton className='absolute right-4 max-sm:right-3 text-gray-400'>
-                            <MdKeyboardArrowDown className='text-lg' />
-                          </ComboboxButton>
-                        </div>
-                        <ComboboxOptions
-                          portal
-                          anchor={{ to: 'bottom start', gap: 8 }}
-                          className='z-999 max-h-48 w-(--input-width) overflow-auto rounded-xl bg-white border border-gray-200 shadow-md py-1 text-sm focus:outline-none'
+                      <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                        <select
+                          name='subcon'
+                          value={editForm?.subcon || ''}
+                          onChange={handleChange}
+                          disabled={isLoading}
+                          className='w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize'
                         >
-                          {filteredSubcons.length === 0 ? (
-                            <div className='px-4 py-2 text-gray-400 italic'>
-                              Nothing found.
-                            </div>
-                          ) : (
-                            filteredSubcons.map((subcon, i) => (
-                              <ComboboxOption
-                                key={i}
-                                value={subcon}
-                                className={({ focus }) =>
-                                  clsx(
-                                    'px-4 py-2 cursor-default select-none capitalize transition-colors',
-                                    {
-                                      'bg-gray-50': focus,
-                                      'bg-gray-100 font-medium':
-                                        editForm?.subcon === subcon
-                                    }
-                                  )
-                                }
-                              >
-                                {subcon}
-                              </ComboboxOption>
-                            ))
-                          )}
-                        </ComboboxOptions>
-                      </Combobox>
+                          <option value=''>Not assigned</option>
+                          {settings.trucksDrivers.subcon.map((subcon, i) => (
+                            <option key={i} value={subcon}>
+                              {subcon}
+                            </option>
+                          ))}
+                        </select>
+                        <MdKeyboardArrowDown className='absolute right-4 max-sm:right-3 text-gray-400 text-lg pointer-events-none' />
+                      </div>
                     ) : (
                       <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 shadow-sm'>
                         <p className='text-sm max-sm:text-xs text-gray-700 capitalize truncate'>
@@ -611,7 +562,7 @@ const InputField = ({
   isUppercase = false
 }) => (
   <label className='flex flex-col gap-1.5'>
-    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
       {label} {isRequired && <span className='text-red-400'>*</span>}
     </span>
     <div
