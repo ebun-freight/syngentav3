@@ -63,16 +63,16 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
 
   const SelectField = ({ label, name, value, onChange, options, disabled }) => (
     <div>
-      <label className='block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
+      <label className='block text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
         {label} <span className='text-red-400'>*</span>
       </label>
-      <div className='relative group flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
+      <div className='relative group flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
         <select
           name={name}
           value={value}
           onChange={onChange}
           disabled={disabled}
-          className='w-full appearance-none bg-transparent text-sm text-gray-800 focus:outline-none disabled:opacity-50 capitalize'
+          className='w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none disabled:opacity-50 capitalize'
         >
           {options.map((opt, i) => (
             <option key={i} value={opt.value}>
@@ -80,7 +80,7 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
             </option>
           ))}
         </select>
-        <MdKeyboardArrowDown className='absolute right-4 text-gray-400 group-focus-within:text-primaryColor text-lg pointer-events-none transition-colors' />
+        <MdKeyboardArrowDown className='absolute right-4 max-sm:right-3 text-gray-400 group-focus-within:text-primaryColor text-lg pointer-events-none transition-colors' />
       </div>
     </div>
   )
@@ -100,7 +100,7 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
       </TransitionChild>
 
       {/* Modal container */}
-      <div className='fixed inset-0 flex items-center justify-center p-4'>
+      <div className='fixed inset-0 flex items-center justify-center p-4 max-sm:p-2'>
         <TransitionChild
           enter='ease-out duration-300'
           enterFrom='opacity-0 scale-95'
@@ -111,26 +111,29 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
         >
           <DialogPanel className='font-poppins w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden'>
             {/* ── Header ── */}
-            <div className='flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100'>
+            <div className='flex items-start justify-between px-6 pt-6 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100'>
               <div>
-                <h2 className='text-gray-900 font-bold text-xl'>
+                <h2 className='text-gray-900 font-bold text-xl max-sm:text-base'>
                   Add New Option
                 </h2>
-                <p className='text-gray-500 text-sm mt-0.5'>
+                <p className='text-gray-500 text-sm max-sm:text-xs mt-0.5'>
                   Extend a dropdown list in the system.
                 </p>
               </div>
               <button
                 onClick={handleClose}
-                className='text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-lg text-xl transition-all cursor-pointer'
+                className='text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-lg text-xl transition-all cursor-pointer shrink-0 ml-4'
               >
                 <IoClose />
               </button>
             </div>
 
             {/* ── Form body ── */}
-            <div className='px-6 py-6'>
-              <form onSubmit={handleSubmit} className='space-y-4'>
+            <div className='px-6 py-6 max-sm:px-4 max-sm:py-4'>
+              <form
+                onSubmit={handleSubmit}
+                className='space-y-4 max-sm:space-y-3'
+              >
                 {/* Category */}
                 <SelectField
                   label='Category'
@@ -156,10 +159,10 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
 
                 {/* Value */}
                 <div>
-                  <label className='block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
+                  <label className='block text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
                     Option Value <span className='text-red-400'>*</span>
                   </label>
-                  <div className='flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
+                  <div className='flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
                     <input
                       type='text'
                       name='value'
@@ -169,7 +172,7 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
                       required
                       disabled={isLoading}
                       autoFocus
-                      className='flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none capitalize disabled:opacity-50'
+                      className='flex-1 text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none capitalize disabled:opacity-50'
                     />
                   </div>
                 </div>
@@ -178,11 +181,11 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
                 <button
                   type='submit'
                   disabled={isLoading}
-                  className='w-full py-3 mt-6 rounded-xl font-semibold text-white text-sm
+                  className='w-full py-3 max-sm:py-2.5 mt-2 rounded-xl font-semibold text-white text-sm max-sm:text-xs
                              bg-emerald-500 hover:bg-emerald-600
                              shadow-md hover:shadow-lg active:scale-[0.99]
                              transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed
-                             flex items-center justify-center gap-2.5 cursor-pointer'
+                             flex items-center justify-center gap-2.5 cursor-pointer uppercase tracking-wide'
                 >
                   {isLoading ? (
                     <>
@@ -191,8 +194,8 @@ function CreateOptionModal ({ isOpen, onClose, onCreate, isLoading }) {
                     </>
                   ) : (
                     <>
-                      <FaSave className='text-md' />
-                      <span className='uppercase'>Add Option </span>
+                      <FaSave className='text-sm shrink-0' />
+                      <span>Add Option</span>
                     </>
                   )}
                 </button>

@@ -1,25 +1,26 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
-  Combobox,
-  ComboboxButton,
-  ComboboxInput,
-  ComboboxOption,
-  ComboboxOptions,
   Dialog,
   DialogBackdrop,
   DialogPanel,
   TransitionChild
 } from '@headlessui/react'
 import { IoClose } from 'react-icons/io5'
-import { useState } from 'react'
 import { MdKeyboardArrowDown } from 'react-icons/md'
 import { RiFolderUploadLine } from 'react-icons/ri'
 import { FaSave } from 'react-icons/fa'
-import useCreateDriver from '../../hooks/useCreateDriver'
 import { toast } from 'react-toastify'
 import clsx from 'clsx'
+import useCreateDriver from '../../hooks/useCreateDriver'
 import { useSettingsContext } from '../../contexts/SettingsContext'
 import { no_image } from '../../consts/images'
+
+/* ─── Status badge colours ──────────────────────────────────────────────── */
+const statusStyles = {
+  available: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  deployed: 'bg-blue-50 text-blue-500 border-blue-100',
+  unavailable: 'bg-red-50 text-red-500 border-red-100'
+}
 
 /* ─── Decorative dot pattern ────────────────────────────────────────────── */
 const DotPattern = () => (
@@ -57,18 +58,12 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
   })
 
   const [previewImage, setPreviewImage] = useState(null)
-  const [subconQuery, setSubconQuery] = useState('')
   const { createDriverFunction, isLoading } = useCreateDriver()
-
-  const filteredSubcons = settings.trucksDrivers.subcon.filter(subcon =>
-    subcon.toLowerCase().includes(subconQuery.toLowerCase())
-  )
 
   const handleClose = () => {
     if (previewImage) URL.revokeObjectURL(previewImage)
     onClose()
     setPreviewImage(null)
-    setSubconQuery('')
     setFormData({
       firstname: '',
       lastname: '',
@@ -125,7 +120,7 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
         <DialogBackdrop className='fixed inset-0 bg-black/40 backdrop-blur-sm' />
       </TransitionChild>
 
-      <div className='fixed inset-0 flex items-center justify-center p-4'>
+      <div className='fixed inset-0 flex items-center justify-center p-4 max-sm:p-2'>
         <TransitionChild
           enter='ease-out duration-300'
           enterFrom='opacity-0 scale-95 translate-y-2'
@@ -134,10 +129,10 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
           leaveFrom='opacity-100 scale-100'
           leaveTo='opacity-0 scale-95'
         >
-          <DialogPanel className='font-poppins w-full max-w-4xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col sm:flex-row max-h-[90vh] sm:max-h-none'>
+          <DialogPanel className='font-poppins w-full max-w-4xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col sm:flex-row max-h-[95vh] sm:max-h-none'>
             {/* ══ LEFT PANEL ══════════════════════════════════════════════════════ */}
             <div
-              className='relative flex flex-col overflow-hidden sm:w-72 shrink-0 p-8 pb-10'
+              className='relative flex flex-col overflow-hidden sm:w-72 shrink-0 p-8 pb-10 max-sm:p-5 max-sm:pb-5'
               style={{
                 background:
                   'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
@@ -161,9 +156,9 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
                 }}
               />
 
-              {/* Avatar / Image Upload */}
-              <div className='relative z-10 flex flex-col items-center gap-3'>
-                <div className='w-32 h-32 rounded-2xl overflow-hidden relative border-2 border-dashed border-white/40 hover:border-white/70 cursor-pointer group transition-all'>
+              {/* Avatar / Image Upload — vertical on desktop, horizontal on mobile */}
+              <div className='relative z-10 flex flex-col items-center gap-3 max-sm:flex-row max-sm:gap-4'>
+                <div className='w-32 h-32 rounded-2xl overflow-hidden relative border-2 border-dashed border-white/40 hover:border-white/70 cursor-pointer group transition-all max-sm:w-16 max-sm:h-16 max-sm:rounded-xl shrink-0'>
                   <img
                     src={previewImage || no_image}
                     alt='Preview'
@@ -173,8 +168,10 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
                     )}
                   />
                   <div className='absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white gap-1'>
-                    <RiFolderUploadLine className='text-2xl' />
-                    <span className='text-xs font-medium'>Upload Photo</span>
+                    <RiFolderUploadLine className='text-2xl max-sm:text-base' />
+                    <span className='text-xs font-medium max-sm:hidden'>
+                      Upload Photo
+                    </span>
                   </div>
                   <input
                     type='file'
@@ -184,23 +181,28 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
                   />
                 </div>
 
-                <div className='text-center'>
-                  <p className='text-white/80 font-semibold text-sm leading-tight'>
+                <div className='text-center max-sm:text-left'>
+                  <p className='text-white/80 font-semibold text-sm max-sm:text-xs leading-tight'>
                     {formData.firstname || formData.lastname
                       ? `${formData.firstname} ${formData.lastname}`.trim()
                       : 'New Driver'}
                   </p>
-                  <span className='inline-flex mt-1.5 px-3 py-1 rounded-full text-xxs font-semibold border bg-emerald-50 text-emerald-600 border-emerald-100 capitalize'>
+                  <span
+                    className={clsx(
+                      'inline-flex mt-1.5 px-3 py-1 rounded-full text-xxs font-semibold border capitalize',
+                      statusStyles[formData.status] || statusStyles.available
+                    )}
+                  >
                     {formData.status}
                   </span>
                 </div>
               </div>
 
               {/* Divider */}
-              <div className='relative z-10 w-full h-px bg-white/10 my-4' />
+              <div className='relative z-10 w-full h-px bg-white/10 my-4 max-sm:my-3 max-xs:hidden' />
 
               {/* Helper text */}
-              <div className='relative z-10'>
+              <div className='relative z-10 max-xs:hidden'>
                 <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-1'>
                   Instructions
                 </p>
@@ -215,9 +217,9 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
             {/* ══ RIGHT PANEL ═════════════════════════════════════════════════════ */}
             <div className='flex-1 flex flex-col min-w-0 overflow-y-auto'>
               {/* Header */}
-              <div className='flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 shrink-0'>
+              <div className='flex items-center justify-between px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0'>
                 <div>
-                  <h2 className='text-gray-900 font-bold text-lg'>
+                  <h2 className='text-gray-900 font-bold text-lg max-sm:text-base'>
                     Create New Driver
                   </h2>
                   <p className='text-gray-400 text-xs mt-0.5'>
@@ -235,7 +237,7 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
 
               {/* Form */}
               <form onSubmit={handleSubmit} className='flex-1 flex flex-col'>
-                <div className='flex-1 px-6 py-5 grid grid-cols-2 gap-x-4 gap-y-4 content-start'>
+                <div className='flex-1 px-6 py-5 max-sm:px-4 max-sm:pt-4 grid grid-cols-2 gap-x-4 gap-y-4 max-sm:gap-x-3 max-sm:gap-y-3 content-start'>
                   <InputField
                     label='First Name'
                     type='text'
@@ -279,90 +281,63 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
 
                   {/* Status */}
                   <div className='flex flex-col gap-1.5'>
-                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                       Status <span className='text-red-400'>*</span>
                     </span>
-                    <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                    <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
                       <select
                         name='status'
                         value={formData.status}
                         onChange={handleChange}
                         disabled={isLoading}
-                        className='w-full appearance-none bg-transparent text-sm text-gray-800 focus:outline-none capitalize'
+                        required
+                        className='w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize'
                       >
-                        <option value='available'>Available</option>
-                        <option value='deployed'>Deployed</option>
-                        <option value='unavailable'>Unavailable</option>
+                        {settings.trucksDrivers.status.map((item, i) => (
+                          <option key={i} value={item}>
+                            {item}
+                          </option>
+                        ))}
                       </select>
-                      <MdKeyboardArrowDown className='absolute right-4 text-gray-400 text-lg pointer-events-none' />
+                      <MdKeyboardArrowDown className='absolute right-4 max-sm:right-3 text-gray-400 text-lg pointer-events-none' />
                     </div>
                   </div>
 
                   {/* Subcon */}
                   <div className='flex flex-col gap-1.5'>
-                    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                       Subcon <span className='text-red-400'>*</span>
                     </span>
-                    <Combobox
-                      value={formData.subcon}
-                      onChange={value =>
-                        setFormData(prev => ({ ...prev, subcon: value }))
-                      }
-                    >
-                      <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
-                        <ComboboxInput
-                          className='w-full bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none capitalize min-w-0'
-                          displayValue={v => v || ''}
-                          onChange={e => setSubconQuery(e.target.value)}
-                          placeholder='Search subcon...'
-                          required
-                          autoComplete='off'
-                        />
-                        <ComboboxButton className='absolute right-4 text-gray-400'>
-                          <MdKeyboardArrowDown className='text-lg' />
-                        </ComboboxButton>
-                      </div>
-                      <ComboboxOptions
-                        portal
-                        anchor={{ to: 'bottom start', gap: 8 }}
-                        className='z-999 max-h-48 w-(--input-width) overflow-auto rounded-xl bg-white border border-gray-200 shadow-md py-1 text-sm focus:outline-none'
+                    <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                      <select
+                        name='subcon'
+                        value={formData.subcon}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                        required
+                        className='w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize'
                       >
-                        {filteredSubcons.length === 0 ? (
-                          <div className='px-4 py-2 text-gray-400 italic'>
-                            Nothing found.
-                          </div>
-                        ) : (
-                          filteredSubcons.map((subcon, i) => (
-                            <ComboboxOption
-                              key={i}
-                              value={subcon}
-                              className={({ focus }) =>
-                                clsx(
-                                  'px-4 py-2 cursor-default select-none capitalize transition-colors',
-                                  {
-                                    'bg-gray-50': focus,
-                                    'bg-gray-100 font-medium':
-                                      formData.subcon === subcon
-                                  }
-                                )
-                              }
-                            >
-                              {subcon}
-                            </ComboboxOption>
-                          ))
-                        )}
-                      </ComboboxOptions>
-                    </Combobox>
+                        <option value='' disabled>
+                          Select subcon
+                        </option>
+                        {settings.trucksDrivers.subcon.map((item, i) => (
+                          <option key={i} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                      <MdKeyboardArrowDown className='absolute right-4 max-sm:right-3 text-gray-400 text-lg pointer-events-none' />
+                    </div>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className='px-6 pb-5 pt-4 border-t border-gray-100 shrink-0'>
-                  <div className='flex gap-3'>
+                <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0'>
+                  <div className='flex gap-3 max-sm:gap-2'>
                     <button
                       type='submit'
                       disabled={isLoading}
-                      className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                      className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                  shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                  transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                  flex items-center justify-center gap-2'
@@ -379,7 +354,7 @@ function CreateDriverModal ({ isOpen, onClose, onCreate }) {
                       ) : (
                         <>
                           <FaSave className='text-sm shrink-0' />
-                          <span>Create </span>
+                          <span>Create</span>
                         </>
                       )}
                     </button>
@@ -409,12 +384,12 @@ const InputField = ({
   isUppercase = false
 }) => (
   <label className='flex flex-col gap-1.5'>
-    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
       {label} {isRequired && <span className='text-red-400'>*</span>}
     </span>
     <div
       className={clsx(
-        'flex items-center border rounded-xl px-4 py-3 transition-all duration-200 shadow-sm',
+        'flex items-center border rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 transition-all duration-200 shadow-sm',
         disabled
           ? 'bg-gray-50 border-gray-200'
           : 'bg-white border-gray-200 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20'
@@ -432,7 +407,7 @@ const InputField = ({
         disabled={disabled}
         required={isRequired}
         className={clsx(
-          'flex-1 text-sm placeholder-gray-400 bg-transparent focus:outline-none capitalize min-w-0',
+          'flex-1 text-sm max-sm:text-xs placeholder-gray-400 bg-transparent focus:outline-none capitalize min-w-0',
           disabled ? 'text-gray-500' : 'text-gray-800',
           { uppercase: isUppercase }
         )}

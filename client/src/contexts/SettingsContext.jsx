@@ -29,6 +29,8 @@ export const SettingsProvider = ({ children }) => {
   const fetchSettings = async () => {
     const result = await getSettingsFunction()
 
+    console.log('SETTINGS', result)
+
     if (result.settings) {
       const trucksDrivers = {
         truckType: [],
