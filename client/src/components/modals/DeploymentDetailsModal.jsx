@@ -979,10 +979,14 @@ function DeploymentDetailsModal ({
 
               {/* Edit mode indicator */}
               <div
-                className='absolute bottom-5 left-5 right-5 max-sm:bottom-3 max-sm:left-3 max-sm:right-3 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2 max-lg:hidden'
+                className='relative z-10 mx-5 mb-5 shrink-0 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2 max-lg:hidden mt-2'
                 style={{
                   opacity: isEditMode ? 1 : 0,
-                  transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
+                  maxHeight: isEditMode ? '40px' : '0px',
+                  marginBottom: isEditMode ? '20px' : '0px',
+                  overflow: 'hidden',
+                  transition:
+                    'opacity 500ms cubic-bezier(0.4,0,0.2,1), max-height 500ms cubic-bezier(0.4,0,0.2,1), margin 500ms cubic-bezier(0.4,0,0.2,1)',
                   pointerEvents: isEditMode ? 'auto' : 'none'
                 }}
               >

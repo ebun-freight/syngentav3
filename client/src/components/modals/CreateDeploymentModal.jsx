@@ -348,7 +348,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
           leaveFrom='opacity-100 scale-100'
           leaveTo='opacity-0 scale-95'
         >
-          {/* ── KEY CHANGE: removed max-lg:overflow-y-auto, left panel is now always fixed ── */}
           <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row lg:min-h-200 max-h-[88vh] max-md:max-h-[80vh]'>
             {/* ══ LEFT PANEL ══════════════════════════════════════════════════ */}
             <div
@@ -360,7 +359,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
             >
               <DotPattern />
 
-              {/* Radial glows */}
               <div
                 className='absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-10 pointer-events-none'
                 style={{
@@ -376,7 +374,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 }}
               />
 
-              {/* Icon + title — vertical on desktop, horizontal on tablet/mobile */}
               <div className='relative z-10 flex flex-col items-center gap-3 p-8 pb-4 max-lg:flex-row max-sm:gap-4 max-sm:p-0'>
                 <div className='w-20 h-20 rounded-2xl flex items-center justify-center border-2 border-dashed border-white/40 max-sm:w-14 max-sm:h-14 max-sm:rounded-xl shrink-0 bg-white/5'>
                   <PiMapPinAreaFill className='text-white/60 text-4xl max-sm:text-2xl' />
@@ -392,12 +389,9 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 </div>
               </div>
 
-              {/* Divider */}
               <div className='relative z-10 w-full h-px bg-white/10 my-4 max-sm:my-3' />
 
-              {/* Live summary stats */}
               <div className='relative z-10 px-8 max-sm:px-0 max-sm:mt-3 sm:max-lg:pb-4'>
-                {/* sm–lg: horizontal row; lg+: stacked column */}
                 <div className='hidden sm:flex lg:flex-col justify-between gap-1'>
                   {summaryStats.map(stat => (
                     <div
@@ -414,7 +408,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                   ))}
                 </div>
 
-                {/* xs: wrapped horizontal chips */}
                 <div className='sm:hidden flex flex-wrap justify-between gap-x-4 gap-y-2.5'>
                   {summaryStats.map(stat => (
                     <div key={stat.label} className='flex flex-col gap-0.5'>
@@ -429,10 +422,8 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 </div>
               </div>
 
-              {/* Divider */}
               <div className='relative z-10 w-full h-px bg-white/10 my-4 mx-auto max-lg:hidden' />
 
-              {/* Instructions — desktop only */}
               <div className='relative z-10 max-lg:hidden px-8'>
                 <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-1'>
                   Instructions
@@ -467,7 +458,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 </button>
               </div>
 
-              {/* Scrollable form body */}
+              {/* Single scrollable form body */}
               <div
                 ref={scrollRef}
                 className='flex-1 overflow-y-auto scrollbar-thin min-h-0'
@@ -475,18 +466,19 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 <form
                   id='create-deployment-form'
                   onSubmit={handleSubmit}
-                  className='px-6 py-5 max-sm:px-4 max-sm:py-4 flex flex-col gap-7'
+                  className='flex flex-col gap-7'
                 >
                   {/* ── PICKUP STOPS ── */}
                   <div>
-                    <div className='flex items-center justify-between mb-3'>
-                      <div>
+                    {/* Sticky header — floats above the scrolling content */}
+                    <div className='sticky top-0 z-10 flex items-center justify-between bg-white px-6 py-3 max-sm:px-4 border-b border-gray-100'>
+                      <div className='flex items-center gap-2'>
                         <h3 className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                           Pickup Details
                         </h3>
-                        <p className='text-xxs text-gray-400 mt-0.5'>
-                          {formData.pickups.length}/{MAX_PICKUPS} stops
-                        </p>
+                        <span className='text-xxs text-gray-400'>
+                          ({formData.pickups.length}/{MAX_PICKUPS} stops)
+                        </span>
                       </div>
                       <button
                         type='button'
@@ -499,7 +491,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                       </button>
                     </div>
 
-                    <div className='flex flex-col gap-4'>
+                    <div className='flex flex-col gap-4 px-6 pt-4 max-sm:px-4'>
                       {formData.pickups.map((pickup, index) => (
                         <div
                           key={index}
@@ -521,7 +513,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                             )}
                           </div>
 
-                          {/* Pickup fields: 3-col on sm+, 2-col on mobile */}
                           <div className='grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4'>
                             <InputField
                               label='Pick-up Site'
@@ -539,7 +530,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                               value={pickup.municipality}
                               onChange={e => handlePickupChange(index, e)}
                             />
-                            {/* Scheduled time: full-width on mobile */}
                             <InputField
                               label='Scheduled Pickup Time'
                               type='datetime-local'
@@ -549,7 +539,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                               colSpan={1}
                               mobileColSpan={1}
                             />
-                            {/* Estimated Weight */}
                             <div className='flex flex-col gap-1.5'>
                               <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                                 Est. Weight (kg){' '}
@@ -594,21 +583,20 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                           </div>
                         </div>
                       ))}
-                    </div>
 
-                    {formData.pickups.length >= MAX_PICKUPS && (
-                      <p className='text-xs text-gray-400 mt-2 text-center'>
-                        Maximum of {MAX_PICKUPS} pickup stops reached.
-                      </p>
-                    )}
+                      {formData.pickups.length >= MAX_PICKUPS && (
+                        <p className='text-xs text-gray-400 text-center'>
+                          Maximum of {MAX_PICKUPS} pickup stops reached.
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* ── TRUCK & DRIVER DETAILS ── */}
-                  <div>
+                  <div className='px-6 max-sm:px-4'>
                     <h3 className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3'>
                       Truck & Driver Details
                     </h3>
-                    {/* 1-col on mobile, 2-col on sm+ */}
                     <div className='grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4'>
                       <ComboboxField
                         label='Select Truck'
@@ -652,7 +640,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                   </div>
 
                   {/* ── DELIVERY DETAILS ── */}
-                  <div>
+                  <div className='px-6 pb-5 max-sm:px-4 max-sm:pb-4'>
                     <h3 className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3'>
                       Delivery Details
                     </h3>
@@ -718,7 +706,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                       />
                     </div>
 
-                    {/* Mobile (xs): re-paired 2-col layout — no gaps */}
+                    {/* Mobile (xs): re-paired 2-col layout */}
                     <div className='sm:hidden grid grid-cols-2 gap-3'>
                       <InputField
                         label='Receiving Contact Person'
@@ -780,7 +768,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 </form>
               </div>
 
-              {/* ── ACTION BAR — hidden on xs, shown sm+ ── */}
+              {/* ── ACTION BAR ── */}
               <div className='max-sm:hidden flex items-center gap-3 px-6 py-4 border-t border-gray-100 shrink-0 overflow-x-auto'>
                 <button
                   type='submit'

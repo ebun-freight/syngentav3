@@ -13,13 +13,34 @@ import {
 import { IoClose } from 'react-icons/io5'
 import { MdKeyboardArrowDown } from 'react-icons/md'
 import { toast } from 'react-toastify'
-import {
-  TRUCK_REPLACEMENT_REASONS,
-  TRUCK_TYPES
-} from '../../utils/generalOptions'
+import { TRUCK_REPLACEMENT_REASONS } from '../../utils/generalOptions'
 import clsx from 'clsx'
 import { PiMapPinAreaFill } from 'react-icons/pi'
+import { TbTruckReturn } from 'react-icons/tb'
 import useUpdateDeployment from '../../hooks/useUpdateDeployment'
+import { useSettingsContext } from '../../contexts/SettingsContext'
+
+/* ─── Decorative dot pattern ────────────────────────────────────────────── */
+const DotPattern = () => (
+  <svg
+    className='absolute inset-0 w-full h-full opacity-10 pointer-events-none'
+    xmlns='http://www.w3.org/2000/svg'
+  >
+    <defs>
+      <pattern
+        id='dots-replacement'
+        x='0'
+        y='0'
+        width='20'
+        height='20'
+        patternUnits='userSpaceOnUse'
+      >
+        <circle cx='2' cy='2' r='1.2' fill='white' />
+      </pattern>
+    </defs>
+    <rect width='100%' height='100%' fill='url(#dots-replacement)' />
+  </svg>
+)
 
 function ReplacementModal ({
   isOpen,
@@ -40,13 +61,12 @@ function ReplacementModal ({
     remarks: ''
   })
 
-  // Search states
   const [truckQuery, setTruckQuery] = useState('')
   const [driverQuery, setDriverQuery] = useState('')
 
   const { updateDeploymentFunction, isLoading } = useUpdateDeployment()
+  const { settings } = useSettingsContext()
 
-  // Filter trucks and drivers based on search
   const filteredTrucks =
     trucks?.filter(
       truck =>
@@ -64,7 +84,6 @@ function ReplacementModal ({
         driver._id !== deployment?.driverId?._id
     ) || []
 
-  // Get selected option labels
   const selectedTruck = trucks?.find(truck => truck._id === formData.truckId)
   const selectedDriver = drivers?.find(
     driver => driver._id === formData.driverId
@@ -81,11 +100,8 @@ function ReplacementModal ({
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  // create deployment
   const handleSubmit = async e => {
     e.preventDefault()
-
-    console.log('FROM MODAL', formData)
 
     const replacement = {
       replacementTruckId: formData.truckId,
@@ -102,13 +118,10 @@ function ReplacementModal ({
     })
 
     if (result.success) {
-      console.log(result.data.deployment)
       toast.success(result.data.message)
-
       onUpdate(result.data.deployment)
       handleClose()
     } else {
-      console.log(result.error)
       toast.error(result.error)
     }
   }
@@ -129,8 +142,25 @@ function ReplacementModal ({
     }
   }, [isOpen, deployment])
 
+  /* ── Left panel summary stats ── */
+  const summaryStats = [
+    { label: 'New Truck', value: selectedTruck ? selectedTruck.plateNo : '—' },
+    {
+      label: 'New Driver',
+      value: selectedDriver
+        ? `${selectedDriver.firstname} ${selectedDriver.lastname}`
+        : '—'
+    },
+    { label: 'Truck Type', value: formData.truckType || '—' },
+    { label: 'Helpers', value: formData.helperCount || '0' }
+  ]
+
   return (
-    <Dialog open={isOpen} onClose={() => onClose()} className='relative z-50'>
+    <Dialog
+      open={isOpen}
+      onClose={isLoading ? () => {} : handleClose}
+      className='relative z-50'
+    >
       {/* Backdrop */}
       <TransitionChild
         enter='ease-out duration-300'
@@ -140,254 +170,286 @@ function ReplacementModal ({
         leaveFrom='opacity-100'
         leaveTo='opacity-0'
       >
-        <DialogBackdrop className='fixed inset-0 bg-black/30 backdrop-blur-sm' />
+        <DialogBackdrop className='fixed inset-0 bg-black/40 backdrop-blur-sm' />
       </TransitionChild>
 
       {/* Modal container */}
-      <div className='fixed inset-0 flex items-center justify-center p-4'>
+      <div className='fixed inset-0 flex items-center justify-center p-4 max-sm:p-2'>
         <TransitionChild
           enter='ease-out duration-300'
-          enterFrom='opacity-0 -translate-y-8'
-          enterTo='opacity-100 translate-y-0'
+          enterFrom='opacity-0 scale-95 translate-y-2'
+          enterTo='opacity-100 scale-100 translate-y-0'
           leave='ease-in duration-200'
-          leaveFrom='opacity-100 translate-y-0'
-          leaveTo='opacity-0 -translate-y-8'
+          leaveFrom='opacity-100 scale-100'
+          leaveTo='opacity-0 scale-95'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-2xl rounded-2xl bg-white shadow-xl overflow-hidden relative '>
-            {/* close button */}
-            <button
-              onClick={() => handleClose()}
-              className='absolute top-4 right-4 hover:bg-gray-100 p-1 rounded-full text-2xl text-gray-600 cursor-pointer transition-all'
+          {/* ✅ lg:flex-row + max-h matching CreateDeploymentModal */}
+          <DialogPanel className='font-poppins text-gray-900 w-full max-w-3xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row max-h-[88vh] max-md:max-h-[80vh]'>
+            {/* ══ LEFT PANEL ══════════════════════════════════════════════════ */}
+            {/* ✅ lg:w-72, padding override only on max-sm */}
+            <div
+              className='relative flex flex-col overflow-hidden lg:w-72 shrink-0 max-sm:p-5 max-sm:pb-4'
+              style={{
+                background:
+                  'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
+              }}
             >
-              <IoClose />
-            </button>
+              <DotPattern />
 
-            <form onSubmit={handleSubmit} className='px-6 py-8 '>
-              <h2 className='text-lg font-semibold'>Replacement Truck</h2>
-              <div className='grid grid-cols-2 gap-x-6 gap-y-4 mt-4'>
-                {/* select truck */}
-                <div className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
+              {/* Radial glows */}
+              <div
+                className='absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-10 pointer-events-none'
+                style={{
+                  background:
+                    'radial-gradient(circle, #475569 0%, transparent 70%)'
+                }}
+              />
+              <div
+                className='absolute -bottom-12 -left-12 w-44 h-44 rounded-full opacity-10 pointer-events-none'
+                style={{
+                  background:
+                    'radial-gradient(circle, #334155 0%, transparent 70%)'
+                }}
+              />
+
+              {/* ✅ Icon + title — vertical on desktop, horizontal on tablet/mobile (max-lg:flex-row) */}
+              <div className='relative z-10 flex flex-col items-center gap-3 p-8 pb-4 max-lg:flex-row max-sm:gap-4 max-sm:p-0'>
+                <div className='w-20 h-20 rounded-2xl flex items-center justify-center border-2 border-dashed border-white/40 max-sm:w-14 max-sm:h-14 max-sm:rounded-xl shrink-0 bg-white/5'>
+                  <TbTruckReturn className='text-white/60 text-4xl max-sm:text-2xl' />
+                </div>
+                <div className='text-center max-lg:text-left'>
+                  <p className='text-white font-bold text-base max-sm:text-sm leading-tight'>
                     Replacement Truck
+                  </p>
+                  <span className='inline-flex mt-1.5 px-3 py-1 rounded-full text-xxs font-semibold border bg-amber-50 text-amber-600 border-amber-100'>
+                    In Progress
                   </span>
-                  <Combobox
-                    value={formData.truckId}
-                    onChange={value =>
-                      setFormData(prev => ({ ...prev, truckId: value }))
-                    }
-                  >
-                    <div className='relative'>
-                      <ComboboxInput
-                        className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 uppercase'
-                        displayValue={truckId =>
-                          selectedTruck ? selectedTruck.plateNo : ''
-                        }
-                        onChange={event => setTruckQuery(event.target.value)}
-                        required
-                      />
-                      <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                        <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                      </ComboboxButton>
-                      <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                        {filteredTrucks.length === 0 ? (
-                          <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                            Nothing found.
-                          </div>
-                        ) : (
-                          filteredTrucks.map(truck => (
-                            <ComboboxOption
-                              key={truck._id}
-                              value={truck._id}
-                              className={({ focus }) =>
-                                `relative cursor-default select-none py-2 px-4 text-base ${
-                                  focus ? 'bg-gray-50' : 'text-gray-900'
-                                } ${
-                                  formData.truckId === truck._id
-                                    ? 'bg-gray-100'
-                                    : ''
-                                }`
-                              }
-                            >
-                              {({ selected }) => (
-                                <span className='block truncate uppercase'>
-                                  {truck.plateNo}
-                                </span>
-                              )}
-                            </ComboboxOption>
-                          ))
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className='relative z-10 w-full h-px bg-white/10 my-4 max-sm:my-3' />
+
+              {/* ✅ Live summary stats — 3-tier pattern from CreateDeploymentModal */}
+              <div className='relative z-10 px-8 max-sm:px-0 max-sm:mt-3 sm:max-lg:pb-4'>
+                {/* sm–lg: horizontal row; lg+: stacked column */}
+                <div className='hidden sm:flex lg:flex-col justify-between gap-1'>
+                  {summaryStats.map(stat => (
+                    <div
+                      key={stat.label}
+                      className='flex items-center justify-between gap-2'
+                    >
+                      <span className='text-white/40 text-xxs uppercase tracking-wider font-semibold shrink-0'>
+                        {stat.label}
+                      </span>
+                      <span
+                        className={clsx(
+                          'text-white/70 text-xs font-medium text-right truncate max-w-28',
+                          stat.label === 'New Truck'
+                            ? 'uppercase'
+                            : 'capitalize'
                         )}
-                      </ComboboxOptions>
+                      >
+                        {stat.value}
+                      </span>
                     </div>
-                  </Combobox>
+                  ))}
                 </div>
 
-                {/* select driver */}
-                <div className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Replacement Driver
-                  </span>
-                  <Combobox
-                    value={formData.driverId}
-                    onChange={value =>
-                      setFormData(prev => ({ ...prev, driverId: value }))
-                    }
-                  >
-                    <div className='relative'>
-                      <ComboboxInput
-                        className='w-full outline outline-gray-300 px-3 py-2 rounded focus:outline-1 focus:outline-gray-400 capitalize'
-                        displayValue={driverId =>
-                          selectedDriver
-                            ? `${selectedDriver.firstname} ${selectedDriver.lastname}`
-                            : ''
-                        }
-                        onChange={event => setDriverQuery(event.target.value)}
-                        required
-                      />
-                      <ComboboxButton className='absolute inset-y-0 right-0 flex items-center pr-2'>
-                        <MdKeyboardArrowDown className='h-5 w-5 text-gray-400' />
-                      </ComboboxButton>
-                      <ComboboxOptions className='absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white outline-1 outline-gray-300 py-1 text-base shadow-sm focus:outline-none sm:text-sm'>
-                        {filteredDrivers.length === 0 ? (
-                          <div className='relative cursor-default select-none px-4 py-2 text-gray-700'>
-                            Nothing found.
-                          </div>
-                        ) : (
-                          filteredDrivers.map(driver => (
-                            <ComboboxOption
-                              key={driver._id}
-                              value={driver._id}
-                              className={({ focus }) =>
-                                `relative cursor-default select-none py-2 px-4 text-base ${
-                                  focus ? 'bg-gray-50' : 'text-gray-900'
-                                } ${
-                                  formData.driverId === driver._id
-                                    ? 'bg-gray-100'
-                                    : ''
-                                }`
-                              }
-                            >
-                              {({ selected }) => (
-                                <span className='block truncate capitalize'>
-                                  {`${driver.firstname} ${driver.lastname}`}
-                                </span>
-                              )}
-                            </ComboboxOption>
-                          ))
+                {/* xs: wrapped horizontal chips */}
+                <div className='sm:hidden flex flex-wrap justify-between gap-x-4 gap-y-2.5'>
+                  {summaryStats.map(stat => (
+                    <div key={stat.label} className='flex flex-col gap-0.5'>
+                      <span className='text-white/40 text-xxs uppercase tracking-wider font-semibold'>
+                        {stat.label}
+                      </span>
+                      <span
+                        className={clsx(
+                          'text-white/70 text-xxs font-medium truncate',
+                          stat.label === 'New Truck'
+                            ? 'uppercase'
+                            : 'capitalize'
                         )}
-                      </ComboboxOptions>
+                      >
+                        {stat.value}
+                      </span>
                     </div>
-                  </Combobox>
+                  ))}
                 </div>
+              </div>
 
-                {/* type */}
-                <label className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Truck Type
-                  </span>
-                  <div className='relative'>
-                    <select
+              {/* Divider */}
+              <div className='relative z-10 w-full h-px bg-white/10 my-4 mx-auto max-lg:hidden' />
+
+              {/* ✅ Instructions — max-lg:hidden (was max-sm:hidden) */}
+              <div className='relative z-10 max-lg:hidden px-8'>
+                <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-1'>
+                  Instructions
+                </p>
+                <p className='text-white/50 text-xs leading-relaxed'>
+                  Select a replacement truck and driver. Fields marked with{' '}
+                  <span className='text-red-400 font-bold'>*</span> are
+                  required.
+                </p>
+              </div>
+            </div>
+
+            {/* ══ RIGHT PANEL ═════════════════════════════════════════════════ */}
+            {/* ✅ min-h-0 overflow-hidden with inner scrollable body */}
+            <div className='flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden'>
+              {/* Header */}
+              <div className='flex items-start justify-between px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0'>
+                <div>
+                  <h2 className='text-gray-900 font-bold text-lg max-sm:text-base'>
+                    Replacement Truck
+                  </h2>
+                  <p className='text-gray-400 text-xs mt-0.5'>
+                    Assign a new truck and driver to this deployment.
+                  </p>
+                </div>
+                <button
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className='text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-lg text-xl transition-all cursor-pointer disabled:opacity-40 shrink-0 ml-4'
+                >
+                  <IoClose />
+                </button>
+              </div>
+
+              {/* ✅ Scrollable form body */}
+              <div className='flex-1 overflow-y-auto scrollbar-thin min-h-0'>
+                <form
+                  id='replacement-form'
+                  onSubmit={handleSubmit}
+                  className='px-6 py-5 max-sm:px-4 max-sm:py-4 flex flex-col gap-7'
+                >
+                  <div className='grid grid-cols-2 gap-x-4 gap-y-4 max-sm:gap-x-3 max-sm:gap-y-3'>
+                    {/* Replacement Truck combobox */}
+                    <ComboboxField
+                      label='Replacement Truck'
+                      value={formData.truckId}
+                      onChange={value =>
+                        setFormData(prev => ({ ...prev, truckId: value }))
+                      }
+                      displayValue={() =>
+                        selectedTruck ? selectedTruck.plateNo.toUpperCase() : ''
+                      }
+                      onQueryChange={e => setTruckQuery(e.target.value)}
+                      options={filteredTrucks.map(t => ({
+                        value: t._id,
+                        label: t.plateNo.toUpperCase()
+                      }))}
+                      placeholder='Search plate no.'
+                      isUppercase
+                    />
+
+                    {/* Replacement Driver combobox */}
+                    <ComboboxField
+                      label='Replacement Driver'
+                      value={formData.driverId}
+                      onChange={value =>
+                        setFormData(prev => ({ ...prev, driverId: value }))
+                      }
+                      displayValue={() =>
+                        selectedDriver
+                          ? `${selectedDriver.firstname} ${selectedDriver.lastname}`
+                          : ''
+                      }
+                      onQueryChange={e => setDriverQuery(e.target.value)}
+                      options={filteredDrivers.map(d => ({
+                        value: d._id,
+                        label: `${d.firstname} ${d.lastname}`
+                      }))}
+                      placeholder='Search driver name'
+                    />
+
+                    {/* Truck Type */}
+                    <SelectField
+                      label='Truck Type'
                       name='truckType'
                       value={formData.truckType}
                       onChange={handleChange}
-                      required
-                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-2 focus:outline-gray-400 appearance-none w-full'
-                    >
-                      <option value='' disabled>
-                        Select
-                      </option>
-                      {TRUCK_TYPES.map((item, index) => (
-                        <option key={index} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
-                  </div>
-                </label>
+                      options={settings.trucksDrivers.truckType}
+                    />
 
-                {/* helper count */}
-                <InputField
-                  label='Helper Count'
-                  type='number'
-                  name='helperCount'
-                  placeholder='Helper Count'
-                  value={formData.helperCount}
-                  onChange={handleChange}
-                />
+                    {/* Helper Count */}
+                    <InputField
+                      label='Helper Count'
+                      type='number'
+                      name='helperCount'
+                      placeholder='Helper Count'
+                      value={formData.helperCount}
+                      onChange={handleChange}
+                    />
 
-                {/* replace at */}
-                <InputField
-                  label='Replaced At'
-                  type='datetime-local'
-                  name='replacedAt'
-                  placeholder='Replaced At'
-                  isCapitalize={false}
-                  value={formData.replacedAt}
-                  onChange={handleChange}
-                />
+                    {/* Replaced At */}
+                    <InputField
+                      label='Replaced At'
+                      type='datetime-local'
+                      name='replacedAt'
+                      value={formData.replacedAt}
+                      onChange={handleChange}
+                      isCapitalize={false}
+                    />
 
-                {/* reason */}
-                <label className='flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Reason
-                  </span>
-                  <div className='relative'>
-                    <select
+                    {/* Reason */}
+                    <SelectField
+                      label='Reason'
                       name='reason'
                       value={formData.reason}
                       onChange={handleChange}
-                      required
-                      className='outline outline-gray-300 px-3 py-2 rounded focus:outline-2 focus:outline-gray-400 appearance-none w-full'
-                    >
-                      <option value='' disabled>
-                        Select
-                      </option>
-                      {TRUCK_REPLACEMENT_REASONS.map((item, index) => (
-                        <option key={index} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                    <MdKeyboardArrowDown className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-lg' />
+                      options={TRUCK_REPLACEMENT_REASONS}
+                    />
+
+                    {/* Remarks */}
+                    <div className='col-span-2 flex flex-col gap-1.5'>
+                      <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                        Remarks
+                      </span>
+                      <div className='flex items-start bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
+                        <textarea
+                          name='remarks'
+                          value={formData.remarks}
+                          onChange={handleChange}
+                          rows={3}
+                          placeholder='Write a message here...'
+                          className='flex-1 text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none resize-none'
+                        />
+                      </div>
+                    </div>
                   </div>
-                </label>
-
-                {/* remarks */}
-                <label className='col-span-full flex flex-col gap-1'>
-                  <span className='uppercase text-xs text-gray-500 font-semibold'>
-                    Remarks
-                  </span>
-                  <textarea
-                    name='remarks'
-                    value={formData.remarks}
-                    onChange={handleChange}
-                    rows={3}
-                    placeholder='Write a message here...'
-                    className='outline outline-gray-300 px-3 py-2 rounded focus:outline-2 focus:outline-gray-400 appearance-none w-full resize-none'
-                  />
-                </label>
-
-                {/* submit button */}
-                <div className='col-span-full mt-6'>
-                  <button
-                    type='submit'
-                    className='bg-linear-to-b from-emerald-500 to-emerald-600 text-white px-8 py-2 uppercase text-sm font-semibold rounded flex items-center gap-2 cursor-pointer active:scale-95 transition-all hover:brightness-95'
-                  >
-                    {isLoading ? (
-                      <>
-                        <span className='loading loading-spinner loading-xs'></span>
-                        Deploying
-                      </>
-                    ) : (
-                      <>
-                        <PiMapPinAreaFill className='text-xl' />
-                        Deploy Truck
-                      </>
-                    )}
-                  </button>
-                </div>
+                </form>
               </div>
-            </form>
+
+              {/* ✅ Action bar — detached from form body, always visible at bottom */}
+              <div className='flex items-center gap-3 px-6 py-4 border-t border-gray-100 shrink-0'>
+                <button
+                  type='submit'
+                  form='replacement-form'
+                  disabled={isLoading}
+                  className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
+                             shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
+                             transition-all disabled:opacity-70 disabled:cursor-not-allowed
+                             flex items-center justify-center gap-2'
+                  style={{
+                    background:
+                      'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                  }}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className='loading loading-spinner loading-xs sm:loading-sm' />
+                      <span>Deploying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <PiMapPinAreaFill className='text-base shrink-0' />
+                      <span>Deploy Truck</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </DialogPanel>
         </TransitionChild>
       </div>
@@ -395,8 +457,109 @@ function ReplacementModal ({
   )
 }
 
+/* ─── ComboboxField ─────────────────────────────────────────────────────── */
+const ComboboxField = ({
+  label,
+  value,
+  onChange,
+  displayValue,
+  onQueryChange,
+  options,
+  placeholder,
+  required = true,
+  isUppercase = false
+}) => (
+  <div className='flex flex-col gap-1.5'>
+    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+      {label} {required && <span className='text-red-400'>*</span>}
+    </span>
+    <Combobox value={value} onChange={onChange}>
+      <div className='relative group flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
+        <ComboboxInput
+          className={clsx(
+            'w-full bg-transparent text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 focus:outline-none',
+            isUppercase ? 'uppercase' : 'capitalize'
+          )}
+          displayValue={displayValue}
+          onChange={onQueryChange}
+          placeholder={placeholder}
+          required={required}
+          autoComplete='off'
+        />
+        <ComboboxButton className='absolute right-4 max-sm:right-3 flex items-center text-gray-400 group-focus-within:text-primaryColor transition-colors'>
+          <MdKeyboardArrowDown className='text-lg' />
+        </ComboboxButton>
+        <ComboboxOptions className='absolute z-50 top-full left-0 mt-2 max-h-48 w-full overflow-auto rounded-xl bg-white border border-gray-200 shadow-md py-1 text-sm focus:outline-none'>
+          {options.length === 0 ? (
+            <div className='px-4 py-2 text-gray-400 text-sm italic'>
+              Nothing found.
+            </div>
+          ) : (
+            options.map(opt => (
+              <ComboboxOption
+                key={opt.value}
+                value={opt.value}
+                className={({ focus }) =>
+                  clsx(
+                    'px-4 py-2 cursor-default select-none transition-colors',
+                    isUppercase ? 'uppercase' : 'capitalize',
+                    {
+                      'bg-gray-50': focus,
+                      'bg-gray-100 font-medium': value === opt.value
+                    }
+                  )
+                }
+              >
+                {opt.label}
+              </ComboboxOption>
+            ))
+          )}
+        </ComboboxOptions>
+      </div>
+    </Combobox>
+  </div>
+)
+
+/* ─── SelectField ───────────────────────────────────────────────────────── */
+const SelectField = ({
+  label,
+  name,
+  value,
+  onChange,
+  options,
+  required = true
+}) => (
+  <div className='flex flex-col gap-1.5'>
+    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+      {label} {required && <span className='text-red-400'>*</span>}
+    </span>
+    <div className='relative group flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        required={required}
+        className='w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize'
+      >
+        <option value='' disabled>
+          Select
+        </option>
+        {options.map((item, index) => {
+          const isObj = typeof item === 'object' && item !== null
+          return (
+            <option key={index} value={isObj ? item.value : item}>
+              {isObj ? item.label : item}
+            </option>
+          )
+        })}
+      </select>
+      <MdKeyboardArrowDown className='absolute right-4 max-sm:right-3 text-gray-400 group-focus-within:text-primaryColor text-lg pointer-events-none transition-colors' />
+    </div>
+  </div>
+)
+
+/* ─── InputField ────────────────────────────────────────────────────────── */
 const InputField = ({
-  colSpan = 1,
   label,
   type,
   name,
@@ -406,37 +569,37 @@ const InputField = ({
   disabled,
   maxLength,
   isRequired = true,
-  isCapitalize = true,
-  isUpperCase = false,
-  isFullWidth = true
-}) => {
-  return (
-    <label className={`col-span-${colSpan} flex flex-col gap-1`}>
-      <span className='uppercase text-xs text-gray-500 font-semibold'>
-        {label}
-      </span>
+  isCapitalize = true
+}) => (
+  <label className='flex flex-col gap-1.5'>
+    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+      {label} {isRequired && <span className='text-red-400'>*</span>}
+    </span>
+    <div
+      className={clsx(
+        'flex items-center border rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 transition-all duration-200 shadow-sm',
+        disabled
+          ? 'bg-gray-50 border-gray-200'
+          : 'bg-white border-gray-200 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20'
+      )}
+    >
       <input
         type={type}
         name={name}
         placeholder={placeholder}
         value={value}
-        minLength={2}
-        maxLength={maxLength || 30}
+        maxLength={maxLength || 50}
         onChange={onChange}
         disabled={disabled}
         required={isRequired}
         className={clsx(
-          'outline outline-gray-200 px-3 py-2 rounded break-all focus:outline-gray-400 ',
-          {
-            capitalize: isCapitalize,
-            uppercase: isUpperCase,
-            'w-56': !isFullWidth,
-            'w-full': isFullWidth
-          }
+          'flex-1 text-sm max-sm:text-xs placeholder-gray-400 bg-transparent focus:outline-none min-w-0',
+          disabled ? 'text-gray-500' : 'text-gray-800',
+          { capitalize: isCapitalize && type !== 'datetime-local' }
         )}
       />
-    </label>
-  )
-}
+    </div>
+  </label>
+)
 
 export default ReplacementModal
