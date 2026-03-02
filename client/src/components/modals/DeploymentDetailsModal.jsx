@@ -1185,7 +1185,7 @@ function DeploymentDetailsModal ({
 
                 {/* Action buttons */}
                 {updatable && (
-                  <div className='flex items-start gap-3 px-6 py-4 max-sm:px-4 border-t border-gray-100 shrink-0 overflow-x-auto'>
+                  <div className='flex items-start gap-3 px-6 py-4 max-sm:px-4 border-t border-gray-100 shrink-0 overflow-x-auto max-sm:hidden'>
                     {isEditMode ? (
                       <>
                         <button
@@ -1799,7 +1799,7 @@ const DeploymentInfoTab = ({
               >
                 <div className='relative'>
                   <ComboboxInput
-                    className='w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 min-h-[42px] max-sm:min-h-[36px] text-sm max-sm:text-xs focus:outline-none focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 shadow-sm uppercase transition-all'
+                    className='w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 min-h-[42px] max-sm:min-h-9 text-sm max-sm:text-xs focus:outline-none focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 shadow-sm uppercase transition-all'
                     displayValue={id =>
                       trucks?.find(t => t._id === id)?.plateNo || ''
                     }
@@ -1900,7 +1900,7 @@ const DeploymentInfoTab = ({
               >
                 <div className='relative'>
                   <ComboboxInput
-                    className='w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 min-h-[42px] max-sm:min-h-[36px] text-sm max-sm:text-xs focus:outline-none focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 shadow-sm capitalize transition-all'
+                    className='w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 min-h-[42px] max-sm:min-h-9 text-sm max-sm:text-xs focus:outline-none focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 shadow-sm capitalize transition-all'
                     displayValue={id => {
                       const d = drivers?.find(d => d._id === id)
                       return d ? `${d.firstname} ${d.lastname}` : ''
@@ -2398,7 +2398,7 @@ const InfoField = ({ label, children }) => (
 const InfoValue = ({ children, className = '' }) => (
   <div
     className={clsx(
-      'flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 shadow-sm text-sm max-sm:text-xs text-gray-700 min-h-[42px] max-sm:min-h-[36px] truncate',
+      'flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 shadow-sm text-sm max-sm:text-xs text-gray-700 min-h-[42px] max-sm:min-h-9 truncate',
       className
     )}
   >
@@ -2409,7 +2409,7 @@ const InfoValue = ({ children, className = '' }) => (
 )
 
 const SelectWrapper = ({ name, value, onChange, children }) => (
-  <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 min-h-[42px] max-sm:min-h-[36px] focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+  <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 min-h-[42px] max-sm:min-h-9 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
     <select
       name={name}
       value={value}
