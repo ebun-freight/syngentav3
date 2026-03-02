@@ -514,7 +514,7 @@ function UserDetailsModal ({
                   {/* Password fields */}
                   <div
                     className={clsx(
-                      'col-span-2 grid grid-cols-2 gap-x-4 max-sm:gap-x-3 overflow-hidden',
+                      'col-span-2 grid grid-cols-2 gap-x-4 max-sm:gap-x-3 overflow-hidden max-sm:hidden',
                       !isEditMode && 'pointer-events-none'
                     )}
                     style={{
@@ -550,7 +550,7 @@ function UserDetailsModal ({
                 </div>
 
                 {/* ── Actions ── */}
-                <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0'>
+                <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0 max-sm:hidden'>
                   {isEditMode ? (
                     <div className='flex gap-3 max-sm:gap-2'>
                       <button

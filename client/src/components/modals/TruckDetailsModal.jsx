@@ -560,7 +560,7 @@ function TruckDetailsModal ({
 
                 {/* ── Actions ── */}
                 {isAdmin && (
-                  <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0'>
+                  <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0 max-sm:hidden'>
                     {isEditMode ? (
                       <div className='flex gap-3 max-sm:gap-2'>
                         <button

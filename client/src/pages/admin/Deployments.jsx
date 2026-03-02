@@ -377,7 +377,7 @@ function Deployments () {
               <input
                 type='text'
                 name='search'
-                placeholder='Search deployments...'
+                placeholder='Search...'
                 value={tempFilters.search}
                 onChange={handleChangeFilter}
                 autoComplete='off'
@@ -683,7 +683,7 @@ function Deployments () {
                       <td className='max-sm:hidden w-8'>
                         <input
                           type='checkbox'
-                          className='checkbox checkbox-sm'
+                          className='checkbox checkbox-sm outline outline-gray-300 rounded text-emerald-600'
                           checked={isAllSelected}
                           ref={el => {
                             if (el) el.indeterminate = isIndeterminate
@@ -725,7 +725,7 @@ function Deployments () {
                         >
                           <input
                             type='checkbox'
-                            className='checkbox checkbox-sm'
+                            className='checkbox checkbox-sm outline outline-gray-300 rounded text-emerald-600'
                             checked={selectedIds.has(deployment._id)}
                             onChange={() => {}}
                           />

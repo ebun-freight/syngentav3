@@ -20,6 +20,12 @@ export const UserProvider = ({ children }) => {
 
     setUserData(prev => ({ ...prev, isLoading: true }))
 
+    if (!token) {
+      toast.error('Authentication Failed')
+      navigate('/')
+      return
+    }
+
     try {
       const response = await axios.get(`${API_USER}/current-user`, {
         headers: { Authorization: `Bearer ${token}` }
