@@ -666,10 +666,11 @@ function DeploymentDetailsModal ({
           leaveFrom='opacity-100 scale-100'
           leaveTo='opacity-0 scale-95'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row lg:min-h-200 max-h-[88vh] max-lg:overflow-y-auto'>
+          {/* ── KEY CHANGE: removed max-lg:overflow-y-auto so only the right panel scrolls ── */}
+          <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row lg:min-h-200 max-h-[88vh] max-md:max-h-[80vh]'>
             {/* ══ LEFT PANEL ════════════════════════════════════════════════════ */}
             <div
-              className='relative flex flex-col overflow-hidden lg:w-72 shrink-0 max-sm:p-5 max-sm:pb-4 bg-amber-300'
+              className='relative flex flex-col overflow-hidden lg:w-72 shrink-0 max-sm:p-5 max-sm:pb-4'
               style={{
                 background:
                   'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
@@ -713,7 +714,7 @@ function DeploymentDetailsModal ({
 
               <div className='relative z-10 px-8 max-sm:px-0 max-sm:mt-3 sm:max-lg:pb-4'>
                 {/* sm+: stacked rows */}
-                <div className='hidden sm:flex flex-col gap-1'>
+                <div className='hidden md:flex flex-col gap-1'>
                   <div className='flex items-center justify-between gap-2'>
                     <span className='text-white/40 text-xxs uppercase tracking-wider font-semibold'>
                       DP Code
@@ -733,12 +734,12 @@ function DeploymentDetailsModal ({
                 </div>
 
                 {/* xs: 2-column grid */}
-                <div className='sm:hidden flex justify-between gap-x-4 gap-y-2.5'>
+                <div className='md:hidden flex justify-between gap-x-4 gap-y-2.5'>
                   <div className='flex flex-col gap-0.5'>
                     <span className='text-white/40 text-xxs uppercase tracking-wider font-semibold'>
                       DP Code
                     </span>
-                    <span className='text-white/70 text-xxs font-mono font-medium truncate'>
+                    <span className='text-white/70 text-xxs sm:text-xs font-mono font-medium truncate'>
                       #{editForm?.deploymentCode}
                     </span>
                   </div>
@@ -747,7 +748,7 @@ function DeploymentDetailsModal ({
                     <span className='text-white/40 text-xxs uppercase tracking-wider font-semibold'>
                       Stops
                     </span>
-                    <span className='text-white/70 text-xxs font-medium'>
+                    <span className='text-white/70 text-xxs sm:text-xs font-medium'>
                       {pickups.length} {pickups.length === 1 ? 'stop' : 'stops'}
                     </span>
                   </div>
@@ -756,7 +757,7 @@ function DeploymentDetailsModal ({
                     <span className='text-white/40 text-xxs uppercase tracking-wider font-semibold'>
                       Assigned
                     </span>
-                    <span className='text-white/70 text-xxs font-medium'>
+                    <span className='text-white/70 text-xxs sm:text-xs font-medium'>
                       {DateTime.fromISO(editForm?.createdAt)
                         .setZone('Asia/Manila')
                         .toFormat('MMM d, yyyy')}
@@ -769,7 +770,7 @@ function DeploymentDetailsModal ({
                         TMO
                       </span>
                       <div className='flex items-center gap-1'>
-                        <span className='text-white/70 text-xxs font-medium'>
+                        <span className='text-white/70 text-xxs sm:text-xs font-medium'>
                           {editForm?.isTMOPrinted ? 'Printed' : 'Not Printed'}
                         </span>
                         <div
@@ -978,30 +979,39 @@ function DeploymentDetailsModal ({
 
               {/* Edit mode indicator */}
               <div
-                className='relative z-10 shrink-0 overflow-hidden max-sm:hidden'
+                className='absolute bottom-5 left-5 right-5 max-sm:bottom-3 max-sm:left-3 max-sm:right-3 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2 max-lg:hidden'
                 style={{
-                  maxHeight: isEditMode ? '52px' : '0px',
                   opacity: isEditMode ? 1 : 0,
-                  marginLeft: '20px',
-                  marginRight: '20px',
-                  marginBottom: isEditMode ? '20px' : '0px',
-                  transition:
-                    'max-height 400ms cubic-bezier(0.4,0,0.2,1), opacity 400ms cubic-bezier(0.4,0,0.2,1), margin-bottom 400ms cubic-bezier(0.4,0,0.2,1)'
+                  transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
+                  pointerEvents: isEditMode ? 'auto' : 'none'
                 }}
               >
-                <div className='flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2.5 mt-1'>
-                  <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
-                  <p className='text-orange-300 text-xs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
-                    Edit mode active
-                  </p>
-                </div>
+                <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
+                <p className='text-orange-300 text-xs max-sm:text-xxs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
+                  Edit mode active
+                </p>
+              </div>
+
+              {/* Edit mode indicator - small screen */}
+              <div
+                className='absolute -top-1 -right-1 z-10 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-bl-xl pl-3 pb-1 pt-2.5 pr-3 sm:pl-4 sm:pb-1.5 sm:pt-3 sm:pr-3.5 lg:hidden'
+                style={{
+                  opacity: isEditMode ? 1 : 0,
+                  transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
+                  pointerEvents: isEditMode ? 'auto' : 'none'
+                }}
+              >
+                <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
+                <p className='text-orange-300 text-xxs sm:text-xs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
+                  Edit mode active
+                </p>
               </div>
             </div>
 
             {/* ══ RIGHT PANEL ═════════════════════════════════════════════════════ */}
-            <div className='flex-1 flex flex-col min-w-0'>
+            <div className='flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden'>
               {/* Header */}
-              <div className='flex items-center justify-between px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0'>
+              <div className='flex items-start justify-between px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0'>
                 <div className='flex items-start gap-3 min-w-0'>
                   <div>
                     <h2 className='text-gray-900 font-bold text-lg max-sm:text-base'>
@@ -1175,7 +1185,7 @@ function DeploymentDetailsModal ({
 
                 {/* Action buttons */}
                 {updatable && (
-                  <div className='flex items-start gap-3 px-6 py-4 max-sm:px-4 border-t border-gray-100 shrink-0 overflow-x-auto max-sm:hidden'>
+                  <div className='flex items-start gap-3 px-6 py-4 max-sm:px-4 border-t border-gray-100 shrink-0 overflow-x-auto'>
                     {isEditMode ? (
                       <>
                         <button
@@ -1789,7 +1799,7 @@ const DeploymentInfoTab = ({
               >
                 <div className='relative'>
                   <ComboboxInput
-                    className='w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 text-sm max-sm:text-xs focus:outline-none focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 shadow-sm uppercase transition-all'
+                    className='w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 min-h-[42px] max-sm:min-h-[36px] text-sm max-sm:text-xs focus:outline-none focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 shadow-sm uppercase transition-all'
                     displayValue={id =>
                       trucks?.find(t => t._id === id)?.plateNo || ''
                     }
@@ -1890,7 +1900,7 @@ const DeploymentInfoTab = ({
               >
                 <div className='relative'>
                   <ComboboxInput
-                    className='w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 text-sm max-sm:text-xs focus:outline-none focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 shadow-sm capitalize transition-all'
+                    className='w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 min-h-[42px] max-sm:min-h-[36px] text-sm max-sm:text-xs focus:outline-none focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 shadow-sm capitalize transition-all'
                     displayValue={id => {
                       const d = drivers?.find(d => d._id === id)
                       return d ? `${d.firstname} ${d.lastname}` : ''
@@ -2385,7 +2395,6 @@ const InfoField = ({ label, children }) => (
   </div>
 )
 
-// ── CHANGED: added max-sm:px-3 max-sm:py-2, text-sm max-sm:text-xs, max-sm:min-h-[36px]
 const InfoValue = ({ children, className = '' }) => (
   <div
     className={clsx(
@@ -2399,14 +2408,13 @@ const InfoValue = ({ children, className = '' }) => (
   </div>
 )
 
-// ── CHANGED: added max-sm:px-3 max-sm:py-2 to wrapper, max-sm:text-xs to select and arrow
 const SelectWrapper = ({ name, value, onChange, children }) => (
-  <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+  <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 min-h-[42px] max-sm:min-h-[36px] focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
     <select
       name={name}
       value={value}
       onChange={onChange}
-      className='w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize'
+      className='w-full h-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize'
     >
       {children}
     </select>
@@ -2414,7 +2422,6 @@ const SelectWrapper = ({ name, value, onChange, children }) => (
   </div>
 )
 
-// ── CHANGED: added max-sm:px-3 max-sm:py-2 to wrapperClass, max-sm:text-xs to inputClass
 const InputField = ({
   colSpan = 1,
   label,
@@ -2439,7 +2446,7 @@ const InputField = ({
     </span>
   )
   const wrapperClass = clsx(
-    'flex items-center border rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 transition-all duration-200 shadow-sm',
+    'flex items-center border rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 min-h-[42px] max-sm:min-h-[36px] transition-all duration-200 shadow-sm',
     disabled
       ? 'bg-gray-50 border-gray-200'
       : 'bg-white border-gray-200 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20'

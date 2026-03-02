@@ -693,7 +693,7 @@ function Deployments () {
                       </td>
                     )}
                     <td>{total}</td>
-                    <td>DP Code</td>
+                    <td className='max-sm:pl-2.5'>DP Code</td>
                     <td>Truck Details</td>
                     <td>Status</td>
                     <td>Departed</td>

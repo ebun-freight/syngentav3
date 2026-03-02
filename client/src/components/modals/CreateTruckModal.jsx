@@ -214,7 +214,7 @@ function CreateTruckModal ({ isOpen, onClose, onCreate }) {
             {/* ══ RIGHT PANEL ═════════════════════════════════════════════════════ */}
             <div className='flex-1 flex flex-col min-w-0 overflow-y-auto'>
               {/* Header */}
-              <div className='flex items-center justify-between px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0'>
+              <div className='flex items-start justify-between px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0'>
                 <div>
                   <h2 className='text-gray-900 font-bold text-lg max-sm:text-base'>
                     Create New Truck
