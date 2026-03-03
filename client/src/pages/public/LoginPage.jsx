@@ -147,7 +147,7 @@ function LoginPage () {
             <h2 className='text-gray-900 font-bold text-2xl sm:text-3xl'>
               Welcome back
             </h2>
-            <p className='text-gray-500 text-sm mt-1'>
+            <p className='text-gray-500 text-xs sm:text-sm mt-1'>
               Sign in to your Ebun account to continue.
             </p>
           </div>
@@ -246,7 +246,7 @@ function LoginPage () {
           </form>
 
           {/* Footer */}
-          <p className='text-gray-500 mt-5 lg:mt-6 text-sm text-center'>
+          <p className='text-gray-500 mt-5 lg:mt-6 text-xs sm:text-sm text-center'>
             Don&apos;t have an account?{' '}
             <Link
               to='/signup'
@@ -256,7 +256,7 @@ function LoginPage () {
             </Link>
           </p>
 
-          <p className='text-gray-400 text-xs text-center mt-6 lg:mt-8'>
+          <p className='text-gray-400 text-xxs sm:text-xs text-center mt-6 lg:mt-8'>
             © {new Date().getFullYear()} Ebun Freight OPC. All rights reserved.
           </p>
         </div>

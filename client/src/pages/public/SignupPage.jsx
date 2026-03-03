@@ -272,7 +272,7 @@ function SignupPage () {
             <h2 className='text-gray-900 font-bold text-2xl sm:text-3xl'>
               Create an account
             </h2>
-            <p className='text-gray-500 text-sm mt-1'>
+            <p className='text-gray-500 text-xs sm:text-sm mt-1'>
               Complete the form below to request access.
             </p>
           </div>
@@ -414,7 +414,7 @@ function SignupPage () {
                 )}
               </button>
 
-              <p className='text-gray-500 mt-4 text-sm text-center'>
+              <p className='text-gray-500 mt-5 lg:mt-6 text-xs sm:text-sm text-center'>
                 Already have an account?{' '}
                 <Link
                   to='/'
@@ -424,7 +424,7 @@ function SignupPage () {
                 </Link>
               </p>
 
-              <p className='text-gray-400 text-xs text-center mt-6'>
+              <p className='text-gray-400 text-xxs sm:text-xs text-center mt-6 lg:mt-8'>
                 © {new Date().getFullYear()} Ebun Freight OPC. All rights
                 reserved.
               </p>
