@@ -2252,6 +2252,7 @@ const PickupSitesTab = ({
                 value={pickup.fieldContactPersonNo}
                 disabled={!isEditMode}
                 onChange={e => handlePickupChange(index, e)}
+                maxLength={11}
               />
 
               {isEditMode ? (
