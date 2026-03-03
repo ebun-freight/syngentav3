@@ -99,7 +99,7 @@ function TimelineLogDetailsModal ({
           leaveFrom='opacity-100 scale-100'
           leaveTo='opacity-0 scale-95'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row max-h-[72vh]'>
+          <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row h-[72vh]'>
             {/* ══ LEFT PANEL ════════════════════════════════════════════════════ */}
             <div
               className='relative flex flex-col overflow-hidden lg:w-72 shrink-0 max-sm:p-5 max-sm:pb-4'

@@ -671,8 +671,8 @@ function DeploymentDetailsModal ({
             className={clsx(
               'font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row',
               ['head_admin', 'admin'].includes(userData.data.role)
-                ? 'max-h-[80vh]'
-                : 'max-h-[72vh]'
+                ? 'h-[80vh]'
+                : 'h-[72vh]'
             )}
           >
             {/* ══ LEFT PANEL ════════════════════════════════════════════════════ */}
