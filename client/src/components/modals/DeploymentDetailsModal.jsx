@@ -1783,7 +1783,7 @@ const DeploymentInfoTab = ({
           </h3>
           {isReplacementShow && (
             <p className='text-xs max-sm:text-xxs text-red-500 font-medium'>
-              *Replacement truck active
+              *Replacement truck
             </p>
           )}
         </div>

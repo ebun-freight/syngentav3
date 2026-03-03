@@ -46,6 +46,84 @@ const formatISO = iso =>
         .toFormat('MMM d, yyyy hh:mm a')
     : null
 
+/* ── Progress Bar ─────────────────────────────────────────────────────────── */
+const buildProgressSegments = deployment => {
+  const raw = []
+  raw.push({ label: 'Departed', done: !!deployment.departed })
+  if (deployment.pickups?.length > 0) {
+    deployment.pickups.forEach((pickup, i) => {
+      raw.push({ label: `S${i + 1} In`, done: !!pickup.pickupIn })
+      raw.push({ label: `S${i + 1} Out`, done: !!pickup.pickupOut })
+    })
+  }
+  raw.push({ label: 'Dest Arrival', done: !!deployment.destArrival })
+  raw.push({ label: 'Dest Departure', done: !!deployment.destDeparture })
+
+  // Sequential: once a segment is not done, all following are forced not done
+  let blocked = false
+  return raw.map(seg => {
+    if (blocked) return { ...seg, done: false }
+    if (!seg.done) blocked = true
+    return seg
+  })
+}
+
+const DeploymentProgressBar = ({ deployment }) => {
+  const isCanceled = deployment.status === 'canceled'
+
+  if (isCanceled) {
+    return (
+      <div className='mt-1.5 w-full min-w-[80px]'>
+        <div className='h-1.5 w-full rounded-full bg-red-300' />
+        <p className='text-xxs text-red-400 mt-0.5 leading-none'>Canceled</p>
+      </div>
+    )
+  }
+
+  const segments = buildProgressSegments(deployment)
+  const total = segments.length
+  const doneCount = segments.filter(s => s.done).length
+  const isComplete = doneCount === total
+
+  // "Assigned" when nothing filled yet, otherwise show last completed step
+  const currentLabel =
+    doneCount === 0 ? 'Assigned' : segments[doneCount - 1].label
+
+  return (
+    <div className='mt-1.5 w-full min-w-[80px]'>
+      <div className='flex gap-px items-center'>
+        {segments.map((seg, i) => {
+          const ratio = total <= 1 ? 1 : i / (total - 1)
+          // emerald-400(52,211,153) → blue-400(96,165,250)
+          const t = ratio
+          const r = Math.round(52 + (96 - 52) * t)
+          const g = Math.round(211 + (165 - 211) * t)
+          const b = Math.round(153 + (250 - 153) * t)
+          const color = `rgb(${r},${g},${b})`
+          return (
+            <div
+              key={i}
+              title={seg.label}
+              className={clsx(
+                'flex-1 h-1 transition-all duration-300',
+                i === 0 && 'rounded-l-full',
+                i === total - 1 && 'rounded-r-full'
+              )}
+              style={{ background: seg.done ? color : '#e5e7eb' }}
+            />
+          )
+        })}
+      </div>
+      {!isComplete && (
+        <p className='text-xxs mt-0.5 leading-none text-gray-400'>
+          {currentLabel}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/* ── Pickup Stops Cell ────────────────────────────────────────────────────── */
 const PickupStopsCell = ({ pickups = [], field, status }) => {
   const stopsWithValue = pickups.filter(p => p[field])
 
@@ -799,6 +877,7 @@ function Deployments () {
                         </div>
                       </td>
 
+                      {/* ── Status + Progress Bar ── */}
                       <td>
                         <div
                           className={clsx(
@@ -817,6 +896,7 @@ function Deployments () {
                         >
                           {deployment.status}
                         </div>
+                        <DeploymentProgressBar deployment={deployment} />
                       </td>
 
                       <td>

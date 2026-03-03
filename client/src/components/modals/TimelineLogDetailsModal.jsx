@@ -416,7 +416,7 @@ const DeploymentInfoTab = ({
             Truck & Driver Details
           </h3>
           {isReplacementShow && (
-            <p className='text-xs text-red-500'>*Replacement truck active</p>
+            <p className='text-xs text-red-500'>*Replacement truck</p>
           )}
         </div>
         <div className='grid grid-cols-2 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6'>

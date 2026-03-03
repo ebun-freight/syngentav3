@@ -125,9 +125,7 @@ const Dashboard = () => {
   const deploymentStatusColors = {
     completed: colors.blue,
     ongoing: colors.green,
-    'in-progress': colors.cyan,
     preparing: colors.orange,
-    pending: colors.amber,
     canceled: colors.red
   }
 
@@ -269,8 +267,8 @@ const Dashboard = () => {
       datalabels: {
         display: true,
         color: '#ffffff',
-        font: { weight: 'bold', size: 16 },
-        formatter: value => value.toLocaleString(),
+        font: { weight: 'bold', size: 11 },
+        formatter: value => (value > 0 ? value.toLocaleString() : ''),
         anchor: 'center',
         align: 'center',
         clip: false
@@ -293,8 +291,7 @@ const Dashboard = () => {
         ...createBaseOptions().plugins.datalabels,
         anchor: 'center',
         align: 'center',
-        offset: 0,
-        font: { weight: 'bold', size: 16 }
+        offset: 0
       }
     },
     scales: {
@@ -319,8 +316,7 @@ const Dashboard = () => {
         ...createBaseOptions().plugins.datalabels,
         anchor: 'center',
         align: 'center',
-        offset: 0,
-        font: { weight: 'bold', size: 16 }
+        offset: 0
       }
     },
     scales: {
@@ -353,7 +349,7 @@ const Dashboard = () => {
                 fillStyle: data.datasets[0].backgroundColor[i],
                 strokeStyle: data.datasets[0].borderColor[i],
                 lineWidth: 0,
-                hidden: !chart.getDataVisibility(i), // ← was hardcoded `false`
+                hidden: !chart.getDataVisibility(i),
                 index: i
               }))
             }
@@ -377,8 +373,8 @@ const Dashboard = () => {
         ...createBaseOptions(true).plugins.datalabels,
         display: true,
         color: '#ffffff',
-        font: { weight: 'bold', size: 16 },
-        formatter: value => value.toLocaleString(),
+        font: { weight: 'bold', size: 11 },
+        formatter: value => (value > 0 ? value.toLocaleString() : ''),
         anchor: 'center',
         align: 'center'
       }
@@ -407,7 +403,7 @@ const Dashboard = () => {
         ...createBaseOptions().plugins.datalabels,
         display: true,
         color: '#ffffff',
-        font: { weight: 'bold', size: 16 },
+        font: { weight: 'bold', size: 11 },
         formatter: value => (value > 0 ? value.toLocaleString() : ''),
         anchor: 'center',
         align: 'center',
@@ -607,9 +603,7 @@ const Dashboard = () => {
       const l = label.toLowerCase()
       if (l.includes('complete')) return deploymentStatusColors.completed
       if (l.includes('ongoing')) return deploymentStatusColors.ongoing
-      if (l.includes('progress')) return deploymentStatusColors['in-progress']
       if (l.includes('preparing')) return deploymentStatusColors.preparing
-      if (l.includes('pending')) return deploymentStatusColors.pending
       if (l.includes('cancel')) return deploymentStatusColors.canceled
       return colors.gray
     })
@@ -633,6 +627,7 @@ const Dashboard = () => {
     if (!analytics?.charts?.truckStatus) return { labels: [], datasets: [] }
     const bgColors = analytics.charts.truckStatus.labels.map(label => {
       const l = label.toLowerCase()
+      // FIX: guard is already correct here — kept as-is
       if (l.includes('available') && !l.includes('unavailable'))
         return truckStatusColors.available
       if (l.includes('deployed')) return truckStatusColors.deployed
@@ -657,7 +652,11 @@ const Dashboard = () => {
     if (!analytics?.charts?.driverStatus) return { labels: [], datasets: [] }
     const bgColors = analytics.charts.driverStatus.labels.map(label => {
       const l = label.toLowerCase()
-      if (l.includes('available')) return driverStatusColors.available
+      // FIX: added && !l.includes('unavailable') guard.
+      // Without it 'Unavailable'.toLowerCase() = 'unavailable' which contains 'available',
+      // so the first branch would incorrectly assign the green (available) color.
+      if (l.includes('available') && !l.includes('unavailable'))
+        return driverStatusColors.available
       if (l.includes('deployed')) return driverStatusColors.deployed
       if (l.includes('unavailable')) return driverStatusColors.unavailable
       return colors.gray
@@ -728,6 +727,7 @@ const Dashboard = () => {
     if (!analytics?.charts?.subconPerformance?.data)
       return { labels: [], datasets: [] }
     const subcons = analytics.charts.subconPerformance.data.slice(0, 10)
+
     const statusOrder = ['preparing', 'ongoing', 'completed', 'canceled']
     const statusLabels = {
       preparing: 'Preparing',
@@ -808,9 +808,10 @@ const Dashboard = () => {
       return { labels: [], datasets: [] }
     const bgColors = analytics.subconAnalytics.drivers.status.map(item => {
       const l = (item._id || '').toLowerCase()
-      if (l.includes('available')) return driverStatusColors.available
-      if (l.includes('deployed')) return driverStatusColors.deployed
-      if (l.includes('unavailable')) return driverStatusColors.unavailable
+      // FIX: consistent guard against 'unavailable' matching 'available'
+      if (l === 'available') return driverStatusColors.available
+      if (l === 'deployed') return driverStatusColors.deployed
+      if (l === 'unavailable') return driverStatusColors.unavailable
       return colors.gray
     })
     return {
@@ -838,9 +839,10 @@ const Dashboard = () => {
       return { labels: [], datasets: [] }
     const bgColors = analytics.subconAnalytics.trucks.status.map(item => {
       const l = (item._id || '').toLowerCase()
-      if (l.includes('available')) return truckStatusColors.available
-      if (l.includes('deployed')) return truckStatusColors.deployed
-      if (l.includes('unavailable')) return truckStatusColors.unavailable
+      // FIX: use strict equality to avoid 'unavailable' matching 'available'
+      if (l === 'available') return truckStatusColors.available
+      if (l === 'deployed') return truckStatusColors.deployed
+      if (l === 'unavailable') return truckStatusColors.unavailable
       return colors.gray
     })
     return {
@@ -985,6 +987,7 @@ const Dashboard = () => {
       }))
       .sort((a, b) => a.territory.name.localeCompare(b.territory.name))
     const sortedBreakdowns = territoryData.map(item => item.breakdown)
+
     const statusOrder = ['preparing', 'ongoing', 'completed', 'canceled']
     const statusLabels = {
       preparing: 'Preparing',
@@ -1109,7 +1112,6 @@ const Dashboard = () => {
   )
 
   // ─── ScrollableChart ──────────────────────────────────────────────────────
-  // Only used for the deployment trends line chart.
   const ScrollableChart = ({
     heightClass,
     minWidth = '500px',
@@ -1189,7 +1191,7 @@ const Dashboard = () => {
             <h1 className='font-semibold text-lg sm:text-xl md:text-2xl text-gray-900'>
               Analytics Dashboard
             </h1>
-            <p className='text-gray-500 mt-1 text-xs sm:text-sm md:text-base'>
+            <p className='text-xs text-gray-400 mt-0.5'>
               Real-time operational insights and performance metrics
             </p>
           </div>
@@ -1262,14 +1264,17 @@ const Dashboard = () => {
               />
               <MetricCard
                 icon={TbRefresh}
-                title='In Progress'
+                // FIX: renamed title to "Active Deployments" to accurately reflect that
+                // the value includes preparing and ongoing states.
+                title='Active Deployments'
                 value={
                   analytics.performanceMetrics.ongoingDeployments?.toLocaleString() ||
                   '0'
                 }
+                // FIX: subtitle now shows ongoing count using activeOngoingDeployments.
                 subtitle={`${
-                  analytics.performanceMetrics.activeDeployments || 0
-                } active`}
+                  analytics.performanceMetrics.activeOngoingDeployments || 0
+                } currently ongoing`}
                 color='amber-600'
               />
               <MetricCard
@@ -1444,14 +1449,14 @@ const Dashboard = () => {
               />
               <MetricCardMobile
                 icon={TbRefresh}
-                title='In Progress'
+                title='Active'
                 value={
                   analytics.performanceMetrics.ongoingDeployments?.toLocaleString() ||
                   '0'
                 }
                 subtitle={`${
-                  analytics.performanceMetrics.activeDeployments || 0
-                } active`}
+                  analytics.performanceMetrics.activeOngoingDeployments || 0
+                } ongoing`}
                 color='amber-600'
               />
               <MetricCardMobile
@@ -1600,7 +1605,7 @@ const Dashboard = () => {
 
             {/* Trend + Status */}
             <div className='grid grid-cols-1 xl:grid-cols-3 gap-2 sm:gap-6'>
-              {/* Deployment Trends — kept scrollable */}
+              {/* Deployment Trends */}
               <div className={`xl:col-span-2 ${CLS.card}`}>
                 <div
                   className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${CLS.cardHeader}`}
@@ -1640,7 +1645,6 @@ const Dashboard = () => {
                     </button>
                   </div>
                 </div>
-                {/* Line chart — only chart that stays scrollable on mobile */}
                 <ScrollableChart heightClass={CLS.chartLine} minWidth='500px'>
                   <Line data={getLineChartData()} options={lineChartOptions} />
                 </ScrollableChart>
@@ -2333,7 +2337,6 @@ const Dashboard = () => {
             </div>
 
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-6'>
-              {/* Driver Performance */}
               <div className={CLS.card}>
                 <CardHeader
                   title='Driver Performance'
@@ -2361,7 +2364,6 @@ const Dashboard = () => {
             </div>
 
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-6'>
-              {/* Truck Performance */}
               <div className={CLS.card}>
                 <CardHeader
                   title='Truck Performance'
@@ -2388,7 +2390,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Fleet Composition */}
             <div className={CLS.card}>
               <CardHeader
                 title='Fleet Composition'
