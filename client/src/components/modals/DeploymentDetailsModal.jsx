@@ -2012,6 +2012,7 @@ const DeploymentInfoTab = ({
             value={editForm?.receivingContactPersonNo}
             disabled={!isEditMode}
             onChange={handleChange}
+            maxLength={11}
           />
 
           <InfoField label='Destination'>
