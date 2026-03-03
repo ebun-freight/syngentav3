@@ -106,7 +106,7 @@ function SideNav () {
         </div>
 
         {/* ── Nav Items ─────────────────────────────────────────────────── */}
-        <div className='flex-1 flex flex-col overflow-y-auto'>
+        <div className='flex-1 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30 [scrollbar-color:rgba(255,255,255,0.2)_transparent] scrollbar-thin'>
           <div className='flex flex-col mt-4 mb-4 px-4'>
             {filteredSidebar.map((content, index) => {
               if (content.type === 'header') {

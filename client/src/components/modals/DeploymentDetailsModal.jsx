@@ -667,7 +667,14 @@ function DeploymentDetailsModal ({
           leaveTo='opacity-0 scale-95'
         >
           {/* ── KEY CHANGE: removed max-lg:overflow-y-auto so only the right panel scrolls ── */}
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row max-h-191'>
+          <DialogPanel
+            className={clsx(
+              'font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row',
+              ['head_admin', 'admin'].includes(userData.data.role)
+                ? 'max-h-[80vh]'
+                : 'max-h-[72vh]'
+            )}
+          >
             {/* ══ LEFT PANEL ════════════════════════════════════════════════════ */}
             <div
               className='relative flex flex-col overflow-hidden lg:w-72 shrink-0 max-sm:p-5 max-sm:pb-4'
@@ -692,11 +699,11 @@ function DeploymentDetailsModal ({
                 }}
               />
 
-              <div className='relative z-10 flex flex-col items-center gap-3 p-8 pb-4 max-lg:flex-row max-sm:gap-4 max-sm:p-0'>
-                <div className='w-20 h-20 rounded-2xl flex items-center justify-center border-2 border-dashed border-white/40 max-sm:w-14 max-sm:h-14 max-sm:rounded-xl shrink-0 bg-white/5'>
+              <div className='relative z-10 flex items-center gap-3 p-8 pb-4  max-sm:gap-4 max-sm:p-0'>
+                <div className='w-18 h-18 rounded-2xl flex items-center justify-center border-2 border-dashed border-white/40 max-sm:w-14 max-sm:h-14 max-sm:rounded-xl shrink-0 bg-white/5'>
                   <PiMapPinAreaFill className='text-white/60 text-4xl max-sm:text-2xl' />
                 </div>
-                <div className='text-center max-sm:text-left'>
+                <div className='text-left'>
                   <p className='text-white font-bold text-base max-sm:text-sm leading-tight'>
                     Transport Log
                   </p>

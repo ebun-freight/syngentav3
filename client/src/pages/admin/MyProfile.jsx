@@ -194,7 +194,7 @@ function MyProfile () {
       </div>
 
       {/* ── Split layout ──────────────────────────────────────────────── */}
-      <div className='flex-1 flex flex-col lg:flex-row gap-4 sm:gap-6 min-h-0'>
+      <div className='flex flex-col lg:flex-row gap-4 sm:gap-6 min-h-0'>
         {/* ══ LEFT — dark identity panel ════════════════════════════════ */}
         <div
           className='relative flex flex-col overflow-hidden rounded-2xl lg:w-72 shrink-0 p-6 sm:p-8 max-lg:pb-8'
