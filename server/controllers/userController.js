@@ -347,37 +347,38 @@ const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body
 
-    // validate required fields
-    validateFields({ email, password })
+    // Validate required fields
+    if (!email || !password) {
+      return next(createError(400, 'Email and password are required'))
+    }
 
-    // check if user exist
-    const user = await User.findOne({ email })
-    if (!user) {
+    // Find user with password field
+    const user = await User.findOne({ email: email.trim().toLowerCase() })
+      .select('+password')
+      .lean()
+
+    // Check if user exists and password is valid
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return next(createError(401, 'Invalid email or password'))
     }
 
-    // compare passwords
-    const isPasswordValid = await bcrypt.compare(password, user.password)
-    if (!isPasswordValid) {
-      return next(createError(401, 'Invalid email or password'))
-    }
-
-    const statusMessages = {
+    // Check account status with a single condition
+    const invalidStatuses = {
       inactive: 'This account is deactivated',
       pending: 'This account approval is still pending',
       rejected: 'This account request has been rejected',
       revoked: 'This account access has been revoked'
     }
 
-    if (statusMessages[user.status]) {
-      return next(createError(401, statusMessages[user.status]))
+    if (invalidStatuses[user.status]) {
+      return next(createError(401, invalidStatuses[user.status]))
     }
 
-    // Only allow 'active' status to login
     if (user.status !== 'active') {
       return next(createError(401, 'This account is not authorized to login'))
     }
 
+    // Update user login stats
     const updatedUser = await User.findByIdAndUpdate(
       user._id,
       {
@@ -387,21 +388,23 @@ const loginUser = async (req, res, next) => {
       { new: true }
     ).select('-password')
 
+    // Generate token
     const token = jwt.sign(
       { id: updatedUser._id, role: updatedUser.role },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     )
 
-    // create activity log
-    await ActivityLog.create({
+    // Create activity log (fire and forget)
+    ActivityLog.create({
       type: user.role === 'visitor' ? 'visitor' : 'admin',
       performedBy: user._id,
       action: 'Logged in to the system',
       targetUser: user._id
-    })
+    }).catch(err => console.error('Activity log failed:', err))
 
     res.status(200).json({
+      success: true,
       message: 'Login successful',
       token,
       user: {
@@ -420,7 +423,8 @@ const loginUser = async (req, res, next) => {
       }
     })
   } catch (error) {
-    next(error)
+    console.error('Login error:', error)
+    next(createError(500, 'An error occurred during login. Please try again.'))
   }
 }
 
