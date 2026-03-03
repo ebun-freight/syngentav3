@@ -193,379 +193,383 @@ function MyProfile () {
         </p>
       </div>
 
-      {/* ── Split layout ──────────────────────────────────────────────── */}
-      <div className='flex flex-col lg:flex-row gap-4 sm:gap-6 min-h-0'>
-        {/* ══ LEFT — dark identity panel ════════════════════════════════ */}
-        <div
-          className='relative flex flex-col overflow-hidden rounded-2xl lg:w-72 shrink-0 p-6 sm:p-8 max-lg:pb-8'
-          style={{
-            background:
-              'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
-          }}
-        >
-          <DotPattern />
-
-          {/* Radial glows */}
+      <div className='relative flex-1 overflow-y-auto'>
+        {/* ── Split layout ──────────────────────────────────────────────── */}
+        <div className='flex flex-col lg:flex-row gap-4 sm:gap-6 absolute top-0 left-0 right-0'>
+          {/* ══ LEFT — dark identity panel ════════════════════════════════ */}
           <div
-            className='absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-10 pointer-events-none'
+            className='relative flex flex-col overflow-hidden rounded-2xl lg:w-72 shrink-0 p-6 sm:p-8 max-lg:pb-8'
             style={{
-              background: 'radial-gradient(circle, #475569 0%, transparent 70%)'
+              background:
+                'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
             }}
-          />
-          <div
-            className='absolute -bottom-12 -left-12 w-44 h-44 rounded-full opacity-10 pointer-events-none'
-            style={{
-              background: 'radial-gradient(circle, #334155 0%, transparent 70%)'
-            }}
-          />
+          >
+            <DotPattern />
 
-          {/* Avatar + name — horizontal on mobile/tablet, vertical on desktop */}
-          <div className='relative z-10 flex flex-col items-center gap-3 max-lg:flex-row max-lg:gap-4'>
+            {/* Radial glows */}
             <div
-              className={clsx(
-                'w-32 h-32 rounded-2xl overflow-hidden relative border-2 transition-all shrink-0',
-                'max-lg:w-16 max-lg:h-16 max-lg:rounded-xl',
-                isEditMode
-                  ? 'border-dashed border-white/40 hover:border-white/70 cursor-pointer group'
-                  : 'border-white/20'
-              )}
-            >
-              <img
-                src={previewImage || user?.imageUrl || no_image}
-                alt={user?.firstname}
-                className={clsx(
-                  'w-full h-full object-cover object-center transition-opacity',
-                  { 'opacity-10': !previewImage && !user?.imageUrl }
-                )}
-              />
-              {isEditMode && (
-                <>
-                  <div className='absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white gap-1'>
-                    <RiFolderUploadLine className='text-2xl max-lg:text-base' />
-                    <span className='text-xs font-medium max-lg:hidden'>
-                      Change
-                    </span>
-                  </div>
-                  <input
-                    type='file'
-                    accept='image/*'
-                    onChange={handleFileChange}
-                    className='absolute inset-0 opacity-0 cursor-pointer'
-                  />
-                </>
-              )}
-            </div>
-
-            <div className='text-center max-lg:text-left'>
-              <h3 className='text-white font-bold text-base max-lg:text-sm leading-tight capitalize'>
-                {user?.firstname} {user?.lastname}
-              </h3>
-              <span
-                className={clsx(
-                  'inline-flex mt-1.5 px-3 py-1 rounded-full text-xxs font-semibold border capitalize',
-                  userStatusStyles[user?.status] ||
-                    'bg-gray-100 text-gray-500 border-gray-200'
-                )}
-              >
-                {user?.status}
-              </span>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className='relative z-10 w-full h-px bg-white/10 my-5 max-lg:hidden' />
-
-          {/* Stats — desktop only */}
-          <div className='relative z-10 flex max-lg:hidden'>
-            <StatBadge
-              icon={FaSignInAlt}
-              value={user?.loginCount ?? 0}
-              label='Logins'
+              className='absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-10 pointer-events-none'
+              style={{
+                background:
+                  'radial-gradient(circle, #475569 0%, transparent 70%)'
+              }}
             />
-            <div className='w-px bg-white/10' />
-            <StatBadge icon={FaUser} value={roleLabel} label='Role' />
-            <div className='w-px bg-white/10' />
-            <StatBadge
-              icon={FaPhoneAlt}
-              value={user?.phoneNo ? '✓' : '—'}
-              label='Contact'
+            <div
+              className='absolute -bottom-12 -left-12 w-44 h-44 rounded-full opacity-10 pointer-events-none'
+              style={{
+                background:
+                  'radial-gradient(circle, #334155 0%, transparent 70%)'
+              }}
             />
-          </div>
 
-          {/* Divider */}
-          <div className='relative z-10 w-full h-px bg-white/10 my-5 max-lg:my-4' />
-
-          {/* Meta info */}
-          <div className='relative z-10 flex justify-between'>
-            <div>
-              <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-0.5'>
-                {user?.role === 'admin' || user?.role === 'head_admin'
-                  ? 'Created'
-                  : 'Requested'}
-              </p>
-              <p className='text-white/70 text-xs max-lg:text-xxs'>
-                {user?.createdAt
-                  ? DateTime.fromISO(user.createdAt).toFormat('MMM d, yyyy')
-                  : '—'}
-              </p>
-            </div>
-            <div className='text-right'>
-              <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-0.5'>
-                Last Login
-              </p>
-              <p className='text-white/70 text-xs max-lg:text-xxs'>
-                {user?.lastLogin
-                  ? DateTime.fromISO(user.lastLogin).toFormat('MMM d, yyyy')
-                  : '—'}
-              </p>
-            </div>
-          </div>
-
-          {/* Edit mode indicator — desktop */}
-          <div
-            className='relative z-10 mt-5 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2 max-lg:hidden'
-            style={{
-              opacity: isEditMode ? 1 : 0,
-              transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
-              pointerEvents: isEditMode ? 'auto' : 'none'
-            }}
-          >
-            <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
-            <p className='text-orange-300 text-xs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
-              Edit mode active
-            </p>
-          </div>
-
-          {/* Edit mode indicator — mobile/tablet floating pill */}
-          <div
-            className='absolute top-3 right-3 z-10 lg:hidden flex items-center gap-1.5 bg-orange-500/20 border border-orange-400/30 rounded-full px-2.5 py-1'
-            style={{
-              opacity: isEditMode ? 1 : 0,
-              transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
-              pointerEvents: isEditMode ? 'auto' : 'none'
-            }}
-          >
-            <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
-            <p className='text-orange-300 text-xxs font-semibold uppercase tracking-wide whitespace-nowrap'>
-              Editing
-            </p>
-          </div>
-        </div>
-
-        {/* ══ RIGHT — form panel ════════════════════════════════════════ */}
-        <div className='flex-1 flex flex-col min-w-0 border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm'>
-          {/* Header */}
-          <div className='px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0'>
-            <h2 className='text-gray-900 font-bold text-lg max-sm:text-base'>
-              Account Details
-            </h2>
-            <p className='text-gray-400 text-xs mt-0.5'>
-              {isEditMode
-                ? 'Make your changes then hit Save.'
-                : 'Your personal and account information.'}
-            </p>
-          </div>
-
-          {/* Form */}
-          <form
-            onSubmit={handleUpdateUser}
-            className='flex-1 flex flex-col min-h-0'
-          >
-            <div className='flex-1 overflow-y-auto px-6 py-5 max-sm:px-4 max-sm:pt-4 grid grid-cols-2 gap-x-4 gap-y-4 max-sm:gap-x-3 max-sm:gap-y-3 content-start'>
-              <InputField
-                label='First Name'
-                type='text'
-                name='firstname'
-                placeholder='First name'
-                value={editForm?.firstname || ''}
-                disabled={!isEditMode || isLoading}
-                onChange={handleChange}
-              />
-              <InputField
-                label='Last Name'
-                type='text'
-                name='lastname'
-                placeholder='Last name'
-                value={editForm?.lastname || ''}
-                disabled={!isEditMode || isLoading}
-                onChange={handleChange}
-              />
-              <InputField
-                label='Email'
-                type='email'
-                name='email'
-                placeholder='Email address'
-                value={editForm?.email || ''}
-                disabled={!isEditMode || isLoading}
-                onChange={handleChange}
-                isCapitalize={false}
-              />
-              <InputField
-                label='Phone No.'
-                type='tel'
-                name='phoneNo'
-                placeholder='Phone No.'
-                value={editForm?.phoneNo || ''}
-                disabled={!isEditMode || isLoading}
-                onChange={handleChange}
-              />
-              <InputField
-                label='Role'
-                type='text'
-                name='role'
-                placeholder='Role'
-                value={editForm?.role?.replace(/_/g, ' ') || ''}
-                disabled
-                onChange={handleChange}
-                isRequired={false}
-              />
-              <InputField
-                label='Login Count'
-                type='number'
-                name='loginCount'
-                value={user?.loginCount ?? 0}
-                disabled
-                onChange={handleChange}
-                isRequired={false}
-              />
-
-              {/* Password fields — animated reveal */}
+            {/* Avatar + name — horizontal on mobile/tablet, vertical on desktop */}
+            <div className='relative z-10 flex flex-col items-center gap-3 max-lg:flex-row max-lg:gap-4'>
               <div
                 className={clsx(
-                  'col-span-2 grid grid-cols-2 gap-x-4 max-sm:gap-x-3 overflow-hidden',
-                  !isEditMode && 'pointer-events-none'
+                  'w-32 h-32 rounded-2xl overflow-hidden relative border-2 transition-all shrink-0',
+                  'max-lg:w-16 max-lg:h-16 max-lg:rounded-xl',
+                  isEditMode
+                    ? 'border-dashed border-white/40 hover:border-white/70 cursor-pointer group'
+                    : 'border-white/20'
                 )}
-                style={{
-                  maxHeight: isEditMode ? '120px' : '0px',
-                  opacity: isEditMode ? 1 : 0,
-                  transition:
-                    'max-height 600ms cubic-bezier(0.4,0,0.2,1), opacity 500ms cubic-bezier(0.4,0,0.2,1)'
-                }}
               >
-                <InputField
-                  label='New Password'
-                  type='password'
-                  name='password'
-                  placeholder='New password'
-                  value={editForm?.password || ''}
-                  disabled={!isEditMode || isLoading}
-                  onChange={handleChange}
-                  isRequired={false}
-                  isCapitalize={false}
+                <img
+                  src={previewImage || user?.imageUrl || no_image}
+                  alt={user?.firstname}
+                  className={clsx(
+                    'w-full h-full object-cover object-center transition-opacity',
+                    { 'opacity-10': !previewImage && !user?.imageUrl }
+                  )}
                 />
-                <InputField
-                  label='Confirm Password'
-                  type='password'
-                  name='confirmPassword'
-                  placeholder='Confirm password'
-                  value={editForm?.confirmPassword || ''}
-                  disabled={!isEditMode || isLoading}
-                  onChange={handleChange}
-                  isRequired={false}
-                  isCapitalize={false}
-                />
+                {isEditMode && (
+                  <>
+                    <div className='absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white gap-1'>
+                      <RiFolderUploadLine className='text-2xl max-lg:text-base' />
+                      <span className='text-xs font-medium max-lg:hidden'>
+                        Change
+                      </span>
+                    </div>
+                    <input
+                      type='file'
+                      accept='image/*'
+                      onChange={handleFileChange}
+                      className='absolute inset-0 opacity-0 cursor-pointer'
+                    />
+                  </>
+                )}
               </div>
 
-              {/* Timestamps */}
-              <div className='col-span-2 grid grid-cols-2 gap-x-4 max-sm:gap-x-3 pt-3 mt-1 border-t border-dashed border-gray-100'>
-                <label className='flex flex-col gap-1.5'>
-                  <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                    {user?.role === 'admin' || user?.role === 'head_admin'
-                      ? 'Created At'
-                      : 'Requested At'}
-                  </span>
-                  <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 shadow-sm'>
-                    <p className='text-sm max-sm:text-xs text-gray-500 truncate'>
-                      {user?.createdAt
-                        ? DateTime.fromISO(user.createdAt).toLocaleString(
-                            DateTime.DATETIME_MED
-                          )
-                        : '—'}
-                    </p>
-                  </div>
-                </label>
-                <label className='flex flex-col gap-1.5'>
-                  <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                    Updated At
-                  </span>
-                  <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 shadow-sm'>
-                    <p className='text-sm max-sm:text-xs text-gray-500 truncate'>
-                      {user?.updatedAt
-                        ? DateTime.fromISO(user.updatedAt).toLocaleString(
-                            DateTime.DATETIME_MED
-                          )
-                        : '—'}
-                    </p>
-                  </div>
-                </label>
+              <div className='text-center max-lg:text-left'>
+                <h3 className='text-white font-bold text-base max-lg:text-sm leading-tight capitalize'>
+                  {user?.firstname} {user?.lastname}
+                </h3>
+                <span
+                  className={clsx(
+                    'inline-flex mt-1.5 px-3 py-1 rounded-full text-xxs font-semibold border capitalize',
+                    userStatusStyles[user?.status] ||
+                      'bg-gray-100 text-gray-500 border-gray-200'
+                  )}
+                >
+                  {user?.status}
+                </span>
               </div>
             </div>
 
-            {/* ── Actions ── */}
-            {['head_admin', 'admin'].includes(user?.role) && (
-              <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0'>
-                {isEditMode ? (
-                  <div className='flex gap-3 max-sm:gap-2'>
-                    <button
-                      type='button'
-                      onClick={handleCancelEditMode}
-                      disabled={isLoading}
-                      className='px-8 py-2.5 rounded-xl font-semibold text-sm max-sm:text-xs uppercase tracking-wide
+            {/* Divider */}
+            <div className='relative z-10 w-full h-px bg-white/10 my-5 max-lg:hidden' />
+
+            {/* Stats — desktop only */}
+            <div className='relative z-10 flex max-lg:hidden'>
+              <StatBadge
+                icon={FaSignInAlt}
+                value={user?.loginCount ?? 0}
+                label='Logins'
+              />
+              <div className='w-px bg-white/10' />
+              <StatBadge icon={FaUser} value={roleLabel} label='Role' />
+              <div className='w-px bg-white/10' />
+              <StatBadge
+                icon={FaPhoneAlt}
+                value={user?.phoneNo ? '✓' : '—'}
+                label='Contact'
+              />
+            </div>
+
+            {/* Divider */}
+            <div className='relative z-10 w-full h-px bg-white/10 my-5 max-lg:my-4' />
+
+            {/* Meta info */}
+            <div className='relative z-10 flex justify-between'>
+              <div>
+                <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-0.5'>
+                  {user?.role === 'admin' || user?.role === 'head_admin'
+                    ? 'Created'
+                    : 'Requested'}
+                </p>
+                <p className='text-white/70 text-xs max-lg:text-xxs'>
+                  {user?.createdAt
+                    ? DateTime.fromISO(user.createdAt).toFormat('MMM d, yyyy')
+                    : '—'}
+                </p>
+              </div>
+              <div className='text-right'>
+                <p className='text-white/40 text-xxs uppercase tracking-wider font-semibold mb-0.5'>
+                  Last Login
+                </p>
+                <p className='text-white/70 text-xs max-lg:text-xxs'>
+                  {user?.lastLogin
+                    ? DateTime.fromISO(user.lastLogin).toFormat('MMM d, yyyy')
+                    : '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* Edit mode indicator — desktop */}
+            <div
+              className='relative z-10 mt-5 flex items-center gap-2 bg-orange-500/20 border border-orange-400/30 rounded-xl px-3 py-2 max-lg:hidden'
+              style={{
+                opacity: isEditMode ? 1 : 0,
+                transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
+                pointerEvents: isEditMode ? 'auto' : 'none'
+              }}
+            >
+              <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
+              <p className='text-orange-300 text-xs font-semibold uppercase tracking-wide leading-snug whitespace-nowrap'>
+                Edit mode active
+              </p>
+            </div>
+
+            {/* Edit mode indicator — mobile/tablet floating pill */}
+            <div
+              className='absolute top-3 right-3 z-10 lg:hidden flex items-center gap-1.5 bg-orange-500/20 border border-orange-400/30 rounded-full px-2.5 py-1'
+              style={{
+                opacity: isEditMode ? 1 : 0,
+                transition: 'opacity 500ms cubic-bezier(0.4,0,0.2,1)',
+                pointerEvents: isEditMode ? 'auto' : 'none'
+              }}
+            >
+              <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
+              <p className='text-orange-300 text-xxs font-semibold uppercase tracking-wide whitespace-nowrap'>
+                Editing
+              </p>
+            </div>
+          </div>
+
+          {/* ══ RIGHT — form panel ════════════════════════════════════════ */}
+          <div className='flex-1 flex flex-col min-w-0 border border-gray-100 rounded-2xl bg-white shadow-sm'>
+            {/* Header */}
+            <div className='px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0'>
+              <h2 className='text-gray-900 font-bold text-lg max-sm:text-base'>
+                Account Details
+              </h2>
+              <p className='text-gray-400 text-xs mt-0.5'>
+                {isEditMode
+                  ? 'Make your changes then hit Save.'
+                  : 'Your personal and account information.'}
+              </p>
+            </div>
+
+            {/* Form */}
+            <form
+              onSubmit={handleUpdateUser}
+              className='flex-1 flex flex-col min-h-0'
+            >
+              <div className='flex-1 overflow-y-auto px-6 py-5 max-sm:px-4 max-sm:pt-4 grid grid-cols-2 gap-x-4 gap-y-4 max-sm:gap-x-3 max-sm:gap-y-3 content-start'>
+                <InputField
+                  label='First Name'
+                  type='text'
+                  name='firstname'
+                  placeholder='First name'
+                  value={editForm?.firstname || ''}
+                  disabled={!isEditMode || isLoading}
+                  onChange={handleChange}
+                />
+                <InputField
+                  label='Last Name'
+                  type='text'
+                  name='lastname'
+                  placeholder='Last name'
+                  value={editForm?.lastname || ''}
+                  disabled={!isEditMode || isLoading}
+                  onChange={handleChange}
+                />
+                <InputField
+                  label='Email'
+                  type='email'
+                  name='email'
+                  placeholder='Email address'
+                  value={editForm?.email || ''}
+                  disabled={!isEditMode || isLoading}
+                  onChange={handleChange}
+                  isCapitalize={false}
+                />
+                <InputField
+                  label='Phone No.'
+                  type='tel'
+                  name='phoneNo'
+                  placeholder='Phone No.'
+                  value={editForm?.phoneNo || ''}
+                  disabled={!isEditMode || isLoading}
+                  onChange={handleChange}
+                />
+                <InputField
+                  label='Role'
+                  type='text'
+                  name='role'
+                  placeholder='Role'
+                  value={editForm?.role?.replace(/_/g, ' ') || ''}
+                  disabled
+                  onChange={handleChange}
+                  isRequired={false}
+                />
+                <InputField
+                  label='Login Count'
+                  type='number'
+                  name='loginCount'
+                  value={user?.loginCount ?? 0}
+                  disabled
+                  onChange={handleChange}
+                  isRequired={false}
+                />
+
+                {/* Password fields — animated reveal */}
+                <div
+                  className={clsx(
+                    'col-span-2 grid grid-cols-2 gap-x-4 max-sm:gap-x-3 overflow-hidden',
+                    !isEditMode && 'pointer-events-none'
+                  )}
+                  style={{
+                    maxHeight: isEditMode ? '120px' : '0px',
+                    opacity: isEditMode ? 1 : 0,
+                    transition:
+                      'max-height 600ms cubic-bezier(0.4,0,0.2,1), opacity 500ms cubic-bezier(0.4,0,0.2,1)'
+                  }}
+                >
+                  <InputField
+                    label='New Password'
+                    type='password'
+                    name='password'
+                    placeholder='New password'
+                    value={editForm?.password || ''}
+                    disabled={!isEditMode || isLoading}
+                    onChange={handleChange}
+                    isRequired={false}
+                    isCapitalize={false}
+                  />
+                  <InputField
+                    label='Confirm Password'
+                    type='password'
+                    name='confirmPassword'
+                    placeholder='Confirm password'
+                    value={editForm?.confirmPassword || ''}
+                    disabled={!isEditMode || isLoading}
+                    onChange={handleChange}
+                    isRequired={false}
+                    isCapitalize={false}
+                  />
+                </div>
+
+                {/* Timestamps */}
+                <div className='col-span-2 grid grid-cols-2 gap-x-4 max-sm:gap-x-3 pt-3 mt-1 border-t border-dashed border-gray-100'>
+                  <label className='flex flex-col gap-1.5'>
+                    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                      {user?.role === 'admin' || user?.role === 'head_admin'
+                        ? 'Created At'
+                        : 'Requested At'}
+                    </span>
+                    <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 shadow-sm'>
+                      <p className='text-sm max-sm:text-xs text-gray-500 truncate'>
+                        {user?.createdAt
+                          ? DateTime.fromISO(user.createdAt).toLocaleString(
+                              DateTime.DATETIME_MED
+                            )
+                          : '—'}
+                      </p>
+                    </div>
+                  </label>
+                  <label className='flex flex-col gap-1.5'>
+                    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                      Updated At
+                    </span>
+                    <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 shadow-sm'>
+                      <p className='text-sm max-sm:text-xs text-gray-500 truncate'>
+                        {user?.updatedAt
+                          ? DateTime.fromISO(user.updatedAt).toLocaleString(
+                              DateTime.DATETIME_MED
+                            )
+                          : '—'}
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* ── Actions ── */}
+              {['head_admin', 'admin'].includes(user?.role) && (
+                <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0'>
+                  {isEditMode ? (
+                    <div className='flex gap-3 max-sm:gap-2'>
+                      <button
+                        type='button'
+                        onClick={handleCancelEditMode}
+                        disabled={isLoading}
+                        className='px-8 py-2.5 rounded-xl font-semibold text-sm max-sm:text-xs uppercase tracking-wide
                                  bg-gray-100 text-gray-600 hover:bg-gray-200
                                  cursor-pointer active:scale-[0.99] transition-all
                                  disabled:opacity-50 disabled:cursor-not-allowed
                                  flex items-center justify-center gap-2'
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type='submit'
-                      disabled={isLoading}
-                      className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type='submit'
+                        disabled={isLoading}
+                        className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                  shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                  transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                  flex items-center justify-center gap-2'
-                      style={{
-                        background:
-                          'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                      }}
-                    >
-                      {isLoading ? (
-                        <>
-                          <span className='loading loading-spinner loading-xs sm:loading-sm' />
-                          <span>Saving...</span>
-                        </>
-                      ) : (
-                        <>
-                          <FaSave className='text-sm shrink-0' />
-                          <span>Save </span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                ) : (
-                  <div className='flex gap-3 max-sm:gap-2'>
-                    <button
-                      type='button'
-                      onClick={() => setIsEditMode(true)}
-                      disabled={isLoading}
-                      className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
+                        style={{
+                          background:
+                            'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                        }}
+                      >
+                        {isLoading ? (
+                          <>
+                            <span className='loading loading-spinner loading-xs sm:loading-sm' />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaSave className='text-sm shrink-0' />
+                            <span>Save </span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className='flex gap-3 max-sm:gap-2'>
+                      <button
+                        type='button'
+                        onClick={() => setIsEditMode(true)}
+                        disabled={isLoading}
+                        className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                  shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                  transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                  flex items-center justify-center gap-2'
-                      style={{
-                        background:
-                          'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-                      }}
-                    >
-                      <FaUserEdit className='text-sm shrink-0' />
-                      <span>Edit </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </form>
+                        style={{
+                          background:
+                            'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                        }}
+                      >
+                        <FaUserEdit className='text-sm shrink-0' />
+                        <span>Edit </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </form>
+          </div>
         </div>
       </div>
     </div>
