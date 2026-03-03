@@ -73,7 +73,7 @@ const DeploymentProgressBar = ({ deployment }) => {
 
   if (isCanceled) {
     return (
-      <div className='mt-1.5 w-full min-w-[80px]'>
+      <div className='mt-1.5 w-full min-w-20'>
         <div className='h-1.5 w-full rounded-full bg-red-300' />
         <p className='text-xxs text-red-400 mt-0.5 leading-none'>Canceled</p>
       </div>
@@ -90,7 +90,7 @@ const DeploymentProgressBar = ({ deployment }) => {
     doneCount === 0 ? 'Assigned' : segments[doneCount - 1].label
 
   return (
-    <div className='mt-1.5 w-full min-w-[80px]'>
+    <div className='mt-1.5 w-full min-w-20'>
       <div className='flex gap-px items-center'>
         {segments.map((seg, i) => {
           const ratio = total <= 1 ? 1 : i / (total - 1)
