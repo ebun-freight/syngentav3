@@ -582,6 +582,15 @@ function DeploymentDetailsModal ({
   }, [isOpen, deployment])
 
   useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)')
+    const handler = e => {
+      if (e.matches && activeTab === 'timelines') setActiveTab('info')
+    }
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [activeTab])
+
+  useEffect(() => {
     if (deployment?.replacement?.replacementTruckId?._id) {
       setIsReplacementShow(true)
     } else {

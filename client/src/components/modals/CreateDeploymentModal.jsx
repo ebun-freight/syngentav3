@@ -139,6 +139,7 @@ const ComboboxField = ({
   onChange,
   displayValue,
   onQueryChange,
+  onReset, // ← NEW: resets the search query
   options,
   placeholder,
   required = true
@@ -159,11 +160,18 @@ const ComboboxField = ({
           className='w-full bg-transparent text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 focus:outline-none capitalize'
           displayValue={displayValue}
           onChange={onQueryChange}
+          // Reset filter on focus so clicking into the field always shows all options
+          onFocus={() => onReset?.()}
           placeholder={placeholder}
           required={required}
           autoComplete='off'
         />
-        <ComboboxButton className='absolute right-4 max-sm:right-3 flex items-center text-gray-400 group-focus-within:text-primaryColor transition-colors'>
+        {/* Reset query when the arrow button is clicked so the dropdown
+            always opens with the full list, even after a no-result search */}
+        <ComboboxButton
+          onClick={() => onReset?.()}
+          className='absolute right-4 max-sm:right-3 flex items-center text-gray-400 group-focus-within:text-primaryColor transition-colors'
+        >
           <MdKeyboardArrowDown className='text-lg' />
         </ComboboxButton>
         <ComboboxOptions className='absolute z-50 top-full left-0 mt-2 max-h-48 w-full overflow-auto rounded-xl bg-white border border-gray-200 shadow-md py-1 text-sm focus:outline-none'>
@@ -601,22 +609,26 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                       <ComboboxField
                         label='Select Truck'
                         value={formData.truckId}
-                        onChange={value =>
+                        onChange={value => {
                           setFormData(prev => ({ ...prev, truckId: value }))
-                        }
+                          setTruckQuery('') // ← clear filter after selection
+                        }}
                         displayValue={() => selectedTruck?.label || ''}
                         onQueryChange={e => setTruckQuery(e.target.value)}
+                        onReset={() => setTruckQuery('')}
                         options={filteredTrucks}
                         placeholder='Search plate no.'
                       />
                       <ComboboxField
                         label='Select Driver'
                         value={formData.driverId}
-                        onChange={value =>
+                        onChange={value => {
                           setFormData(prev => ({ ...prev, driverId: value }))
-                        }
+                          setDriverQuery('') // ← clear filter after selection
+                        }}
                         displayValue={() => selectedDriver?.label || ''}
                         onQueryChange={e => setDriverQuery(e.target.value)}
+                        onReset={() => setDriverQuery('')}
                         options={filteredDrivers}
                         placeholder='Search driver name'
                       />

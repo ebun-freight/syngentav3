@@ -71,21 +71,11 @@ const buildProgressSegments = deployment => {
 const DeploymentProgressBar = ({ deployment }) => {
   const isCanceled = deployment.status === 'canceled'
 
-  if (isCanceled) {
-    return (
-      <div className='mt-1.5 w-full min-w-20'>
-        <div className='h-1.5 w-full rounded-full bg-red-300' />
-        <p className='text-xxs text-red-400 mt-0.5 leading-none'>Canceled</p>
-      </div>
-    )
-  }
-
   const segments = buildProgressSegments(deployment)
   const total = segments.length
   const doneCount = segments.filter(s => s.done).length
   const isComplete = doneCount === total
 
-  // "Assigned" when nothing filled yet, otherwise show last completed step
   const currentLabel =
     doneCount === 0 ? 'Assigned' : segments[doneCount - 1].label
 
@@ -93,13 +83,26 @@ const DeploymentProgressBar = ({ deployment }) => {
     <div className='mt-1.5 w-full min-w-20'>
       <div className='flex gap-px items-center'>
         {segments.map((seg, i) => {
-          const ratio = total <= 1 ? 1 : i / (total - 1)
-          // emerald-400(52,211,153) → blue-400(96,165,250)
-          const t = ratio
-          const r = Math.round(52 + (96 - 52) * t)
-          const g = Math.round(211 + (165 - 211) * t)
-          const b = Math.round(153 + (250 - 153) * t)
-          const color = `rgb(${r},${g},${b})`
+          let color = '#e5e7eb' // undone → always gray
+
+          if (seg.done) {
+            const ratio = total <= 1 ? 1 : i / (total - 1)
+
+            if (isCanceled) {
+              // red-300(252,165,165) → red-500(239,68,68): shows how far it got
+              const r = Math.round(252 + (239 - 252) * ratio)
+              const g = Math.round(165 + (68 - 165) * ratio)
+              const b = Math.round(165 + (68 - 165) * ratio)
+              color = `rgb(${r},${g},${b})`
+            } else {
+              // emerald-400(52,211,153) → blue-400(96,165,250): normal progress
+              const r = Math.round(52 + (96 - 52) * ratio)
+              const g = Math.round(211 + (165 - 211) * ratio)
+              const b = Math.round(153 + (250 - 153) * ratio)
+              color = `rgb(${r},${g},${b})`
+            }
+          }
+
           return (
             <div
               key={i}
@@ -109,12 +112,14 @@ const DeploymentProgressBar = ({ deployment }) => {
                 i === 0 && 'rounded-l-full',
                 i === total - 1 && 'rounded-r-full'
               )}
-              style={{ background: seg.done ? color : '#e5e7eb' }}
+              style={{ background: color }}
             />
           )
         })}
       </div>
-      {!isComplete && (
+
+      {/* Only show step label for active (non-canceled), non-complete deployments */}
+      {!isComplete && !isCanceled && (
         <p className='text-xxs mt-0.5 leading-none text-gray-400'>
           {currentLabel}
         </p>
