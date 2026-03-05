@@ -63,8 +63,8 @@ function LoginPage () {
       {/* ── Brand Panel ──────────────────────────────────────────────────── */}
       <div
         className='relative flex flex-col justify-between overflow-hidden
-                   md:w-[40%] lg:w-[45%] md:min-h-screen
-                   p-8 sm:p-10 md:p-8 lg:p-14'
+           md:w-[40%] lg:w-[45%] md:h-full
+           p-8 sm:p-10 md:p-8 lg:p-14'
         style={{
           background:
             'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
