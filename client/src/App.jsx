@@ -19,8 +19,17 @@ import { UIProvider } from './contexts/UIContext'
 import NotFoundPage from './pages/public/NotFoundPage'
 import SystemSettingsPage from './pages/admin/SystemSettingsPage'
 import { SettingsProvider } from './contexts/SettingsContext'
+import { useState, useEffect } from 'react'
 
 function App () {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
   return (
     <>
       <ToastContainer
@@ -38,18 +47,26 @@ function App () {
           background:
             'linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)',
           backgroundImage: `
-    radial-gradient(circle, rgba(255,255,255,0.15) 1.5px, transparent 1.5px),
-    linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)
-  `,
+            radial-gradient(circle, rgba(255,255,255,0.15) 1.5px, transparent 1.5px),
+            linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)
+          `,
           backgroundSize: '24px 24px, cover',
           color: '#f1f5f9',
           border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '12px',
-          fontSize: '13px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+          borderRadius: isMobile ? '0px' : '12px',
+          fontSize: isMobile ? '11px' : '13px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          padding: isMobile ? '4px 12px' : '12px 16px'
         }}
         progressStyle={{
           background: 'rgba(255,255,255,0.25)'
+        }}
+        iconTheme={{
+          primary: '#f1f5f9',
+          secondary: '#001e36'
+        }}
+        style={{
+          '--toastify-icon-size': isMobile ? '6px' : '20px'
         }}
       />
 
