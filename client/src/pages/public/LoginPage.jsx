@@ -59,7 +59,7 @@ function LoginPage () {
   }, [])
 
   return (
-    <div className='min-h-screen flex flex-col md:flex-row bg-gray-50 overflow-x-hidden'>
+    <div className='h-dvh flex flex-col md:flex-row bg-gray-50 overflow-x-hidden overflow-y-auto'>
       {/* ── Brand Panel ──────────────────────────────────────────────────── */}
       <div
         className='relative flex flex-col justify-between overflow-hidden
