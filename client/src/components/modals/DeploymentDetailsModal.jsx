@@ -947,8 +947,8 @@ function DeploymentDetailsModal ({
                       <p className='text-white/40 text-xxs font-semibold uppercase tracking-wider'>
                         Unloading Time
                       </p>
-                      {deployment?.destDeparture && deployment?.destArrival ? (
-                        <div className='bg-white/10 border border-white/15 px-3 py-2 rounded-lg break-all'>
+                      {editForm?.destDeparture && editForm?.destArrival ? (
+                        <div className='bg-white/10 border border-white/15 px-3 py-1 rounded-lg break-all'>
                           <span className='text-white/80 text-xs'>
                             {(() => {
                               const { days, hours, minutes } = DateTime.fromISO(
@@ -1440,7 +1440,6 @@ const TimelineTab = ({
 
   return (
     <div className='flex-1 overflow-y-auto scrollbar-thin px-5 py-5 max-sm:px-4'>
-      {/* Edit-mode notice */}
       {isEditMode && (
         <div className='flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5 mb-5'>
           <span className='w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0' />
@@ -1451,7 +1450,6 @@ const TimelineTab = ({
       )}
 
       <div className='flex flex-col'>
-        {/* ── Departed ── */}
         <LightTimelineStop
           isActive={
             !!(isEditMode ? editForm.departed : deployment.departed)?.trim()
@@ -1474,7 +1472,6 @@ const TimelineTab = ({
           )}
         </LightTimelineStop>
 
-        {/* ── Per-stop: pickup in + out ── */}
         {pickups.map((pickup, index) => {
           const prevPickupOut =
             index === 0
@@ -1495,7 +1492,6 @@ const TimelineTab = ({
                   }`}
                 />
               )}
-
               <LightTimelineStop
                 isActive={!!pickup.pickupIn?.trim()}
                 isLast={false}
@@ -1516,7 +1512,6 @@ const TimelineTab = ({
                   />
                 )}
               </LightTimelineStop>
-
               <LightTimelineStop
                 isActive={!!pickup.pickupOut?.trim()}
                 isLast={false}
@@ -1541,7 +1536,6 @@ const TimelineTab = ({
           )
         })}
 
-        {/* ── Dest Arrival ── */}
         <LightTimelineStop
           isActive={
             !!(
@@ -1567,7 +1561,6 @@ const TimelineTab = ({
           )}
         </LightTimelineStop>
 
-        {/* ── Dest Departure ── */}
         <LightTimelineStop
           isActive={
             !!(
@@ -1595,14 +1588,14 @@ const TimelineTab = ({
 
         {/* ── Unloading Time (derived) ── */}
         <LightTimelineStop
-          isActive={!!(deployment?.destDeparture && deployment?.destArrival)}
+          isActive={!!(editForm?.destDeparture && editForm?.destArrival)}
           isLast={true}
         >
           <div className='flex flex-col gap-1'>
             <p className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
               Unloading Time
             </p>
-            {deployment?.destDeparture && deployment?.destArrival ? (
+            {editForm?.destDeparture && editForm?.destArrival ? (
               <div className='bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg'>
                 <span className='text-emerald-700 text-xs font-semibold'>
                   {(() => {
