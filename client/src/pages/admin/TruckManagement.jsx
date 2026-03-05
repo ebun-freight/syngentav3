@@ -231,7 +231,7 @@ function TruckManagement () {
                           name='truckType'
                           value={tempFilters.truckType}
                           onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent capitalize'
+                          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent capitalize'
                         >
                           <option value=''>All</option>
                           {settings.trucksDrivers.truckType.map(
@@ -255,7 +255,7 @@ function TruckManagement () {
                             name='subcon'
                             value={tempFilters.subcon}
                             onChange={handleChangeFilter}
-                            className='w-full focus:outline-none text-sm text-gray-700 bg-transparent capitalize'
+                            className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent capitalize'
                           >
                             <option value=''>All</option>
                             {settings.trucksDrivers.subcon.map(
@@ -279,7 +279,7 @@ function TruckManagement () {
                           name='status'
                           value={tempFilters.status}
                           onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent capitalize'
+                          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent capitalize'
                         >
                           <option value=''>All</option>
                           {settings.trucksDrivers.status.map((item, index) => (
@@ -300,7 +300,7 @@ function TruckManagement () {
                           name='sort'
                           value={tempFilters.sort}
                           onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+                          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
                         >
                           <option value='latest'>Latest</option>
                           <option value='oldest'>Oldest</option>
@@ -319,7 +319,7 @@ function TruckManagement () {
                       disabled={isLoading}
                       className={clsx(
                         btnBase,
-                        'justify-center bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                        'justify-center bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 text-xs sm:text-sm'
                       )}
                     >
                       Reset
@@ -329,7 +329,7 @@ function TruckManagement () {
                       disabled={isLoading}
                       className={clsx(
                         btnBase,
-                        'justify-center bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'
+                        'justify-center bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 text-xs sm:text-sm'
                       )}
                     >
                       Apply

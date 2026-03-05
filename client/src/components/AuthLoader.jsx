@@ -2,7 +2,7 @@ import { ebun_logo_light } from '../consts/images'
 
 const AuthLoader = () => (
   <div
-    className='fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-8'
+    className='fixed inset-0 z-9999 flex flex-col items-center justify-center gap-8'
     style={{
       background:
         'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'

@@ -172,17 +172,17 @@ const DateRangeFilter = ({ label, fromName, toName, values, onChange }) => (
           name={fromName}
           value={values[fromName]}
           onChange={onChange}
-          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
         />
       </div>
-      <span className='text-xs text-gray-400 shrink-0'>to</span>
+      <span className='text-xxs text-gray-400 shrink-0'>to</span>
       <div className='flex-1 flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
         <input
           type='date'
           name={toName}
           value={values[toName]}
           onChange={onChange}
-          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
         />
       </div>
     </div>
@@ -552,7 +552,7 @@ function Deployments () {
                           name='status'
                           value={tempFilters.status}
                           onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+                          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
                         >
                           <option value=''>All</option>
                           {DEPLOYMENT_STATUS.map((item, index) => (
@@ -574,7 +574,7 @@ function Deployments () {
                           name='sort'
                           value={tempFilters.sort}
                           onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+                          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
                         >
                           <option value='latest'>Latest</option>
                           <option value='oldest'>Oldest</option>
@@ -594,7 +594,7 @@ function Deployments () {
                                 name='subcon'
                                 value={tempFilters.subcon}
                                 onChange={handleChangeFilter}
-                                className='w-full focus:outline-none text-sm text-gray-700 bg-transparent capitalize'
+                                className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent capitalize'
                               >
                                 <option value=''>All</option>
                                 {settings.trucksDrivers.subcon.map(
@@ -622,7 +622,7 @@ function Deployments () {
                               name='territory'
                               value={tempFilters.territory}
                               onChange={handleChangeFilter}
-                              className='w-full focus:outline-none text-sm text-gray-700 bg-transparent capitalize'
+                              className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent capitalize'
                             >
                               <option value=''>All</option>
                               {settings.deployments.territory.map(
@@ -669,7 +669,7 @@ function Deployments () {
                       disabled={isDeploymentLoading}
                       className={clsx(
                         btnBase,
-                        'justify-center bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                        'justify-center bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 text-xs sm:text-sm'
                       )}
                     >
                       Reset
@@ -679,7 +679,7 @@ function Deployments () {
                       disabled={isDeploymentLoading}
                       className={clsx(
                         btnBase,
-                        'justify-center bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'
+                        'justify-center bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 text-xs sm:text-sm'
                       )}
                     >
                       Apply
