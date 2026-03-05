@@ -1,17 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import {
-  FaLock,
-  FaUser,
-  FaClock,
-  FaUserCheck,
-  FaCheckCircle
-} from 'react-icons/fa'
+import { FaUser, FaClock, FaUserCheck, FaCheckCircle } from 'react-icons/fa'
 import { LuUpload } from 'react-icons/lu'
 import { Link, useNavigate } from 'react-router'
-import axios from 'axios'
-import { API_USER } from '../../utils/APIRoutes'
 import { toast } from 'react-toastify'
-import { ebun_logo_light, signup_bg } from '../../consts/images'
+import { ebun_logo_light } from '../../consts/images'
 import clsx from 'clsx'
 import useCreateUser from '../../hooks/userCreateUser'
 import AOS from 'aos'
@@ -71,7 +63,7 @@ const InputField = ({
   showValue
 }) => (
   <label className='flex flex-col gap-1.5'>
-    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
       {label} {isRequired && <span className='text-slate-400'>*</span>}
     </span>
     <div
@@ -282,7 +274,7 @@ function SignupPage () {
             <div className='flex flex-col sm:flex-row gap-5 items-start'>
               {/* Avatar upload */}
               <div className='flex flex-col gap-1.5 shrink-0'>
-                <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                   Photo
                 </span>
                 <div className='w-28 h-28 relative border-2 border-dashed border-gray-200 rounded-xl overflow-hidden bg-gray-50 hover:border-primaryColor transition-colors group'>

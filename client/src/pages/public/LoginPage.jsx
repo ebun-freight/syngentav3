@@ -63,8 +63,8 @@ function LoginPage () {
       {/* ── Brand Panel ──────────────────────────────────────────────────── */}
       <div
         className='relative flex flex-col justify-between overflow-hidden
-           md:w-[40%] lg:w-[45%] md:h-full
-           p-8 sm:p-10 md:p-8 lg:p-14'
+                   md:w-[40%] lg:w-[45%] md:min-h-screen
+                   p-8 sm:p-10 md:p-8 lg:p-14'
         style={{
           background:
             'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
@@ -155,7 +155,7 @@ function LoginPage () {
           <form onSubmit={handleSubmit} className='space-y-4 lg:space-y-5'>
             {/* Email */}
             <div>
-              <label className='block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
+              <label className='block text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
                 Email Address
               </label>
               <div
@@ -178,7 +178,7 @@ function LoginPage () {
 
             {/* Password */}
             <div>
-              <label className='block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
+              <label className='block text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
                 Password
               </label>
               <div
