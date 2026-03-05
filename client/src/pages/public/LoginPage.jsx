@@ -97,7 +97,7 @@ function LoginPage () {
               EBUN
             </h1>
             <p className='max-sm:text-xs text-white -mt-1.5 uppercase tracking-widest sm:tracking-wider sm:ml-0.5'>
-              Freight OPC
+              Freight Inc.
             </p>
           </div>
         </div>
@@ -126,11 +126,11 @@ function LoginPage () {
           className='relative z-10 hidden md:flex items-center gap-5 lg:gap-8
                      border-t border-white/20 pt-5 lg:pt-6'
         >
-          <StatBadge value='100+' label='Daily Trips' />
+          <StatBadge value='Tech' label='Drivern Operations' />
           <div className='w-px h-7 bg-white/20' />
           <StatBadge value='24/7' label='Operations' />
           <div className='w-px h-7 bg-white/20' />
-          <StatBadge value='99%' label='On-Time Rate' />
+          <StatBadge value='Est. 2026' label='Founded' />
         </div>
 
         {/* Mobile: compact tagline only */}
@@ -257,7 +257,7 @@ function LoginPage () {
           </p>
 
           <p className='text-gray-400 text-xxs sm:text-xs text-center mt-6 lg:mt-8'>
-            © {new Date().getFullYear()} Ebun Freight OPC. All rights reserved.
+            © {new Date().getFullYear()} Ebun Freight Inc. All rights reserved.
           </p>
         </div>
       </div>

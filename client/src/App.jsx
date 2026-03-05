@@ -33,8 +33,24 @@ function App () {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme='colored'
         transition={Slide}
+        toastStyle={{
+          background:
+            'linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)',
+          backgroundImage: `
+    radial-gradient(circle, rgba(255,255,255,0.15) 1.5px, transparent 1.5px),
+    linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)
+  `,
+          backgroundSize: '24px 24px, cover',
+          color: '#f1f5f9',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '12px',
+          fontSize: '13px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+        }}
+        progressStyle={{
+          background: 'rgba(255,255,255,0.25)'
+        }}
       />
 
       <Routes>

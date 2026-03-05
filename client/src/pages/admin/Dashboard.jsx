@@ -50,6 +50,7 @@ import {
 import { error_illustration } from '../../consts/images'
 import { useUserContext } from '../../contexts/UserContext'
 import clsx from 'clsx'
+import { TableError, TableLoading } from '../../components/TablesState'
 
 ChartJS.register(
   CategoryScale,
@@ -1143,38 +1144,11 @@ const Dashboard = () => {
 
   // ─── Loading / Error states ───────────────────────────────────────────────
   if (loading || userData.isLoading) {
-    return (
-      <div className='flex-1 flex items-center justify-center'>
-        <div className='flex flex-col items-center gap-4 text-center'>
-          <span className='loading loading-spinner loading-lg text-primaryColor'></span>
-          <p className='text-gray-600 font-medium'>Loading analytics...</p>
-        </div>
-      </div>
-    )
+    return <TableLoading />
   }
 
   if (error) {
-    return (
-      <div className='flex-1 flex justify-center items-center'>
-        <div className='flex flex-col justify-center items-center gap-4 px-4 text-center'>
-          <img src={error_illustration} alt='error' className='w-56' />
-          <div className='space-y-2'>
-            <h1 className='text-xl font-semibold text-gray-700'>
-              Something went wrong
-            </h1>
-            <p className='text-gray-500 max-w-md leading-relaxed'>
-              We encountered an unexpected error. Please try again later.
-            </p>
-            <button
-              onClick={fetchAnalyticsData}
-              className='btn btn-primary mt-4'
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    )
+    return <TableError />
   }
 
   const userRole = userData.data?.role

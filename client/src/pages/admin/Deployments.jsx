@@ -26,14 +26,23 @@ import { exportDeploymentToExcel } from '../../utils/exportDeploymentToExcel'
 import { exportBillingToExcel } from '../../utils/exportBillingToExcel'
 import { exportSubconBillingToExcel } from '../../utils/exportSubconBillingToExcel'
 import { useSettingsContext } from '../../contexts/SettingsContext'
+import {
+  TableEmpty,
+  TableError,
+  TableLoading
+} from '../../components/TablesState'
 
 const defaultFilters = {
   status: '',
   sort: 'latest',
   subcon: '',
   territory: '',
-  assignedAt: '',
-  departedAt: '',
+  assignedAtFrom: '',
+  assignedAtTo: '',
+  departedAtFrom: '',
+  departedAtTo: '',
+  completedAtFrom: '',
+  completedAtTo: '',
   search: '',
   perPage: 200,
   page: 1
@@ -59,7 +68,6 @@ const buildProgressSegments = deployment => {
   raw.push({ label: 'Dest Arrival', done: !!deployment.destArrival })
   raw.push({ label: 'Dest Departure', done: !!deployment.destDeparture })
 
-  // Sequential: once a segment is not done, all following are forced not done
   let blocked = false
   return raw.map(seg => {
     if (blocked) return { ...seg, done: false }
@@ -70,12 +78,10 @@ const buildProgressSegments = deployment => {
 
 const DeploymentProgressBar = ({ deployment }) => {
   const isCanceled = deployment.status === 'canceled'
-
   const segments = buildProgressSegments(deployment)
   const total = segments.length
   const doneCount = segments.filter(s => s.done).length
   const isComplete = doneCount === total
-
   const currentLabel =
     doneCount === 0 ? 'Assigned' : segments[doneCount - 1].label
 
@@ -83,26 +89,21 @@ const DeploymentProgressBar = ({ deployment }) => {
     <div className='mt-1.5 w-full min-w-20'>
       <div className='flex gap-px items-center'>
         {segments.map((seg, i) => {
-          let color = '#e5e7eb' // undone → always gray
-
+          let color = '#e5e7eb'
           if (seg.done) {
             const ratio = total <= 1 ? 1 : i / (total - 1)
-
             if (isCanceled) {
-              // red-300(252,165,165) → red-500(239,68,68): shows how far it got
               const r = Math.round(252 + (239 - 252) * ratio)
               const g = Math.round(165 + (68 - 165) * ratio)
               const b = Math.round(165 + (68 - 165) * ratio)
               color = `rgb(${r},${g},${b})`
             } else {
-              // emerald-400(52,211,153) → blue-400(96,165,250): normal progress
               const r = Math.round(52 + (96 - 52) * ratio)
               const g = Math.round(211 + (165 - 211) * ratio)
               const b = Math.round(153 + (250 - 153) * ratio)
               color = `rgb(${r},${g},${b})`
             }
           }
-
           return (
             <div
               key={i}
@@ -117,8 +118,6 @@ const DeploymentProgressBar = ({ deployment }) => {
           )
         })}
       </div>
-
-      {/* Only show step label for active (non-canceled), non-complete deployments */}
       {!isComplete && !isCanceled && (
         <p className='text-xxs mt-0.5 leading-none text-gray-400'>
           {currentLabel}
@@ -131,7 +130,6 @@ const DeploymentProgressBar = ({ deployment }) => {
 /* ── Pickup Stops Cell ────────────────────────────────────────────────────── */
 const PickupStopsCell = ({ pickups = [], field, status }) => {
   const stopsWithValue = pickups.filter(p => p[field])
-
   if (stopsWithValue.length === 0) {
     return (
       <p className='italic text-gray-400 font-light text-xxs sm:text-xs'>
@@ -139,7 +137,6 @@ const PickupStopsCell = ({ pickups = [], field, status }) => {
       </p>
     )
   }
-
   return (
     <div className='space-y-1'>
       {pickups.map((stop, i) => (
@@ -161,6 +158,36 @@ const PickupStopsCell = ({ pickups = [], field, status }) => {
     </div>
   )
 }
+
+/* ── Date Range Input ─────────────────────────────────────────────────────── */
+const DateRangeFilter = ({ label, fromName, toName, values, onChange }) => (
+  <label className='col-span-2 flex flex-col gap-1'>
+    <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+      {label}
+    </span>
+    <div className='flex items-center gap-2'>
+      <div className='flex-1 flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+        <input
+          type='date'
+          name={fromName}
+          value={values[fromName]}
+          onChange={onChange}
+          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+        />
+      </div>
+      <span className='text-xs text-gray-400 shrink-0'>to</span>
+      <div className='flex-1 flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+        <input
+          type='date'
+          name={toName}
+          value={values[toName]}
+          onChange={onChange}
+          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
+        />
+      </div>
+    </div>
+  </label>
+)
 
 function Deployments () {
   const { userData } = useUserContext()
@@ -236,7 +263,7 @@ function Deployments () {
   }, [tempFilters.search, filters.search])
 
   const handleApplyFilters = e => {
-    e.preventDefault()
+    e?.preventDefault()
     setFilters(tempFilters)
   }
 
@@ -395,7 +422,6 @@ function Deployments () {
 
   return (
     <>
-      {/* ── Copied exact container structure from ActivityLogsPage ── */}
       <div className='flex-1 flex flex-col gap-2 sm:gap-4 lg:gap-6'>
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className='flex flex-wrap max-xl:flex-col justify-between xl:items-start max-xs:gap-x-36 gap-x-99 gap-y-4'>
@@ -494,6 +520,18 @@ function Deployments () {
                 >
                   <FaFilter className='text-xs' />
                   <span>Filter</span>
+                  {/* Active filter indicator dot */}
+                  <span
+                    className={`aspect-square rounded-full bg-emerald-500 shrink-0 transition-all duration-300 ease-in-out ${
+                      Object.keys(defaultFilters).some(
+                        k =>
+                          !['sort', 'perPage', 'page', 'search'].includes(k) &&
+                          tempFilters[k] !== defaultFilters[k]
+                      )
+                        ? 'w-2'
+                        : 'w-0'
+                    }`}
+                  />
                 </div>
 
                 <div
@@ -504,6 +542,7 @@ function Deployments () {
                     Filter Options
                   </p>
                   <div className='grid grid-cols-2 gap-3'>
+                    {/* Status */}
                     <label className='flex flex-col gap-1'>
                       <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
                         Status
@@ -525,6 +564,7 @@ function Deployments () {
                       </div>
                     </label>
 
+                    {/* Sort */}
                     <label className='flex flex-col gap-1'>
                       <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
                         Sort
@@ -598,36 +638,32 @@ function Deployments () {
                       </>
                     )}
 
-                    <label className='col-span-2 flex flex-col gap-1'>
-                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
-                        Assigned At
-                      </span>
-                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
-                        <input
-                          type='date'
-                          name='assignedAt'
-                          value={tempFilters.assignedAt}
-                          onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
-                        />
-                      </div>
-                    </label>
+                    {/* ── Date Range Filters ── */}
+                    <DateRangeFilter
+                      label='Assigned At'
+                      fromName='assignedAtFrom'
+                      toName='assignedAtTo'
+                      values={tempFilters}
+                      onChange={handleChangeFilter}
+                    />
 
-                    <label className='col-span-2 flex flex-col gap-1'>
-                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
-                        Departed At
-                      </span>
-                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
-                        <input
-                          type='date'
-                          name='departedAt'
-                          value={tempFilters.departedAt}
-                          onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-sm text-gray-700 bg-transparent'
-                        />
-                      </div>
-                    </label>
+                    <DateRangeFilter
+                      label='Departed At'
+                      fromName='departedAtFrom'
+                      toName='departedAtTo'
+                      values={tempFilters}
+                      onChange={handleChangeFilter}
+                    />
 
+                    <DateRangeFilter
+                      label='Completed At'
+                      fromName='completedAtFrom'
+                      toName='completedAtTo'
+                      values={tempFilters}
+                      onChange={handleChangeFilter}
+                    />
+
+                    {/* Actions */}
                     <button
                       onClick={handleResetFilters}
                       disabled={isDeploymentLoading}
@@ -718,44 +754,11 @@ function Deployments () {
 
         {/* ── Table / States ──────────────────────────────────────────────── */}
         {isDeploymentLoading ? (
-          <div className='flex-1 flex items-center justify-center'>
-            <div className='flex flex-col items-center gap-4 text-center'>
-              <span className='loading loading-spinner loading-lg text-primaryColor' />
-              <p className='text-gray-500 text-sm font-medium'>
-                Loading content...
-              </p>
-            </div>
-          </div>
+          <TableLoading />
         ) : deploymentError ? (
-          <div className='flex-1 flex justify-center items-center'>
-            <div className='flex flex-col items-center gap-4 text-center px-4'>
-              <img src={error_illustration} alt='error' className='w-52' />
-              <div>
-                <h1 className='text-lg font-semibold text-gray-700'>
-                  Something went wrong
-                </h1>
-                <p className='text-gray-400 text-sm mt-1 max-w-md leading-relaxed'>
-                  We encountered an unexpected error. Please try again later.
-                </p>
-              </div>
-            </div>
-          </div>
+          <TableError />
         ) : allDeployments.length === 0 ? (
-          <div className='flex-1 flex justify-center items-center'>
-            <div className='flex flex-col items-center gap-4 text-center px-4'>
-              <img src={empty_illustration} alt='empty' className='w-52' />
-              <div>
-                <h1 className='text-lg font-semibold text-gray-700'>
-                  Nothing to show here
-                </h1>
-                <p className='text-gray-400 text-sm mt-1 max-w-md leading-relaxed'>
-                  {filters.search || filters.status
-                    ? 'Try adjusting your search terms or filters to see more results'
-                    : 'Get started by adding your first deployment to the system'}
-                </p>
-              </div>
-            </div>
-          </div>
+          <TableEmpty />
         ) : (
           <div className='relative flex-1 overflow-y-auto scrollbar-thin bg-white'>
             <div className='absolute inset-0'>

@@ -17,6 +17,11 @@ import useGetAllTruck from '../../hooks/useGetAllTruck'
 import DeleteTruckModal from '../../components/modals/DeleteTruckModal'
 import { useUserContext } from '../../contexts/UserContext'
 import { useSettingsContext } from '../../contexts/SettingsContext'
+import {
+  TableEmpty,
+  TableError,
+  TableLoading
+} from '../../components/TablesState'
 
 const defaultFilters = {
   truckType: '',
@@ -376,47 +381,11 @@ function TruckManagement () {
 
         {/* ── Table / States ──────────────────────────────────────────────── */}
         {isLoading ? (
-          <div className='flex-1 flex items-center justify-center'>
-            <div className='flex flex-col items-center gap-4 text-center'>
-              <span className='loading loading-spinner loading-lg text-primaryColor' />
-              <p className='text-gray-500 text-sm font-medium'>
-                Loading content...
-              </p>
-            </div>
-          </div>
+          <TableLoading />
         ) : error ? (
-          <div className='flex-1 flex justify-center items-center'>
-            <div className='flex flex-col items-center gap-4 text-center px-4'>
-              <img src={error_illustration} alt='error' className='w-52' />
-              <div>
-                <h1 className='text-lg font-semibold text-gray-700'>
-                  Something went wrong
-                </h1>
-                <p className='text-gray-400 text-sm mt-1 max-w-md leading-relaxed'>
-                  We encountered an unexpected error. Please try again later.
-                </p>
-              </div>
-            </div>
-          </div>
+          <TableError />
         ) : allTrucks.length === 0 ? (
-          <div className='flex-1 flex justify-center items-center'>
-            <div className='flex flex-col items-center gap-4 text-center px-4'>
-              <img src={empty_illustration} alt='empty' className='w-52' />
-              <div>
-                <h1 className='text-lg font-semibold text-gray-700'>
-                  Nothing to show here
-                </h1>
-                <p className='text-gray-400 text-sm mt-1 max-w-md leading-relaxed'>
-                  {tempFilters.search ||
-                  tempFilters.truckType ||
-                  tempFilters.status ||
-                  tempFilters.subcon
-                    ? 'Try adjusting your search terms or filters to see more results'
-                    : 'Get started by adding your first truck to the system'}
-                </p>
-              </div>
-            </div>
-          </div>
+          <TableEmpty />
         ) : (
           <div className='relative flex-1 overflow-y-auto scrollbar-thin bg-white'>
             <div className='absolute inset-0'>

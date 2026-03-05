@@ -5,6 +5,7 @@ import { useSettingsContext } from '../../contexts/SettingsContext'
 import CreateOptionModal from '../../components/modals/CreateOptionModal'
 import DeleteOptionModal from '../../components/modals/DeleteOptionModal'
 import clsx from 'clsx'
+import { TableLoading } from '../../components/TablesState'
 
 function SystemSettingsPage () {
   const {
@@ -88,16 +89,7 @@ function SystemSettingsPage () {
   )
 
   if (isLoadingSettings) {
-    return (
-      <div className='flex-1 flex items-center justify-center'>
-        <div className='flex flex-col items-center gap-4 text-center'>
-          <span className='loading loading-spinner loading-lg text-primaryColor' />
-          <p className='text-gray-500 text-sm font-medium'>
-            Loading content...
-          </p>
-        </div>
-      </div>
-    )
+    return <TableLoading />
   }
 
   return (

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { API_USER } from '../utils/APIRoutes'
 import { toast } from 'react-toastify'
 import axios from 'axios'
+import AuthLoader from '../components/AuthLoader'
 
 const UserContext = createContext()
 
@@ -31,6 +32,9 @@ export const UserProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${token}` }
       })
 
+      // remove this shit
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
       console.log('CURRENT USER', response.data.user)
       setUserData({
         data: response.data.user,
@@ -57,6 +61,8 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     getCurrentUser()
   }, [])
+
+  if (userData.isLoading) return <AuthLoader />
 
   return (
     <UserContext.Provider value={{ userData, updateUser }}>

@@ -19,6 +19,7 @@ import ReplacementHistoryModal from '../../components/modals/ReplacementHistoryM
 import useGetAllDeployment from '../../hooks/useGetAllDeployment'
 import { error_illustration } from '../../consts/images'
 import clsx from 'clsx'
+import { TableError, TableLoading } from '../../components/TablesState'
 
 /* ── Shared button base (mirrors Deployments page) ─────────────────────── */
 const btnBase =
@@ -581,34 +582,11 @@ function CalendarPage () {
   // ─── loading / error states (mirrors Deployments page) ────────────────────
 
   if (isDeploymentsLoading || isDriverLoading || isTruckLoading) {
-    return (
-      <div className='flex-1 flex items-center justify-center'>
-        <div className='flex flex-col items-center gap-4 text-center'>
-          <span className='loading loading-spinner loading-lg text-primaryColor' />
-          <p className='text-gray-500 text-sm font-medium'>
-            Loading content...
-          </p>
-        </div>
-      </div>
-    )
+    return <TableLoading />
   }
 
   if (deploymentsError || truckError || driverError) {
-    return (
-      <div className='flex-1 flex justify-center items-center'>
-        <div className='flex flex-col items-center gap-4 text-center px-4'>
-          <img src={error_illustration} alt='error' className='w-52' />
-          <div>
-            <h1 className='text-lg font-semibold text-gray-700'>
-              Something went wrong
-            </h1>
-            <p className='text-gray-400 text-sm mt-1 max-w-md leading-relaxed'>
-              We encountered an unexpected error. Please try again later.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
+    return <TableError />
   }
 
   // ─── render ────────────────────────────────────────────────────────────────

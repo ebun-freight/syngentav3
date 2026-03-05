@@ -65,7 +65,10 @@ function SideNav () {
           }
         )}
       >
-        {/* ── Logo Section with dot background ─────────────────────────── */}
+        {/* Dot pattern over entire sidebar */}
+        <DotPattern />
+
+        {/* ── Logo Section ──────────────────────────────────────────────── */}
         <div
           className='relative flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10 overflow-hidden'
           style={{
@@ -73,9 +76,6 @@ function SideNav () {
               'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
           }}
         >
-          {/* Dot pattern */}
-          <DotPattern />
-
           {/* Radial glow top-right */}
           <div
             className='absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-15 pointer-events-none'
