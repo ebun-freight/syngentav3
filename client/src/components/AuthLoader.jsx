@@ -49,7 +49,7 @@ const AuthLoader = () => (
         <h1 className='font-semibold text-2xl sm:text-3xl tracking-widest text-white uppercase'>
           EBUN
         </h1>
-        <p className='text-white/60 text-xs -mt-1 uppercase tracking-widest'>
+        <p className='text-white/60 text-xxs sm:text-xs -mt-1 uppercase tracking-widest'>
           Freight OPC
         </p>
       </div>
