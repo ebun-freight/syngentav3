@@ -1,5 +1,5 @@
 import React from 'react'
-import { Outlet, useLocation } from 'react-router'
+import { Outlet } from 'react-router'
 import Topbar from '../components/Topbar'
 import SideNav from '../components/SideNav'
 import clsx from 'clsx'
@@ -9,7 +9,6 @@ import AOS from 'aos'
 import 'aos/dist/aos.css'
 
 function UserLayout () {
-  const location = useLocation()
   const { userData } = useUserContext()
 
   useEffect(() => {
@@ -21,7 +20,7 @@ function UserLayout () {
   }, [])
 
   return (
-    <div className='h-screen w-screen flex text-gray-800 bg-gray-50'>
+    <div className='h-dvh w-screen flex text-gray-800 bg-gray-50'>
       {/* sidenav */}
       <SideNav user={userData.data} />
 
@@ -31,15 +30,7 @@ function UserLayout () {
         <Topbar />
 
         {/* main content */}
-        <div
-          className={clsx(
-            'sm:m-8 flex-1 flex flex-col bg-white sm:rounded sm:shadow-card3 px-4 pb-4 sm:p-6'
-            // {
-            //   'bg-white sm:rounded sm:shadow-card3 px-4 pb-4 sm:p-6':
-            //     location.pathname !== '/secure/calendar'
-            // }
-          )}
-        >
+        <div className='sm:m-8 flex-1 flex flex-col bg-white sm:rounded sm:shadow-card3 px-4 pb-4 sm:p-6'>
           <Outlet />
         </div>
       </div>
