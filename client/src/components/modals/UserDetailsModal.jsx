@@ -25,7 +25,7 @@ import {
   FaUserEdit
 } from 'react-icons/fa'
 import { MdKeyboardArrowDown } from 'react-icons/md'
-import { USER_STATUS_TYPES } from '../../utils/userOptions'
+import { USER_ROLE_TYPES, USER_STATUS_TYPES } from '../../utils/userOptions'
 import { toast } from 'react-toastify'
 import { RiFolderUploadLine } from 'react-icons/ri'
 import { useSettingsContext } from '../../contexts/SettingsContext'
@@ -81,8 +81,10 @@ function UserDetailsModal ({
   onClose,
   user,
   onUpdate,
-  openDeleteModal
+  openDeleteModal,
+  currentUser
 }) {
+  console.log('TANGA', currentUser)
   const { settings } = useSettingsContext()
 
   const [isEditMode, setIsEditMode] = useState(false)
@@ -92,6 +94,9 @@ function UserDetailsModal ({
   const [subconQuery, setSubconQuery] = useState('')
 
   const { updateUserFunction, isLoading } = useUpdateUser()
+
+  // Role is only editable when the target is an admin-level account
+  const isAdminTarget = user?.role === 'admin' || user?.role === 'head_admin'
 
   const filteredSubcons = settings.trucksDrivers.subcon.filter(subcon =>
     subcon.toLowerCase().includes(subconQuery.toLowerCase())
@@ -173,14 +178,16 @@ function UserDetailsModal ({
 
         <div className='fixed inset-0 flex items-center justify-center p-4 max-sm:p-2'>
           <DialogPanel
-            className='font-poppins w-full max-w-4xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col sm:flex-row max-h-[95vh] sm:max-h-none
-              transition duration-300 ease-out
-              data-closed:opacity-0 data-closed:translate-y-4
-              data-leave:duration-200 data-leave:ease-in data-leave:opacity-0 data-leave:scale-95'
+            className={clsx(
+              'font-poppins w-full max-w-4xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col sm:flex-row sm:max-h-none transition duration-300 ease-out data-closed:opacity-0 data-closed:translate-y-4 data-leave:duration-200 data-leave:ease-in data-leave:opacity-0 data-leave:scale-95'
+            )}
           >
             {/* ══ LEFT PANEL — dark identity panel ══════════════════════════════ */}
             <div
-              className='relative flex flex-col overflow-hidden sm:w-72 shrink-0 p-8 pb-16 max-sm:p-5 max-sm:pb-5'
+              className={clsx(
+                'relative flex flex-col overflow-hidden sm:w-72 shrink-0 p-8  max-sm:p-5 max-sm:pb-5',
+                currentUser?.role === 'head_admin' && 'pb-16'
+              )}
               style={{
                 background:
                   'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
@@ -406,7 +413,7 @@ function UserDetailsModal ({
                     onChange={handleChange}
                   />
 
-                  {/* Subcon (role=subcon) OR Role (read-only) */}
+                  {/* Subcon combobox (only when role === 'subcon') */}
                   {editForm?.role === 'subcon' ? (
                     <div className='flex flex-col gap-1.5'>
                       <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
@@ -470,15 +477,35 @@ function UserDetailsModal ({
                       )}
                     </div>
                   ) : (
-                    <InputField
-                      label='Role'
-                      type='text'
-                      name='role'
-                      placeholder='Role'
-                      value={editForm?.role?.replace(/_/g, ' ') || ''}
-                      disabled
-                      onChange={handleChange}
-                    />
+                    /* ── Role field ──────────────────────────────────────────────
+                       Editable (select) in edit mode only when the target user is
+                       admin or head_admin. For visitors and subcons it stays
+                       read-only because their role isn't changed from this modal. */
+                    <div className='flex flex-col gap-1.5'>
+                      <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                        Role
+                      </span>
+                      {isEditMode && isAdminTarget ? (
+                        <div className='relative flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                          <select
+                            name='role'
+                            value={editForm?.role || ''}
+                            onChange={handleChange}
+                            className='w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize'
+                          >
+                            <option value='admin'>Admin</option>
+                            <option value='head_admin'>Head Admin</option>
+                          </select>
+                          <MdKeyboardArrowDown className='absolute right-4 max-sm:right-3 text-gray-400 text-lg pointer-events-none' />
+                        </div>
+                      ) : (
+                        <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 shadow-sm'>
+                          <p className='text-sm max-sm:text-xs text-gray-500 capitalize'>
+                            {editForm?.role?.replace(/_/g, ' ') || '—'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Status */}
@@ -550,83 +577,85 @@ function UserDetailsModal ({
                 </div>
 
                 {/* ── Actions ── */}
-                <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0 max-sm:hidden'>
-                  {isEditMode ? (
-                    <div className='flex gap-3 max-sm:gap-2'>
-                      <button
-                        type='button'
-                        onClick={handleCancelEditMode}
-                        disabled={isLoading}
-                        className='px-8 py-2.5 rounded-xl font-semibold text-sm max-sm:text-xs uppercase tracking-wide
+                {currentUser?.role === 'head_admin' && (
+                  <div className='px-6 pb-5 pt-4 max-sm:px-4 max-sm:pb-4 border-t border-gray-100 shrink-0 max-sm:hidden'>
+                    {isEditMode ? (
+                      <div className='flex gap-3 max-sm:gap-2'>
+                        <button
+                          type='button'
+                          onClick={handleCancelEditMode}
+                          disabled={isLoading}
+                          className='px-8 py-2.5 rounded-xl font-semibold text-sm max-sm:text-xs uppercase tracking-wide
                                    bg-gray-100 text-gray-600 hover:bg-gray-200
                                    cursor-pointer active:scale-[0.99] transition-all
                                    disabled:opacity-50 disabled:cursor-not-allowed
                                    flex items-center justify-center gap-2'
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type='submit'
-                        disabled={isLoading}
-                        className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type='submit'
+                          disabled={isLoading}
+                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                    shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                    transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                    flex items-center justify-center gap-2'
-                        style={{
-                          background:
-                            'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                        }}
-                      >
-                        {isLoading ? (
-                          <>
-                            <span className='loading loading-spinner loading-xs sm:loading-sm' />
-                            <span>Saving...</span>
-                          </>
-                        ) : (
-                          <>
-                            <FaSave className='text-sm shrink-0' />
-                            <span>Save</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className='flex gap-3 max-sm:gap-2'>
-                      <button
-                        type='button'
-                        onClick={() => setIsEditMode(true)}
-                        disabled={isLoading}
-                        className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
+                          style={{
+                            background:
+                              'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                          }}
+                        >
+                          {isLoading ? (
+                            <>
+                              <span className='loading loading-spinner loading-xs sm:loading-sm' />
+                              <span>Saving...</span>
+                            </>
+                          ) : (
+                            <>
+                              <FaSave className='text-sm shrink-0' />
+                              <span>Save</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className='flex gap-3 max-sm:gap-2'>
+                        <button
+                          type='button'
+                          onClick={() => setIsEditMode(true)}
+                          disabled={isLoading}
+                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                    shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                    transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                    flex items-center justify-center gap-2'
-                        style={{
-                          background:
-                            'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-                        }}
-                      >
-                        <FaUserEdit className='text-sm shrink-0' />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        type='button'
-                        onClick={openDeleteModal}
-                        disabled={isLoading}
-                        className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
+                          style={{
+                            background:
+                              'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                          }}
+                        >
+                          <FaUserEdit className='text-sm shrink-0' />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type='button'
+                          onClick={openDeleteModal}
+                          disabled={isLoading}
+                          className='px-8 py-2.5 rounded-xl font-semibold text-white text-sm max-sm:text-xs uppercase tracking-wide
                                    shadow-md hover:shadow-lg cursor-pointer active:scale-[0.99]
                                    transition-all disabled:opacity-70 disabled:cursor-not-allowed
                                    flex items-center justify-center gap-2'
-                        style={{
-                          background:
-                            'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                        }}
-                      >
-                        <FaTrash className='text-sm shrink-0' />
-                        <span>Delete</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                          style={{
+                            background:
+                              'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                          }}
+                        >
+                          <FaTrash className='text-sm shrink-0' />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </form>
             </div>
           </DialogPanel>

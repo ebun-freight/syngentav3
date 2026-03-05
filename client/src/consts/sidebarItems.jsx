@@ -76,25 +76,25 @@ export const SIDEBAR_ITEMS = [
     icon: <TbHeartHandshake />,
     name: 'Subcon Management',
     path: '/secure/subcon-management',
-    role: ['head_admin']
+    role: ['head_admin', 'admin']
   },
   {
     icon: <TbUserShield />,
     name: 'Admin Management',
     path: '/secure/admin-management',
-    role: ['head_admin']
+    role: ['head_admin', 'admin']
   },
   {
     icon: <TbLicense />,
     name: 'Activity Logs',
     path: '/secure/activity-logs',
-    role: ['head_admin']
+    role: ['head_admin', 'admin']
   },
   {
     icon: <TbSettings />,
     name: 'System Settings',
     path: '/secure/system-settings',
-    role: ['head_admin']
+    role: ['head_admin', 'admin']
   }
 ]
 

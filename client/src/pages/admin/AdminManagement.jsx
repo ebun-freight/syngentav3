@@ -16,6 +16,7 @@ import UserDetailsModal from '../../components/modals/UserDetailsModal'
 import { USER_STATUS_TYPES } from '../../utils/userOptions'
 import CreateAdminModal from '../../components/modals/CreateAdminModal'
 import DeleteUserModal from '../../components/modals/DeleteUserModal'
+import { useUserContext } from '../../contexts/UserContext'
 
 const defaultFilters = {
   role: 'admin',
@@ -27,6 +28,8 @@ const defaultFilters = {
 }
 
 function AdminManagement () {
+  const { userData } = useUserContext()
+
   const [isAdminDetailsModalOpen, setIsAdminDetailsModalOpen] = useState(false)
   const [isDeleteAdminModalOpen, setIsDeleteAdminModalOpen] = useState(false)
   const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false)
@@ -429,6 +432,7 @@ function AdminManagement () {
         user={selectedAdmin}
         onUpdate={handleUpdateAllUsers}
         openDeleteModal={() => setIsDeleteAdminModalOpen(true)}
+        currentUser={userData.data}
       />
       <CreateAdminModal
         isOpen={isCreateAdminModalOpen}

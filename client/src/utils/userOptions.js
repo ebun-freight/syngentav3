@@ -1,7 +1,8 @@
 export const USER_ROLE_TYPES = [
   { label: 'Head Admin', value: 'head_admin' },
   { label: 'Admin', value: 'admin' },
-  { label: 'Visitor', value: 'value' }
+  { label: 'Visitor', value: 'visitor' },
+  { label: 'Subcon', value: 'subcon' }
 ]
 
 export const USER_STATUS_TYPES = [
