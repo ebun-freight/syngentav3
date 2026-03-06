@@ -849,31 +849,11 @@ const DeploymentInfoTab = ({
           </div>
 
           <div className='grid grid-cols-2 gap-4'>
+            {/* ── Flagging: plain InfoValue (no badge) ── */}
             <InfoField label='Flagging'>
-              <div
-                className={clsx(
-                  'flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 shadow-sm min-h-[42px] max-sm:min-h-9'
-                )}
-              >
-                <span
-                  className={clsx(
-                    'capitalize w-fit px-2.5 py-0.5 rounded-full text-xs font-semibold',
-                    {
-                      'bg-emerald-500/10 text-emerald-600':
-                        targetDeployment?.flagging === 'green',
-                      'bg-orange-500/10 text-orange-600':
-                        targetDeployment?.flagging === 'orange',
-                      'bg-yellow-500/10 text-yellow-600':
-                        targetDeployment?.flagging === 'yellow',
-                      'bg-red-500/10 text-red-600':
-                        targetDeployment?.flagging === 'red',
-                      'text-gray-400 italic': !targetDeployment?.flagging
-                    }
-                  )}
-                >
-                  {targetDeployment?.flagging || '—'}
-                </span>
-              </div>
+              <InfoValue className='capitalize'>
+                {targetDeployment?.flagging || 'N/A'}
+              </InfoValue>
             </InfoField>
             <InfoField label='Flagging Remarks'>
               <InfoValue className='capitalize'>
@@ -883,26 +863,11 @@ const DeploymentInfoTab = ({
           </div>
 
           <div className='grid grid-cols-2 gap-4'>
+            {/* ── Status: plain InfoValue (no badge) ── */}
             <InfoField label='Status'>
-              <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 shadow-sm min-h-[42px] max-sm:min-h-9'>
-                <span
-                  className={clsx(
-                    'capitalize w-fit px-2.5 py-0.5 rounded-full text-xs font-semibold',
-                    {
-                      'bg-orange-500/10 text-orange-600':
-                        targetDeployment?.status === 'preparing',
-                      'bg-emerald-500/10 text-emerald-600':
-                        targetDeployment?.status === 'ongoing',
-                      'bg-blue-500/10 text-blue-600':
-                        targetDeployment?.status === 'completed',
-                      'bg-red-500/10 text-red-600':
-                        targetDeployment?.status === 'canceled'
-                    }
-                  )}
-                >
-                  {targetDeployment?.status || '—'}
-                </span>
-              </div>
+              <InfoValue className='capitalize'>
+                {targetDeployment?.status}
+              </InfoValue>
             </InfoField>
             <InfoField label='Cancellation Reason'>
               <InfoValue>{targetDeployment?.cancellationReason}</InfoValue>

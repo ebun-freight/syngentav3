@@ -37,6 +37,8 @@ const defaultFilters = {
   sort: 'latest',
   subcon: '',
   territory: '',
+  hybrid: '',
+  flagging: '',
   assignedAtFrom: '',
   assignedAtTo: '',
   departedAtFrom: '',
@@ -185,6 +187,27 @@ const DateRangeFilter = ({ label, fromName, toName, values, onChange }) => (
           className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
         />
       </div>
+    </div>
+  </label>
+)
+
+/* ── Reusable select wrapper ────────────────────────────────────────────────── */
+const SelectFilter = ({ label, name, value, onChange, colSpan, children }) => (
+  <label
+    className={clsx('flex flex-col gap-1', colSpan && `col-span-${colSpan}`)}
+  >
+    <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+      {label}
+    </span>
+    <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent capitalize'
+      >
+        {children}
+      </select>
     </div>
   </label>
 )
@@ -515,126 +538,122 @@ function Deployments () {
                   role='button'
                   className={clsx(
                     btnBase,
-                    'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'
+                    'relative bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'
                   )}
                 >
                   <FaFilter className='text-xs' />
                   <span>Filter</span>
                   {/* Active filter indicator dot */}
-                  <span
-                    className={`aspect-square rounded-full bg-emerald-500 shrink-0 transition-all duration-300 ease-in-out ${
-                      Object.keys(defaultFilters).some(
-                        k =>
-                          !['sort', 'perPage', 'page', 'search'].includes(k) &&
-                          tempFilters[k] !== defaultFilters[k]
-                      )
-                        ? 'w-2'
-                        : 'w-0'
-                    }`}
-                  />
+                  {Object.keys(defaultFilters).some(
+                    k =>
+                      !['sort', 'perPage', 'page', 'search'].includes(k) &&
+                      tempFilters[k] !== defaultFilters[k]
+                  ) && (
+                    <span className='w-2 aspect-square rounded-full bg-emerald-500 shrink-0 absolute -top-0.5 -right-0.5' />
+                  )}
                 </div>
 
                 <div
                   tabIndex='0'
                   className='dropdown-content menu mt-2 bg-white shadow-md rounded-xl border border-gray-100 w-[calc(100vw-2rem)] max-w-sm p-3 sm:p-4'
+                  onClick={e => e.stopPropagation()}
                 >
                   <p className='text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3'>
                     Filter Options
                   </p>
                   <div className='grid grid-cols-2 gap-3'>
                     {/* Status */}
-                    <label className='flex flex-col gap-1'>
-                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
-                        Status
-                      </span>
-                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
-                        <select
-                          name='status'
-                          value={tempFilters.status}
-                          onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
-                        >
-                          <option value=''>All</option>
-                          {DEPLOYMENT_STATUS.map((item, index) => (
-                            <option key={index} value={item.value}>
-                              {item.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </label>
+                    <SelectFilter
+                      label='Status'
+                      name='status'
+                      value={tempFilters.status}
+                      onChange={handleChangeFilter}
+                    >
+                      <option value=''>All</option>
+                      {DEPLOYMENT_STATUS.map((item, index) => (
+                        <option key={index} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </SelectFilter>
 
                     {/* Sort */}
-                    <label className='flex flex-col gap-1'>
-                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
-                        Sort
-                      </span>
-                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
-                        <select
-                          name='sort'
-                          value={tempFilters.sort}
-                          onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
-                        >
-                          <option value='latest'>Latest</option>
-                          <option value='oldest'>Oldest</option>
-                        </select>
-                      </div>
-                    </label>
+                    <SelectFilter
+                      label='Sort'
+                      name='sort'
+                      value={tempFilters.sort}
+                      onChange={handleChangeFilter}
+                    >
+                      <option value='latest'>Latest</option>
+                      <option value='oldest'>Oldest</option>
+                    </SelectFilter>
+
+                    {/* Hybrid */}
+                    <SelectFilter
+                      label='Hybrid'
+                      name='hybrid'
+                      value={tempFilters.hybrid}
+                      onChange={handleChangeFilter}
+                    >
+                      <option value=''>All</option>
+                      {settings.deployments.hybrid.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </SelectFilter>
+
+                    {/* Flagging */}
+                    <SelectFilter
+                      label='Flagging'
+                      name='flagging'
+                      value={tempFilters.flagging}
+                      onChange={handleChangeFilter}
+                    >
+                      <option value=''>All</option>
+                      {settings.deployments.flagging.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </SelectFilter>
 
                     {userData.data.role !== 'subcon' && (
                       <>
                         {userData.data.role !== 'visitor' && (
-                          <label className='flex flex-col gap-1'>
-                            <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
-                              Subcon
-                            </span>
-                            <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
-                              <select
-                                name='subcon'
-                                value={tempFilters.subcon}
-                                onChange={handleChangeFilter}
-                                className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent capitalize'
-                              >
-                                <option value=''>All</option>
-                                {settings.trucksDrivers.subcon.map(
-                                  (item, index) => (
-                                    <option key={index} value={item}>
-                                      {item}
-                                    </option>
-                                  )
-                                )}
-                              </select>
-                            </div>
-                          </label>
+                          <SelectFilter
+                            label='Subcon'
+                            name='subcon'
+                            value={tempFilters.subcon}
+                            onChange={handleChangeFilter}
+                          >
+                            <option value=''>All</option>
+                            {settings.trucksDrivers.subcon.map(
+                              (item, index) => (
+                                <option key={index} value={item}>
+                                  {item}
+                                </option>
+                              )
+                            )}
+                          </SelectFilter>
                         )}
 
-                        <label
-                          className={clsx('flex flex-col gap-1', {
-                            'col-span-2': userData.data.role === 'visitor'
-                          })}
+                        <SelectFilter
+                          label='Territory'
+                          name='territory'
+                          value={tempFilters.territory}
+                          onChange={handleChangeFilter}
+                          colSpan={
+                            userData.data.role === 'visitor' ? 2 : undefined
+                          }
                         >
-                          <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
-                            Territory
-                          </span>
-                          <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
-                            <select
-                              name='territory'
-                              value={tempFilters.territory}
-                              onChange={handleChangeFilter}
-                              className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent capitalize'
-                            >
-                              <option value=''>All</option>
-                              {settings.deployments.territory.map(
-                                (item, index) => (
-                                  <option key={index} value={item}>
-                                    {item}
-                                  </option>
-                                )
-                              )}
-                            </select>
-                          </div>
-                        </label>
+                          <option value=''>All</option>
+                          {settings.deployments.territory.map((item, index) => (
+                            <option key={index} value={item}>
+                              {item}
+                            </option>
+                          ))}
+                        </SelectFilter>
                       </>
                     )}
 
@@ -852,18 +871,18 @@ function Deployments () {
                           {deployment?.replacement?.replacementTruckId?._id ? (
                             <>
                               <p className='text-nowrap'>
-                                <span className='uppercase'>
+                                <span className='uppercase font-medium max-xs:text-xxs'>
                                   {
                                     deployment.replacement.replacementTruckId
                                       .plateNo
                                   }{' '}
                                 </span>
-                                <span className='text-gray-400'>
+                                <span className='text-gray-400 max-xs:text-xxs'>
                                   ({deployment.replacement.replacementTruckType}
                                   )
                                 </span>
                               </p>
-                              <p className='text-nowrap text-gray-500'>
+                              <p className='text-nowrap text-gray-500 font-light max-sm:text-xxs'>
                                 {`${deployment.replacement.replacementDriverId.firstname} ${deployment.replacement.replacementDriverId.lastname}`}
                               </p>
                             </>

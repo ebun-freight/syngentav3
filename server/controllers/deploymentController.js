@@ -7,7 +7,9 @@ const ActivityLog = require('../models/activityLogsModel')
 const TimelineLog = require('../models/timelineLogsModel')
 const { DateTime } = require('luxon')
 
-// Helper: get active subcon from deployment (replacement truck takes priority)
+const MANILA_TZ = 'Asia/Manila'
+
+// Helper: get active subcon (replacement truck takes priority)
 const getActiveSubcon = deployment => {
   if (deployment.replacement?.replacementTruckId?.subcon) {
     return deployment.replacement.replacementTruckId.subcon
@@ -30,26 +32,39 @@ const mapPickup = p => ({
   sacksCount: p.sacksCount || 0
 })
 
-// Helper: apply a date range filter to a mongoose query
-// isISO=true  → field is stored as an ISO string (compare as string)
-// isISO=false → field is stored as a Date object
+// Helper: apply a date range filter.
+// isISO=false -> field is a native MongoDB Date (createdAt)
+// isISO=true  -> field is stored as an ISO string (departed, destDeparture)
 const applyDateRange = (query, field, from, to, isISO = false) => {
   if (from) {
-    const d = new Date(from)
-    if (isNaN(d.getTime())) return query
-    d.setHours(0, 0, 0, 0)
-    query = query.where(field).gte(isISO ? d.toISOString() : d)
+    const [year, month, day] = from.split('-').map(Number)
+    const start = DateTime.fromObject(
+      { year, month, day, hour: 0, minute: 0, second: 0, millisecond: 0 },
+      { zone: MANILA_TZ }
+    )
+    if (!start.isValid) return query
+    query = query.where(field).gte(isISO ? start.toISO() : start.toJSDate())
   }
   if (to) {
-    const d = new Date(to)
-    if (isNaN(d.getTime())) return query
-    d.setHours(23, 59, 59, 999)
-    query = query.where(field).lte(isISO ? d.toISOString() : d)
+    const [year, month, day] = to.split('-').map(Number)
+    const end = DateTime.fromObject(
+      { year, month, day, hour: 23, minute: 59, second: 59, millisecond: 999 },
+      { zone: MANILA_TZ }
+    )
+    if (!end.isValid) return query
+    query = query.where(field).lte(isISO ? end.toISO() : end.toJSDate())
   }
   return query
 }
 
-// Create deployment
+// Helper: apply a simple string equality filter (skips if value is empty)
+const applyStringFilter = (query, field, value) => {
+  if (!value || value === '') return query
+  return query.where(field).equals(value)
+}
+
+// ─── Create deployment ─────────────────────────────────────────────────────────
+
 const createDeployment = async (req, res, next) => {
   try {
     const {
@@ -76,8 +91,6 @@ const createDeployment = async (req, res, next) => {
     if (!['head_admin', 'admin'].includes(req.user.role)) {
       return next(createError(403, 'Access denied'))
     }
-
-    console.log(req.body)
 
     validateFields({
       truckId,
@@ -146,13 +159,12 @@ const createDeployment = async (req, res, next) => {
     ])
 
     const initialStatus = departed ? 'ongoing' : 'preparing'
-    const now = DateTime.now().setZone('Asia/Manila').toISO()
 
     await TimelineLog.create({
       performedBy: req.user._id,
       action: 'Truck assigned for deployment',
       status: initialStatus,
-      timestamp: now,
+      timestamp: DateTime.now().setZone(MANILA_TZ).toISO(),
       targetDeployment: newDeployment._id
     })
 
@@ -178,7 +190,8 @@ const createDeployment = async (req, res, next) => {
   }
 }
 
-// Get all deployments
+// ─── Get all deployments ───────────────────────────────────────────────────────
+
 const getAllDeployments = async (req, res, next) => {
   try {
     let {
@@ -195,32 +208,13 @@ const getAllDeployments = async (req, res, next) => {
       page = 1,
       includeDeleted = false,
       subcon,
-      territory
+      territory,
+      hybrid,
+      flagging
     } = req.query
 
-    console.log(req.query)
-
-    // FIX: If filtering by completedAt range, implicitly scope to completed status
-    if (completedAtFrom || completedAtTo) {
-      status = 'completed'
-    }
-
-    // Validate date range params
-    const dateRangeFields = {
-      assignedAtFrom,
-      assignedAtTo,
-      departedAtFrom,
-      departedAtTo,
-      completedAtFrom,
-      completedAtTo
-    }
-    for (const [key, val] of Object.entries(dateRangeFields)) {
-      if (val && isNaN(new Date(val).getTime())) {
-        return next(
-          createError(400, `Invalid ${key} date format. Use YYYY-MM-DD`)
-        )
-      }
-    }
+    // If filtering by completedAt range, implicitly scope to completed status
+    if (completedAtFrom || completedAtTo) status = 'completed'
 
     const subconFilter =
       req.user.role === 'subcon' && req.user.subcon
@@ -229,21 +223,20 @@ const getAllDeployments = async (req, res, next) => {
         ? subcon.toLowerCase()
         : null
 
+    // ── Base query ────────────────────────────────────────────────────────
     let baseQuery = Deployment.find()
 
-    if (includeDeleted !== 'true') {
+    if (includeDeleted !== 'true')
       baseQuery = baseQuery.where('isSoftDeleted').ne(true)
-    }
-
-    if (territory && territory !== '') {
+    if (territory && territory !== '')
       baseQuery = baseQuery.where('territory').equals(territory)
-    }
-
-    if (status && status !== '') {
+    if (status && status !== '')
       baseQuery = baseQuery.where('status').equals(status)
-    }
 
-    // Assigned-at date range (createdAt — stored as Date)
+    baseQuery = applyStringFilter(baseQuery, 'hybrid', hybrid)
+    baseQuery = applyStringFilter(baseQuery, 'flagging', flagging)
+
+    // createdAt is a native Date; departed/destDeparture are ISO strings
     baseQuery = applyDateRange(
       baseQuery,
       'createdAt',
@@ -251,8 +244,6 @@ const getAllDeployments = async (req, res, next) => {
       assignedAtTo,
       false
     )
-
-    // Departed-at date range (departed — stored as ISO string)
     baseQuery = applyDateRange(
       baseQuery,
       'departed',
@@ -260,8 +251,6 @@ const getAllDeployments = async (req, res, next) => {
       departedAtTo,
       true
     )
-
-    // Completed-at date range (destDeparture — stored as ISO string)
     baseQuery = applyDateRange(
       baseQuery,
       'destDeparture',
@@ -270,10 +259,7 @@ const getAllDeployments = async (req, res, next) => {
       true
     )
 
-    const sortOptions = {
-      oldest: { createdAt: 1 },
-      latest: { createdAt: -1 }
-    }
+    const sortOptions = { oldest: { createdAt: 1 }, latest: { createdAt: -1 } }
     baseQuery = baseQuery.sort(sortOptions[sort] || sortOptions.latest)
 
     const limit = parseInt(perPage)
@@ -301,93 +287,84 @@ const getAllDeployments = async (req, res, next) => {
 
     let deployments = await baseQuery
 
+    // In-memory subcon filter (subcon lives on a populated ref, not a top-level field)
     if (subconFilter) {
       deployments = deployments.filter(
-        deployment => getActiveSubcon(deployment).toLowerCase() === subconFilter
+        d => getActiveSubcon(d).toLowerCase() === subconFilter
       )
     }
 
+    // In-memory search filter
     if (search && search !== '') {
-      const searchLower = search.toLowerCase()
+      const s = search.toLowerCase()
       deployments = deployments.filter(deployment => {
-        const activeTruckPlate = (
+        const plate = (
           deployment.replacement?.replacementTruckId?.plateNo ||
           deployment.truckId?.plateNo ||
           ''
         ).toLowerCase()
-        const activeDriverFirstname = (
+        const firstName = (
           deployment.replacement?.replacementDriverId?.firstname ||
           deployment.driverId?.firstname ||
           ''
         ).toLowerCase()
-        const activeDriverLastname = (
+        const lastName = (
           deployment.replacement?.replacementDriverId?.lastname ||
           deployment.driverId?.lastname ||
           ''
         ).toLowerCase()
-        const activeSubcon = getActiveSubcon(deployment).toLowerCase()
-        const destination = (deployment.destination || '').toLowerCase()
-        const truckType = (deployment.truckType || '').toLowerCase()
-        const deploymentCode = (deployment.deploymentCode || '').toLowerCase()
-        const territoryValue = (deployment.territory || '').toLowerCase()
 
         const matchesPickup = (deployment.pickups || []).some(p =>
           [p.tmoNo, p.pickupSite, p.municipality, p.fieldContactPerson]
             .map(v => (v || '').toLowerCase())
-            .some(v => v.includes(searchLower))
+            .some(v => v.includes(s))
         )
 
         return (
-          activeTruckPlate.includes(searchLower) ||
-          activeDriverFirstname.includes(searchLower) ||
-          activeDriverLastname.includes(searchLower) ||
-          destination.includes(searchLower) ||
-          truckType.includes(searchLower) ||
-          deploymentCode.includes(searchLower) ||
-          activeSubcon.includes(searchLower) ||
-          territoryValue.includes(searchLower) ||
+          plate.includes(s) ||
+          firstName.includes(s) ||
+          lastName.includes(s) ||
+          (deployment.destination || '').toLowerCase().includes(s) ||
+          (deployment.truckType || '').toLowerCase().includes(s) ||
+          (deployment.deploymentCode || '').toLowerCase().includes(s) ||
+          getActiveSubcon(deployment).toLowerCase().includes(s) ||
+          (deployment.territory || '').toLowerCase().includes(s) ||
           matchesPickup
         )
       })
     }
 
-    let total
-
-    if (subconFilter || (search && search !== '')) {
-      let countQuery = Deployment.find()
-
-      if (includeDeleted !== 'true')
-        countQuery = countQuery.where('isSoftDeleted').ne(true)
+    // ── Count ─────────────────────────────────────────────────────────────
+    const buildCountQuery = () => {
+      let q = Deployment.find()
+      if (includeDeleted !== 'true') q = q.where('isSoftDeleted').ne(true)
       if (territory && territory !== '')
-        countQuery = countQuery.where('territory').equals(territory)
-      if (status && status !== '')
-        countQuery = countQuery.where('status').equals(status)
-
-      countQuery = applyDateRange(
-        countQuery,
-        'createdAt',
-        assignedAtFrom,
-        assignedAtTo,
-        false
-      )
-      countQuery = applyDateRange(
-        countQuery,
-        'departed',
-        departedAtFrom,
-        departedAtTo,
-        true
-      )
-      countQuery = applyDateRange(
-        countQuery,
+        q = q.where('territory').equals(territory)
+      if (status && status !== '') q = q.where('status').equals(status)
+      q = applyStringFilter(q, 'hybrid', hybrid)
+      q = applyStringFilter(q, 'flagging', flagging)
+      q = applyDateRange(q, 'createdAt', assignedAtFrom, assignedAtTo, false)
+      q = applyDateRange(q, 'departed', departedAtFrom, departedAtTo, true)
+      q = applyDateRange(
+        q,
         'destDeparture',
         completedAtFrom,
         completedAtTo,
         true
       )
+      return q
+    }
 
-      const allForCount = await countQuery.populate([
-        { path: 'truckId', select: 'subcon' },
-        { path: 'replacement.replacementTruckId', select: 'subcon' }
+    let total
+
+    if (subconFilter || (search && search !== '')) {
+      const allForCount = await buildCountQuery().populate([
+        { path: 'truckId', select: 'subcon plateNo' },
+        { path: 'replacement.replacementTruckId', select: 'subcon plateNo' },
+        {
+          path: 'replacement.replacementDriverId',
+          select: 'firstname lastname'
+        }
       ])
 
       let filtered = allForCount
@@ -399,32 +376,27 @@ const getAllDeployments = async (req, res, next) => {
       }
 
       if (search && search !== '') {
-        const searchLower = search.toLowerCase()
+        const s = search.toLowerCase()
         filtered = filtered.filter(deployment => {
-          const activeTruckPlate = (
+          const plate = (
             deployment.replacement?.replacementTruckId?.plateNo ||
             deployment.truckId?.plateNo ||
             ''
           ).toLowerCase()
-          const activeSubcon = getActiveSubcon(deployment).toLowerCase()
-          const destination = (deployment.destination || '').toLowerCase()
-          const truckType = (deployment.truckType || '').toLowerCase()
-          const deploymentCode = (deployment.deploymentCode || '').toLowerCase()
-          const territoryValue = (deployment.territory || '').toLowerCase()
 
           const matchesPickup = (deployment.pickups || []).some(p =>
             [p.tmoNo, p.pickupSite, p.municipality, p.fieldContactPerson]
               .map(v => (v || '').toLowerCase())
-              .some(v => v.includes(searchLower))
+              .some(v => v.includes(s))
           )
 
           return (
-            activeTruckPlate.includes(searchLower) ||
-            destination.includes(searchLower) ||
-            truckType.includes(searchLower) ||
-            deploymentCode.includes(searchLower) ||
-            activeSubcon.includes(searchLower) ||
-            territoryValue.includes(searchLower) ||
+            plate.includes(s) ||
+            (deployment.destination || '').toLowerCase().includes(s) ||
+            (deployment.truckType || '').toLowerCase().includes(s) ||
+            (deployment.deploymentCode || '').toLowerCase().includes(s) ||
+            getActiveSubcon(deployment).toLowerCase().includes(s) ||
+            (deployment.territory || '').toLowerCase().includes(s) ||
             matchesPickup
           )
         })
@@ -432,37 +404,7 @@ const getAllDeployments = async (req, res, next) => {
 
       total = filtered.length
     } else {
-      let totalQuery = Deployment.find()
-      if (includeDeleted !== 'true')
-        totalQuery = totalQuery.where('isSoftDeleted').ne(true)
-      if (territory && territory !== '')
-        totalQuery = totalQuery.where('territory').equals(territory)
-      if (status && status !== '')
-        totalQuery = totalQuery.where('status').equals(status)
-
-      totalQuery = applyDateRange(
-        totalQuery,
-        'createdAt',
-        assignedAtFrom,
-        assignedAtTo,
-        false
-      )
-      totalQuery = applyDateRange(
-        totalQuery,
-        'departed',
-        departedAtFrom,
-        departedAtTo,
-        true
-      )
-      totalQuery = applyDateRange(
-        totalQuery,
-        'destDeparture',
-        completedAtFrom,
-        completedAtTo,
-        true
-      )
-
-      total = await totalQuery.countDocuments()
+      total = await buildCountQuery().countDocuments()
     }
 
     return res.status(200).json({
@@ -476,7 +418,8 @@ const getAllDeployments = async (req, res, next) => {
   }
 }
 
-// Update deployment
+// ─── Update deployment ─────────────────────────────────────────────────────────
+
 const updateDeployment = async (req, res, next) => {
   try {
     const { id } = req.params
@@ -526,9 +469,8 @@ const updateDeployment = async (req, res, next) => {
       isSoftDeleted: { $ne: true }
     })
 
-    if (!existingDeployment) {
+    if (!existingDeployment)
       return next(createError(404, 'Deployment not found'))
-    }
 
     if (departed !== undefined && departed !== null && departed.trim() !== '') {
       const currentIsTMOPrinted =
@@ -597,7 +539,7 @@ const updateDeployment = async (req, res, next) => {
       })
     }
 
-    // Handle truck replacement
+    // ── Truck replacement ─────────────────────────────────────────────────
     if (replacement?.replacementTruckId) {
       const replacementTruckId =
         replacement.replacementTruckId._id || replacement.replacementTruckId
@@ -634,7 +576,6 @@ const updateDeployment = async (req, res, next) => {
         const updatePromises = [
           Truck.findByIdAndUpdate(replacementTruckId, { status: 'deployed' })
         ]
-
         if (hasExistingReplacement && oldReplacementTruck) {
           updatePromises.push(
             Truck.findByIdAndUpdate(
@@ -643,7 +584,6 @@ const updateDeployment = async (req, res, next) => {
             )
           )
         }
-
         if (!hasExistingReplacement) {
           updatePromises.push(
             Truck.findByIdAndUpdate(existingDeployment.truckId, {
@@ -651,7 +591,6 @@ const updateDeployment = async (req, res, next) => {
             })
           )
         }
-
         await Promise.all(updatePromises)
 
         await createReplacementTimelineLog(
@@ -682,7 +621,7 @@ const updateDeployment = async (req, res, next) => {
       }
     }
 
-    // Handle driver replacement
+    // ── Driver replacement ────────────────────────────────────────────────
     if (replacement?.replacementDriverId) {
       const replacementDriverId =
         replacement.replacementDriverId._id || replacement.replacementDriverId
@@ -724,7 +663,6 @@ const updateDeployment = async (req, res, next) => {
         const updatePromises = [
           Driver.findByIdAndUpdate(replacementDriverId, { status: 'deployed' })
         ]
-
         if (hasExistingDriverReplacement && oldReplacementDriver) {
           updatePromises.push(
             Driver.findByIdAndUpdate(
@@ -733,7 +671,6 @@ const updateDeployment = async (req, res, next) => {
             )
           )
         }
-
         if (!hasExistingDriverReplacement) {
           updatePromises.push(
             Driver.findByIdAndUpdate(existingDeployment.driverId, {
@@ -741,7 +678,6 @@ const updateDeployment = async (req, res, next) => {
             })
           )
         }
-
         await Promise.all(updatePromises)
 
         await createReplacementTimelineLog(
@@ -773,43 +709,45 @@ const updateDeployment = async (req, res, next) => {
       }
     }
 
-    // Handle regular truck change (not replacement)
+    // ── Regular truck/driver change (non-replacement) ─────────────────────
     if (
       extractedTruckId &&
       extractedTruckId.toString() !== originalValues.truckId &&
       !performedReplacement
     ) {
-      const newTruck = await Truck.findById(extractedTruckId)
-      const oldTruck = await Truck.findById(originalValues.truckId)
+      const [newTruck, oldTruck] = await Promise.all([
+        Truck.findById(extractedTruckId),
+        Truck.findById(originalValues.truckId)
+      ])
       if (newTruck) {
-        const oldPlateNo = (oldTruck?.plateNo || 'Unknown').toUpperCase()
-        const newPlateNo = (newTruck?.plateNo || 'Unknown').toUpperCase()
         await createReplacementTimelineLog(
-          `Truck ${oldPlateNo} has been changed to ${newPlateNo}`
+          `Truck ${(
+            oldTruck?.plateNo || 'Unknown'
+          ).toUpperCase()} has been changed to ${newTruck.plateNo.toUpperCase()}`
         )
       }
     }
 
-    // Handle regular driver change (not replacement)
     if (
       extractedDriverId &&
       extractedDriverId.toString() !== originalValues.driverId &&
       !performedDriverReplacement
     ) {
-      const newDriver = await Driver.findById(extractedDriverId)
-      const oldDriver = await Driver.findById(originalValues.driverId)
+      const [newDriver, oldDriver] = await Promise.all([
+        Driver.findById(extractedDriverId),
+        Driver.findById(originalValues.driverId)
+      ])
       if (newDriver) {
-        const oldDriverName = oldDriver
+        const oldName = oldDriver
           ? `${oldDriver.firstname} ${oldDriver.lastname}`
           : 'Unknown'
-        const newDriverName = `${newDriver.firstname} ${newDriver.lastname}`
         await createReplacementTimelineLog(
-          `Driver ${oldDriverName} has been changed to ${newDriverName}`
+          `Driver ${oldName} has been changed to ${newDriver.firstname} ${newDriver.lastname}`
         )
       }
     }
 
-    // Determine final status
+    // ── Determine final status ────────────────────────────────────────────
     const isDepartedSet =
       departed !== undefined && departed !== '' && departed !== null
     const isDestDepartureSet =
@@ -818,13 +756,12 @@ const updateDeployment = async (req, res, next) => {
       destDeparture !== null
 
     let finalStatus = status || existingDeployment.status
-    if (isDepartedSet && !isDestDepartureSet && finalStatus !== 'canceled') {
+    if (isDepartedSet && !isDestDepartureSet && finalStatus !== 'canceled')
       finalStatus = 'ongoing'
-    } else if (isDestDepartureSet && finalStatus !== 'canceled') {
+    else if (isDestDepartureSet && finalStatus !== 'canceled')
       finalStatus = 'completed'
-    }
 
-    // Handle cancellationReason
+    // ── Cancellation reason ───────────────────────────────────────────────
     let finalCancellationReason = existingDeployment.cancellationReason
     if (originalStatus === 'canceled' && finalStatus !== 'canceled')
       finalCancellationReason = undefined
@@ -838,7 +775,7 @@ const updateDeployment = async (req, res, next) => {
       finalCancellationReason = cancellationReason
     }
 
-    // Recalculate active IDs AFTER processing replacements
+    // ── Active IDs after replacement processing ───────────────────────────
     const currentActiveTruckId = performedReplacement
       ? replacement?.replacementTruckId?._id ||
         replacement?.replacementTruckId ||
@@ -855,7 +792,7 @@ const updateDeployment = async (req, res, next) => {
       ? existingDeployment.replacement.replacementDriverId
       : existingDeployment.driverId
 
-    // Handle status-based resource updates
+    // ── Status-based truck/driver availability ────────────────────────────
     const statusUpdates = []
     if (
       finalStatus === 'canceled' ||
@@ -897,7 +834,7 @@ const updateDeployment = async (req, res, next) => {
     }
     await Promise.all(statusUpdates)
 
-    // Handle truck change - ONLY if no replacement happened
+    // ── Truck/driver swap (non-replacement) ───────────────────────────────
     if (
       extractedTruckId &&
       extractedTruckId.toString() !== originalValues.truckId &&
@@ -919,7 +856,6 @@ const updateDeployment = async (req, res, next) => {
       await Promise.all(updates)
     }
 
-    // Handle driver change - ONLY if no replacement happened
     if (
       extractedDriverId &&
       extractedDriverId.toString() !== originalValues.driverId &&
@@ -941,28 +877,27 @@ const updateDeployment = async (req, res, next) => {
       await Promise.all(updates)
     }
 
-    // Increment trip counts on completion
+    // ── Trip count on completion ──────────────────────────────────────────
     if (finalStatus === 'completed' && originalStatus !== 'completed') {
-      const tripUpdates = []
-      if (currentActiveDriverId)
-        tripUpdates.push(
-          Driver.findByIdAndUpdate(currentActiveDriverId, {
-            $inc: { tripCount: 1 }
-          })
-        )
-      if (currentActiveTruckId)
-        tripUpdates.push(
-          Truck.findByIdAndUpdate(currentActiveTruckId, {
-            $inc: { tripCount: 1 }
-          })
-        )
       try {
-        await Promise.all(tripUpdates)
-      } catch (error) {
-        console.error('Error incrementing trip counts:', error)
+        await Promise.all(
+          [
+            currentActiveDriverId &&
+              Driver.findByIdAndUpdate(currentActiveDriverId, {
+                $inc: { tripCount: 1 }
+              }),
+            currentActiveTruckId &&
+              Truck.findByIdAndUpdate(currentActiveTruckId, {
+                $inc: { tripCount: 1 }
+              })
+          ].filter(Boolean)
+        )
+      } catch (err) {
+        console.error('Error incrementing trip counts:', err)
       }
     }
 
+    // ── Pickups ───────────────────────────────────────────────────────────
     if (pickups !== undefined) {
       existingDeployment.pickups = pickups.map(mapPickup)
     }
@@ -989,7 +924,7 @@ const updateDeployment = async (req, res, next) => {
       0
     )
 
-    const updateObj = {
+    Object.assign(existingDeployment, {
       truckId: extractedTruckId || existingDeployment.truckId,
       driverId: extractedDriverId || existingDeployment.driverId,
       truckType:
@@ -1036,13 +971,14 @@ const updateDeployment = async (req, res, next) => {
         isTMOPrinted !== undefined
           ? isTMOPrinted
           : existingDeployment.isTMOPrinted
-    }
+    })
 
-    Object.assign(existingDeployment, updateObj)
     await existingDeployment.save()
 
+    // ── Timeline & activity logs ──────────────────────────────────────────
     const timelineLogs = []
     const activityLogs = []
+    const now = DateTime.now().setZone(MANILA_TZ).toISO()
 
     const createOrUpdateTimelineLog = async (
       actionType,
@@ -1055,7 +991,6 @@ const updateDeployment = async (req, res, next) => {
         destDeparture: 'Departed from destination',
         canceled: 'Deployment has been canceled'
       }
-
       const action = actionMap[actionType]
       if (!action) return
 
@@ -1091,15 +1026,13 @@ const updateDeployment = async (req, res, next) => {
       activityLogs.push(action)
     }
 
-    const now = DateTime.now().setZone('Asia/Manila').toISO()
-
+    // Pickup timeline logs
     if (pickups !== undefined && finalStatus !== 'canceled') {
       for (let i = 0; i < pickups.length; i++) {
         const p = pickups[i]
         const originalStop = p.tmoNo
           ? originalValues.pickups?.find(op => op.tmoNo === p.tmoNo)
           : originalValues.pickups?.[i]
-
         const stopLabel = p.tmoNo
           ? `Stop #${i + 1} (${p.tmoNo})`
           : `Stop #${i + 1}`
@@ -1135,9 +1068,8 @@ const updateDeployment = async (req, res, next) => {
     if (pickupUpdates && Array.isArray(pickupUpdates)) {
       for (const update of pickupUpdates) {
         const originalStop = originalValues.pickups[update.index]
-        const tmoNo = originalStop?.tmoNo
-        const stopLabel = tmoNo
-          ? `Stop #${update.index + 1} (${tmoNo})`
+        const stopLabel = originalStop?.tmoNo
+          ? `Stop #${update.index + 1} (${originalStop.tmoNo})`
           : `Stop #${update.index + 1}`
 
         if (
@@ -1176,6 +1108,7 @@ const updateDeployment = async (req, res, next) => {
       }
     }
 
+    // Cancellation / resume logs
     if (finalStatus === 'canceled' && originalStatus !== 'canceled') {
       await TimelineLog.create({
         performedBy: req.user._id,
@@ -1192,17 +1125,17 @@ const updateDeployment = async (req, res, next) => {
         status: 'canceled'
       }).sort({ timestamp: -1 })
 
-      let shouldCreateNewCancelLog = false
+      let shouldCreateNew = false
       if (latestCancelLog) {
-        const resumedLogAfterCancel = await TimelineLog.findOne({
+        const resumedAfter = await TimelineLog.findOne({
           targetDeployment: existingDeployment._id,
           action: /^Deployment resumed as/,
           timestamp: { $gt: latestCancelLog.timestamp }
         })
-        if (resumedLogAfterCancel) shouldCreateNewCancelLog = true
+        if (resumedAfter) shouldCreateNew = true
       }
 
-      if (shouldCreateNewCancelLog || !latestCancelLog) {
+      if (shouldCreateNew || !latestCancelLog) {
         await TimelineLog.create({
           performedBy: req.user._id,
           action: 'Deployment has been canceled',
@@ -1219,16 +1152,9 @@ const updateDeployment = async (req, res, next) => {
     }
 
     if (originalStatus === 'canceled' && finalStatus !== 'canceled') {
-      const statusMap = {
-        preparing: 'preparing',
-        ongoing: 'ongoing',
-        completed: 'completed'
-      }
       await TimelineLog.create({
         performedBy: req.user._id,
-        action: `Deployment resumed as ${
-          statusMap[finalStatus] || finalStatus
-        }`,
+        action: `Deployment resumed as ${finalStatus}`,
         status: finalStatus,
         timestamp: now,
         targetDeployment: existingDeployment._id
@@ -1236,6 +1162,7 @@ const updateDeployment = async (req, res, next) => {
       timelineLogs.push('Deployment resumed')
     }
 
+    // Departure / arrival logs
     if (
       departed !== undefined &&
       departed !== originalValues.departed &&
@@ -1281,38 +1208,33 @@ const updateDeployment = async (req, res, next) => {
       await createActivityLog('Departed from destination')
     }
 
+    // Replacement activity logs
     if (performedReplacement && replacementTruckDetails) {
-      if (hasExistingReplacement) {
-        await createActivityLog(
-          `Replacement truck changed from ${replacementTruckDetails.oldReplacementPlateNo} to ${replacementTruckDetails.newPlateNo}`
-        )
-      } else {
-        await createActivityLog(
-          `Truck replaced from ${replacementTruckDetails.oldPlateNo} to ${replacementTruckDetails.newPlateNo}`
-        )
-      }
+      await createActivityLog(
+        hasExistingReplacement
+          ? `Replacement truck changed from ${replacementTruckDetails.oldReplacementPlateNo} to ${replacementTruckDetails.newPlateNo}`
+          : `Truck replaced from ${replacementTruckDetails.oldPlateNo} to ${replacementTruckDetails.newPlateNo}`
+      )
     }
 
     if (performedDriverReplacement && replacementDriverDetails) {
-      if (hasExistingDriverReplacement) {
-        await createActivityLog(
-          `Replacement driver changed from ${replacementDriverDetails.oldReplacementDriverName} to ${replacementDriverDetails.newDriverName}`
-        )
-      } else {
-        await createActivityLog(
-          `Driver replaced from ${replacementDriverDetails.oldDriverName} to ${replacementDriverDetails.newDriverName}`
-        )
-      }
+      await createActivityLog(
+        hasExistingDriverReplacement
+          ? `Replacement driver changed from ${replacementDriverDetails.oldReplacementDriverName} to ${replacementDriverDetails.newDriverName}`
+          : `Driver replaced from ${replacementDriverDetails.oldDriverName} to ${replacementDriverDetails.newDriverName}`
+      )
     }
 
+    // Misc change logs
     if (
       extractedTruckId !== undefined &&
       extractedTruckId.toString() !== originalValues.truckId &&
       !performedReplacement
     ) {
       const newTruck = await Truck.findById(extractedTruckId)
-      const plateNo = (newTruck?.plateNo || 'Unknown').toUpperCase()
-      await createActivityLog(`Truck changed to ${plateNo}`)
+      await createActivityLog(
+        `Truck changed to ${(newTruck?.plateNo || 'Unknown').toUpperCase()}`
+      )
     }
 
     if (
@@ -1321,10 +1243,11 @@ const updateDeployment = async (req, res, next) => {
       !performedDriverReplacement
     ) {
       const newDriver = await Driver.findById(extractedDriverId)
-      const name = newDriver
-        ? `${newDriver.firstname} ${newDriver.lastname}`
-        : 'Unknown'
-      await createActivityLog(`Driver changed to ${name}`)
+      await createActivityLog(
+        `Driver changed to ${
+          newDriver ? `${newDriver.firstname} ${newDriver.lastname}` : 'Unknown'
+        }`
+      )
     }
 
     if (truckType !== undefined && truckType !== originalValues.truckType)
@@ -1370,17 +1293,16 @@ const updateDeployment = async (req, res, next) => {
       await createActivityLog(`Flagging remarks updated`)
 
     if (finalCancellationReason !== originalValues.cancellationReason) {
-      if (finalStatus === 'canceled' && finalCancellationReason) {
+      if (finalStatus === 'canceled' && finalCancellationReason)
         await createActivityLog(
           `Cancellation reason: ${finalCancellationReason}`
         )
-      } else if (originalStatus === 'canceled' && !finalCancellationReason) {
+      else if (originalStatus === 'canceled' && !finalCancellationReason)
         await createActivityLog(`Cancellation reason cleared`)
-      } else if (finalCancellationReason && originalValues.cancellationReason) {
+      else if (finalCancellationReason && originalValues.cancellationReason)
         await createActivityLog(
           `Cancellation reason updated to: ${finalCancellationReason}`
         )
-      }
     }
 
     if (
@@ -1395,17 +1317,15 @@ const updateDeployment = async (req, res, next) => {
     if (pickups !== undefined) {
       const oldCount = originalValues.pickups?.length || 0
       const newCount = pickups.length
-      if (newCount > oldCount) {
+      if (newCount > oldCount)
         await createActivityLog(
           `Added ${newCount - oldCount} pickup stop(s) (total: ${newCount})`
         )
-      } else if (newCount < oldCount) {
+      else if (newCount < oldCount)
         await createActivityLog(
           `Removed ${oldCount - newCount} pickup stop(s) (total: ${newCount})`
         )
-      } else {
-        await createActivityLog(`Pickup stops updated`)
-      }
+      else await createActivityLog(`Pickup stops updated`)
     }
 
     const populatedDeployment = await Deployment.findById(id)
@@ -1424,7 +1344,8 @@ const updateDeployment = async (req, res, next) => {
   }
 }
 
-// Soft delete deployment
+// ─── Soft delete deployment ────────────────────────────────────────────────────
+
 const softDeleteDeployment = async (req, res, next) => {
   try {
     const { id } = req.params
@@ -1437,43 +1358,32 @@ const softDeleteDeployment = async (req, res, next) => {
       _id: id,
       isSoftDeleted: { $ne: true }
     })
-
-    if (!deployment) {
-      return next(createError(404, 'Deployment not found'))
-    }
+    if (!deployment) return next(createError(404, 'Deployment not found'))
 
     const activeTruckId =
       deployment.replacement?.replacementTruckId || deployment.truckId
     const activeDriverId =
       deployment.replacement?.replacementDriverId || deployment.driverId
 
-    const updates = []
-    if (activeTruckId)
-      updates.push(
-        Truck.findByIdAndUpdate(activeTruckId, { status: 'available' })
-      )
-    if (activeDriverId)
-      updates.push(
-        Driver.findByIdAndUpdate(activeDriverId, { status: 'available' })
-      )
-    await Promise.all(updates)
+    await Promise.all(
+      [
+        activeTruckId &&
+          Truck.findByIdAndUpdate(activeTruckId, { status: 'available' }),
+        activeDriverId &&
+          Driver.findByIdAndUpdate(activeDriverId, { status: 'available' })
+      ].filter(Boolean)
+    )
 
     const deploymentCode = deployment.deploymentCode
     let timelineLogsDeleted = 0
 
     try {
-      const deleteResult = await TimelineLog.deleteMany({
+      const result = await TimelineLog.deleteMany({
         targetDeployment: deployment._id
       })
-      timelineLogsDeleted = deleteResult.deletedCount
-      console.log(
-        `Deleted ${timelineLogsDeleted} timeline logs for deployment ${deploymentCode}`
-      )
-    } catch (timelineError) {
-      console.error(
-        `Error deleting timeline logs for deployment ${deploymentCode}:`,
-        timelineError
-      )
+      timelineLogsDeleted = result.deletedCount
+    } catch (err) {
+      console.error(`Error deleting timeline logs for ${deploymentCode}:`, err)
     }
 
     deployment.isSoftDeleted = true

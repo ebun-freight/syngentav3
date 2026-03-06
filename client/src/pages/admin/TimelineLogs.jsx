@@ -5,7 +5,6 @@ import {
   MdOutlineKeyboardArrowLeft,
   MdOutlineKeyboardArrowRight
 } from 'react-icons/md'
-import { empty_illustration, error_illustration } from '../../consts/images'
 import useGetAllTimelineLogs from '../../hooks/useGetAllTimelineLogs'
 import clsx from 'clsx'
 import { DateTime } from 'luxon'
@@ -23,11 +22,73 @@ const defaultFilters = {
   sort: 'latest',
   status: '',
   subcon: '',
-  date: '',
+  hybrid: '',
+  flagging: '',
+  territory: '',
+  dateFrom: '',
+  dateTo: '',
   search: '',
   perPage: 100,
   page: 1
 }
+
+const formatDate = dateString => {
+  try {
+    const dt = DateTime.fromISO(dateString)
+    return dt.isValid ? dt.toFormat('MMM dd, yyyy hh:mm a') : 'Invalid date'
+  } catch {
+    return 'Invalid date'
+  }
+}
+
+const DateRangeFilter = ({ label, fromName, toName, values, onChange }) => (
+  <label className='col-span-2 flex flex-col gap-1'>
+    <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+      {label}
+    </span>
+    <div className='flex items-center gap-2'>
+      <div className='flex-1 flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+        <input
+          type='date'
+          name={fromName}
+          value={values[fromName]}
+          onChange={onChange}
+          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
+        />
+      </div>
+      <span className='text-xxs text-gray-400 shrink-0'>to</span>
+      <div className='flex-1 flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+        <input
+          type='date'
+          name={toName}
+          value={values[toName]}
+          onChange={onChange}
+          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
+        />
+      </div>
+    </div>
+  </label>
+)
+
+const SelectFilter = ({ label, name, value, onChange, colSpan, children }) => (
+  <label
+    className={clsx('flex flex-col gap-1', colSpan && `col-span-${colSpan}`)}
+  >
+    <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
+      {label}
+    </span>
+    <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent capitalize'
+      >
+        {children}
+      </select>
+    </div>
+  </label>
+)
 
 function TimelineLogs () {
   const [isTimelineLogDetailsModalOpen, setIsTimelineLogDetailsModalOpen] =
@@ -55,15 +116,15 @@ function TimelineLogs () {
 
   useEffect(() => {
     if (tempFilters.search === '' && filters.search !== '') {
-      const delaySearch = setTimeout(() => {
+      const delay = setTimeout(() => {
         setFilters(prev => ({ ...prev, search: '' }))
       }, 300)
-      return () => clearTimeout(delaySearch)
+      return () => clearTimeout(delay)
     }
   }, [tempFilters.search, filters.search])
 
   const handleApplyFilters = e => {
-    e.preventDefault()
+    e?.preventDefault()
     setFilters(tempFilters)
   }
 
@@ -94,33 +155,17 @@ function TimelineLogs () {
     setIsTimelineLogDetailsModalOpen(true)
   }
 
-  const formatDate = dateString => {
-    try {
-      const dt = DateTime.fromISO(dateString)
-      return dt.isValid ? dt.toFormat('MMM dd, yyyy hh:mm a') : 'Invalid date'
-    } catch (error) {
-      return 'Invalid date'
-    }
-  }
-
-  const getActionTimestamp = log => {
-    if (log.timestamp) return formatDate(log.timestamp)
-    return formatDate(log.createdAt)
-  }
-
-  const getDeploymentCode = log => {
-    return log.targetDeployment?.deploymentCode || 'N/A'
-  }
+  const getActionTimestamp = log => formatDate(log.timestamp || log.createdAt)
+  const getDeploymentCode = log => log.targetDeployment?.deploymentCode || 'N/A'
 
   const getDriverName = log => {
     if (log.targetDeployment?.replacement?.replacementDriverId) {
-      const driver = log.targetDeployment.replacement.replacementDriverId
-      return `${driver.firstname || ''} ${driver.lastname || ''}`.trim()
+      const d = log.targetDeployment.replacement.replacementDriverId
+      return `${d.firstname || ''} ${d.lastname || ''}`.trim()
     }
     if (log.targetDeployment?.driverId) {
-      return `${log.targetDeployment.driverId.firstname || ''} ${
-        log.targetDeployment.driverId.lastname || ''
-      }`.trim()
+      const d = log.targetDeployment.driverId
+      return `${d.firstname || ''} ${d.lastname || ''}`.trim()
     }
     return 'Unknown Driver'
   }
@@ -129,24 +174,21 @@ function TimelineLogs () {
     if (log.targetDeployment?.replacement?.replacementTruckId?.plateNo) {
       return log.targetDeployment.replacement.replacementTruckId.plateNo
     }
-    if (log.targetDeployment?.truckId?.plateNo) {
-      return log.targetDeployment.truckId.plateNo
-    }
-    return 'N/A'
+    return log.targetDeployment?.truckId?.plateNo || 'N/A'
   }
 
   const getStatusBadgeColor = status => {
-    const statusColors = {
+    const map = {
       preparing: 'bg-orange-50 text-orange-500',
       ongoing: 'bg-emerald-50 text-emerald-600',
       completed: 'bg-blue-50 text-blue-500',
       canceled: 'bg-red-50 text-red-500'
     }
-    return statusColors[status] || 'bg-gray-100 text-gray-500'
+    return map[status] || 'bg-gray-100 text-gray-500'
   }
 
   useEffect(() => {
-    const handleGetAllTimelineLogs = async () => {
+    const fetch = async () => {
       const { timelineLogs, total, page, totalPages, error } =
         await getAllTimelineLogsFunction(filters)
       if (error) setError(error)
@@ -155,11 +197,17 @@ function TimelineLogs () {
       setPage(page)
       setTotalPages(totalPages)
     }
-    handleGetAllTimelineLogs()
+    fetch()
   }, [filters])
 
   const btnBase =
     'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium cursor-pointer active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+
+  const hasActiveFilters = Object.keys(defaultFilters).some(
+    k =>
+      !['sort', 'perPage', 'page', 'search'].includes(k) &&
+      tempFilters[k] !== defaultFilters[k]
+  )
 
   return (
     <>
@@ -216,69 +264,86 @@ function TimelineLogs () {
                   role='button'
                   className={clsx(
                     btnBase,
-                    'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'
+                    'relative bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'
                   )}
                 >
                   <FaFilter className='text-xs' />
                   <span>Filter</span>
+                  {hasActiveFilters && (
+                    <span className='w-2 aspect-square rounded-full bg-emerald-500 shrink-0 absolute -top-0.5 -right-0.5' />
+                  )}
                 </div>
 
                 <div
                   tabIndex='0'
                   className='dropdown-content menu mt-2 bg-white shadow-md rounded-xl border border-gray-100 w-[calc(100vw-2rem)] max-w-sm p-3 sm:p-4'
+                  onClick={e => e.stopPropagation()}
                 >
                   <p className='text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3'>
                     Filter Options
                   </p>
                   <div className='grid grid-cols-2 gap-3'>
-                    <label className='flex flex-col gap-1'>
-                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
-                        Sort
-                      </span>
-                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
-                        <select
-                          name='sort'
-                          value={tempFilters.sort}
-                          onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
-                        >
-                          <option value='latest'>Latest</option>
-                          <option value='oldest'>Oldest</option>
-                        </select>
-                      </div>
-                    </label>
+                    <SelectFilter
+                      label='Sort'
+                      name='sort'
+                      value={tempFilters.sort}
+                      onChange={handleChangeFilter}
+                    >
+                      <option value='latest'>Latest</option>
+                      <option value='oldest'>Oldest</option>
+                    </SelectFilter>
 
-                    <label className='flex flex-col gap-1'>
-                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
-                        Status
-                      </span>
-                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
-                        <select
-                          name='status'
-                          value={tempFilters.status}
-                          onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
-                        >
-                          <option value=''>All</option>
-                          <option value='preparing'>Preparing</option>
-                          <option value='ongoing'>Ongoing</option>
-                          <option value='completed'>Completed</option>
-                          <option value='canceled'>Canceled</option>
-                        </select>
-                      </div>
-                    </label>
+                    <SelectFilter
+                      label='Status'
+                      name='status'
+                      value={tempFilters.status}
+                      onChange={handleChangeFilter}
+                    >
+                      <option value=''>All</option>
+                      <option value='preparing'>Preparing</option>
+                      <option value='ongoing'>Ongoing</option>
+                      <option value='completed'>Completed</option>
+                      <option value='canceled'>Canceled</option>
+                    </SelectFilter>
 
-                    {['head_admin', 'admin'].includes(userData.data.role) && (
-                      <label className='col-span-full flex flex-col gap-1'>
-                        <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
-                          Subcon
-                        </span>
-                        <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
-                          <select
+                    {/* Hybrid — dynamic from settings, same as Deployments */}
+                    <SelectFilter
+                      label='Hybrid'
+                      name='hybrid'
+                      value={tempFilters.hybrid}
+                      onChange={handleChangeFilter}
+                    >
+                      <option value=''>All</option>
+                      {settings.deployments.hybrid.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </SelectFilter>
+
+                    {/* Flagging — dynamic from settings, same as Deployments */}
+                    <SelectFilter
+                      label='Flagging'
+                      name='flagging'
+                      value={tempFilters.flagging}
+                      onChange={handleChangeFilter}
+                    >
+                      <option value=''>All</option>
+                      {settings.deployments.flagging.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </SelectFilter>
+
+                    {userData.data.role !== 'subcon' && (
+                      <>
+                        {userData.data.role !== 'visitor' && (
+                          <SelectFilter
+                            label='Subcon'
                             name='subcon'
                             value={tempFilters.subcon}
                             onChange={handleChangeFilter}
-                            className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent capitalize'
                           >
                             <option value=''>All</option>
                             {settings.trucksDrivers.subcon.map(
@@ -288,25 +353,35 @@ function TimelineLogs () {
                                 </option>
                               )
                             )}
-                          </select>
-                        </div>
-                      </label>
+                          </SelectFilter>
+                        )}
+
+                        <SelectFilter
+                          label='Territory'
+                          name='territory'
+                          value={tempFilters.territory}
+                          onChange={handleChangeFilter}
+                          colSpan={
+                            userData.data.role === 'visitor' ? 2 : undefined
+                          }
+                        >
+                          <option value=''>All</option>
+                          {settings.deployments.territory.map((item, index) => (
+                            <option key={index} value={item}>
+                              {item}
+                            </option>
+                          ))}
+                        </SelectFilter>
+                      </>
                     )}
 
-                    <label className='col-span-2 flex flex-col gap-1'>
-                      <span className='text-xxs font-semibold text-gray-500 uppercase tracking-wider'>
-                        Date
-                      </span>
-                      <div className='flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2 focus-within:border-primaryColor transition-all'>
-                        <input
-                          type='date'
-                          name='date'
-                          value={tempFilters.date}
-                          onChange={handleChangeFilter}
-                          className='w-full focus:outline-none text-xs sm:text-sm text-gray-700 bg-transparent'
-                        />
-                      </div>
-                    </label>
+                    <DateRangeFilter
+                      label='Timestamp'
+                      fromName='dateFrom'
+                      toName='dateTo'
+                      values={tempFilters}
+                      onChange={handleChangeFilter}
+                    />
 
                     <button
                       onClick={handleResetFilters}
@@ -398,7 +473,6 @@ function TimelineLogs () {
                             e.stopPropagation()
                             const code = getDeploymentCode(log)
                             navigator.clipboard.writeText(code)
-
                             const div = e.currentTarget
                             const tooltip = document.createElement('div')
                             tooltip.className =
@@ -418,7 +492,7 @@ function TimelineLogs () {
 
                       <td>
                         <p
-                          className='max-sm:text-xxs max-w-xs line-clamp-2 min-w-40  '
+                          className='max-sm:text-xxs max-w-xs line-clamp-2 min-w-40'
                           title={log.action}
                         >
                           {log.action}
