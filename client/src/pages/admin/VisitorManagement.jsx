@@ -20,6 +20,7 @@ import {
   TableError,
   TableLoading
 } from '../../components/TablesState'
+import { useUserContext } from '../../contexts/UserContext'
 
 const defaultFilters = {
   role: 'visitor',
@@ -31,6 +32,7 @@ const defaultFilters = {
 }
 
 function VisitorManagement () {
+  const { userData } = useUserContext()
   const [isVisitorDetailsModalOpen, setIsVisitorDetailsModalOpen] =
     useState(false)
   const [isDeleteVisitorModalOpen, setIsDeleteVisitorModalOpen] =
@@ -374,6 +376,7 @@ function VisitorManagement () {
         user={selectedVisitor}
         onUpdate={handleUpdateAllUsers}
         openDeleteModal={() => setIsDeleteVisitorModalOpen(true)}
+        currentUser={userData.data}
       />
       <DeleteUserModal
         isOpen={isDeleteVisitorModalOpen}

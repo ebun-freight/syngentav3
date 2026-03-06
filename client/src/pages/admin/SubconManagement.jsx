@@ -21,6 +21,7 @@ import {
   TableError,
   TableLoading
 } from '../../components/TablesState'
+import { useUserContext } from '../../contexts/UserContext'
 
 const defaultFilters = {
   role: 'subcon',
@@ -32,6 +33,8 @@ const defaultFilters = {
 }
 
 function SubconManagement () {
+  const { userData } = useUserContext()
+
   const [isAdminDetailsModalOpen, setIsAdminDetailsModalOpen] = useState(false)
   const [isDeleteAdminModalOpen, setIsDeleteAdminModalOpen] = useState(false)
   const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false)
@@ -405,6 +408,7 @@ function SubconManagement () {
         user={selectedAdmin}
         onUpdate={handleUpdateAllUsers}
         openDeleteModal={() => setIsDeleteAdminModalOpen(true)}
+        currentUser={userData.data}
       />
       <CreateSubconModal
         isOpen={isCreateAdminModalOpen}

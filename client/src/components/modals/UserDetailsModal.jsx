@@ -477,10 +477,6 @@ function UserDetailsModal ({
                       )}
                     </div>
                   ) : (
-                    /* ── Role field ──────────────────────────────────────────────
-                       Editable (select) in edit mode only when the target user is
-                       admin or head_admin. For visitors and subcons it stays
-                       read-only because their role isn't changed from this modal. */
                     <div className='flex flex-col gap-1.5'>
                       <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                         Role
