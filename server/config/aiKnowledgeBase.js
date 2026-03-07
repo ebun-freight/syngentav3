@@ -206,4 +206,15 @@ A: Ebun Freight OPC is a technology-driven trucking and logistics company based 
 
 Q: What truck types does Ebun use?
 A: Ebun operates Single-tire, Elf, Forward, 10-wheeler, 12-wheeler, Wing-van, L300, and Multicab trucks.
+ 
+-----------------------------------------------------------
+SECTION 9: CONTACT & SUPPORT
+-----------------------------------------------------------
+If you need direct assistance, contact the Ebun Freight support team:
+
+Phone: 09489750074
+Email: alacambradev.gmail.com
+
+Support is available during business hours. For urgent concerns, 
+call or email us directly and our team will get back to you promptly.
 `

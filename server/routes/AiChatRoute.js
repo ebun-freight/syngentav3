@@ -3,9 +3,16 @@ const express = require('express')
 const router = express.Router()
 const jwt = require('jsonwebtoken')
 const rateLimit = require('express-rate-limit')
+const { ipKeyGenerator } = require('express-rate-limit')
 const User = require('../models/userModel')
 const publicKnowledge = require('../config/aiKnowledgeBase')
 const adminKnowledge = require('../config/aiKnowledgeBaseAdmin')
+
+// ─── Support Contact ──────────────────────────────────────────────────────────
+const SUPPORT_CONTACT = {
+  phone: '+639 9563 4027',
+  email: 'support@ebunfreight.com' // update this to your real email
+}
 
 // ─── Rate Limiters ────────────────────────────────────────────────────────────
 
@@ -13,7 +20,7 @@ const adminKnowledge = require('../config/aiKnowledgeBaseAdmin')
 const publicRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 messages per 15 min
-  keyGenerator: req => req.ip,
+  keyGenerator: req => ipKeyGenerator(req),
   handler: (req, res) => {
     res.status(429).json({
       error:
@@ -28,7 +35,7 @@ const publicRateLimit = rateLimit({
 const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 40, // 40 messages per 15 min
-  keyGenerator: req => req.user?._id?.toString() || req.ip,
+  keyGenerator: req => req.user?._id?.toString() || ipKeyGenerator(req),
   handler: (req, res) => {
     res.status(429).json({
       error:
@@ -80,6 +87,19 @@ router.post('/chat', optionalAuth, dynamicRateLimit, async (req, res) => {
   const isAdmin = ['head_admin', 'admin'].includes(req.user?.role)
   const knowledge = isAdmin ? adminKnowledge : publicKnowledge
 
+  // ─── Contact Support Snippet (injected into knowledge base) ───────────────
+  const contactSnippet = `
+-----------------------------------------------------------
+CONTACT & SUPPORT
+-----------------------------------------------------------
+If you need direct assistance from the Ebun Freight team:
+Phone: ${SUPPORT_CONTACT.phone}
+Email: ${SUPPORT_CONTACT.email}
+
+When Ebun AI is unavailable or cannot answer your question,
+always direct the user to contact support using the above details.
+`
+
   // Tailor the system prompt tone based on role
   const systemPrompt = isAdmin
     ? `You are Ebun AI, a knowledgeable internal assistant for the Ebun Freight OPC platform — used by admins and head admins.
@@ -102,7 +122,8 @@ RESPONSE RULES:
 - Never reveal sensitive data like API keys, JWT secrets, or database credentials
 
 Use the following knowledge base to answer questions accurately:
-${knowledge}`
+${knowledge}
+${contactSnippet}`
     : `You are Ebun AI, a friendly and helpful support assistant for Ebun Freight OPC — a technology-driven freight and logistics company in the Philippines (Est. 2026).
 
 Your job is to help visitors and subcontractors with:
@@ -121,7 +142,8 @@ RESPONSE RULES:
 - Never discuss internal admin operations, user management, or system configurations
 
 Use the following knowledge base to answer questions accurately:
-${knowledge}`
+${knowledge}
+${contactSnippet}`
 
   try {
     const response = await fetch(
@@ -159,13 +181,12 @@ ${knowledge}`
         groqMessage.toLowerCase().includes('rate limit')
       ) {
         return res.status(429).json({
-          error:
-            'Ebun AI is a bit overwhelmed right now. Please try again in a few minutes.'
+          error: `Ebun AI is temporarily unavailable. For urgent concerns, contact us at ${SUPPORT_CONTACT.email} or call ${SUPPORT_CONTACT.phone}.`
         })
       }
 
       return res.status(500).json({
-        error: 'Ebun AI encountered an issue. Please try again shortly.'
+        error: `Ebun AI encountered an issue. Please try again shortly. If the problem persists, contact us at ${SUPPORT_CONTACT.email}.`
       })
     }
 
