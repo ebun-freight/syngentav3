@@ -12,7 +12,6 @@ Type: Modern transportation and logistics company
 Headquarters: Bisal, Manaoag, Pangasinan, Philippines
 Established: 2026
 Founder & CEO: John Robert Mangsat Ocumen
-Contact: +639 9563 4027
 Tagline: "Where Safety Leads, Technology Drives, and Community Thrives"
 Brand Inspiration: The eagle — symbolizing strength, clarity, and forward vision
 Developer: Euro Abao
@@ -199,7 +198,7 @@ Q: How do I update my profile?
 A: Go to My Profile in the sidebar. You can update your personal details there.
 
 Q: Who do I contact for support?
-A: Reach out to the Ebun Freight admin team directly, or contact us at +639 9563 4027. If your question is about the platform, you can also ask me here and I will do my best to help.
+A: Reach out to the Ebun Freight admin team directly, or contact us at 09489750074. If your question is about the platform, you can also ask me here and I will do my best to help.
 
 Q: What is Ebun Freight OPC?
 A: Ebun Freight OPC is a technology-driven trucking and logistics company based in Pangasinan, Philippines, founded by John Robert Mangsat Ocumen. Our guiding principle is "Where Safety Leads, Technology Drives, and Community Thrives."
