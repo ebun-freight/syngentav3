@@ -253,7 +253,7 @@ export default function AIChatWidget () {
 
         {/* ── Messages ── */}
         <div
-          className='flex-1 overflow-y-auto scrollbar-thin px-3.5 pt-3.5 pb-2 min-h-0'
+          className='flex-1 overflow-y-auto scrollbar-thin sm:scrollbar-none px-3.5 pt-3.5 pb-2 min-h-0'
           style={{ background: '#f8fafc' }}
         >
           {messages.map((m, i) => (
@@ -315,7 +315,7 @@ export default function AIChatWidget () {
             className='flex-1 resize-none text-xs text-gray-800 placeholder-gray-400 bg-gray-50
                        border border-gray-200 rounded-xl px-3 py-2 focus:outline-none
                        focus:border-slate-500 focus:ring-2 focus:ring-slate-500/10
-                       transition-all duration-150 overflow-y-auto scrollbar-thin sm:scrollbar-none'
+                       transition-all duration-150 overflow-y-auto scrollbar-none'
             style={{ lineHeight: '1.5', maxHeight: '80px' }}
           />
 
