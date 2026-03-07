@@ -10,8 +10,8 @@ const adminKnowledge = require('../config/aiKnowledgeBaseAdmin')
 
 // ─── Support Contact ──────────────────────────────────────────────────────────
 const SUPPORT_CONTACT = {
-  phone: '+639 9563 4027',
-  email: 'support@ebunfreight.com' // update this to your real email
+  phone: '09489750074',
+  email: 'alacambradev.gmail.com'
 }
 
 // ─── Rate Limiters ────────────────────────────────────────────────────────────
