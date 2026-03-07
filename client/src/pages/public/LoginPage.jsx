@@ -91,7 +91,7 @@ function LoginPage () {
           {/* Logo — untouched */}
           <div
             data-aos='fade-right'
-            className='relative z-10 flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10'
+            className='relative z-10 flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10 max-sm:pt-0'
           >
             <img src={ebun_logo_light} alt='' className='w-10 sm:w-14' />
             <div>
