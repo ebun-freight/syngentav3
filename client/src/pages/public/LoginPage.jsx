@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
 import { ebun_logo_light } from '../../consts/images'
+import AIChatWidget from '../../components/AIChatWidget'
 
 /* ─── Decorative SVG grid/dot pattern ───────────────────────────────────── */
 const DotPattern = () => (
@@ -59,209 +60,214 @@ function LoginPage () {
   }, [])
 
   return (
-    <div className='h-dvh flex flex-col md:flex-row bg-gray-50 overflow-x-hidden overflow-y-auto'>
-      {/* ── Brand Panel ──────────────────────────────────────────────────── */}
-      <div
-        className='relative flex flex-col justify-between overflow-hidden
+    <>
+      <div className='h-dvh flex flex-col md:flex-row bg-gray-50 overflow-x-hidden overflow-y-auto'>
+        {/* ── Brand Panel ──────────────────────────────────────────────────── */}
+        <div
+          className='relative flex flex-col justify-between overflow-hidden
                    md:w-[40%] lg:w-[45%] md:min-h-screen
                    p-8 sm:p-10 md:p-8 lg:p-14'
-        style={{
-          background:
-            'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
-        }}
-      >
-        <DotPattern />
-
-        {/* Decorative circle blur */}
-        <div
-          className='absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-10 pointer-events-none'
           style={{
-            background: 'radial-gradient(circle, #475569 0%, transparent 70%)'
+            background:
+              'linear-gradient(155deg, #020617 0%, #001e36 55%, #0f172a 100%)'
           }}
-        />
-        <div
-          className='absolute -bottom-16 -left-16 w-64 h-64 rounded-full opacity-10 pointer-events-none'
-          style={{
-            background: 'radial-gradient(circle, #334155 0%, transparent 70%)'
-          }}
-        />
-
-        {/* Logo — untouched */}
-        <div
-          data-aos='fade-right'
-          className='relative z-10 flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10'
         >
-          <img src={ebun_logo_light} alt='' className='w-10 sm:w-14' />
-          <div>
-            <h1 className='font-semibold text-3xl sm:text-4xl tracking-widest text-white uppercase'>
-              EBUN
-            </h1>
-            <p className='max-sm:text-xs text-sm text-white -mt-1.5 uppercase tracking-widest sm:ml-0.5'>
-              Freight OPC
+          <DotPattern />
+
+          {/* Decorative circle blur */}
+          <div
+            className='absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-10 pointer-events-none'
+            style={{
+              background: 'radial-gradient(circle, #475569 0%, transparent 70%)'
+            }}
+          />
+          <div
+            className='absolute -bottom-16 -left-16 w-64 h-64 rounded-full opacity-10 pointer-events-none'
+            style={{
+              background: 'radial-gradient(circle, #334155 0%, transparent 70%)'
+            }}
+          />
+
+          {/* Logo — untouched */}
+          <div
+            data-aos='fade-right'
+            className='relative z-10 flex items-center justify-center gap-3 p-4 sm:p-6 border-b border-white/10'
+          >
+            <img src={ebun_logo_light} alt='' className='w-10 sm:w-14' />
+            <div>
+              <h1 className='font-semibold text-3xl sm:text-4xl tracking-widest text-white uppercase'>
+                EBUN
+              </h1>
+              <p className='max-sm:text-xs text-sm text-white -mt-1.5 uppercase tracking-widest sm:ml-0.5'>
+                Freight OPC
+              </p>
+            </div>
+          </div>
+
+          {/* Centre copy — visible md+ */}
+          <div
+            data-aos='fade-right'
+            data-aos-delay='100'
+            className='relative z-10 hidden md:block'
+          >
+            <div className='w-10 h-0.5 bg-white/40 mb-4 lg:mb-6' />
+            <h2 className='text-white font-bold text-xl md:text-2xl lg:text-4xl leading-tight max-w-xs'>
+              Smarter Freight.
+              <br />
+              <span className='text-slate-300'>Safer Roads.</span>
+            </h2>
+            <p className='mt-3 lg:mt-4 text-white/60 text-xs lg:text-sm leading-relaxed max-w-xs'>
+              "Where Safety Leads, Technology Drives, and Community Thrives"
             </p>
           </div>
-        </div>
 
-        {/* Centre copy — visible md+ */}
-        <div
-          data-aos='fade-right'
-          data-aos-delay='100'
-          className='relative z-10 hidden md:block'
-        >
-          <div className='w-10 h-0.5 bg-white/40 mb-4 lg:mb-6' />
-          <h2 className='text-white font-bold text-xl md:text-2xl lg:text-4xl leading-tight max-w-xs'>
-            Smarter Freight.
-            <br />
-            <span className='text-slate-300'>Safer Roads.</span>
-          </h2>
-          <p className='mt-3 lg:mt-4 text-white/60 text-xs lg:text-sm leading-relaxed max-w-xs'>
+          {/* Stats row — visible md+ */}
+          <div
+            data-aos='fade-up'
+            data-aos-delay='200'
+            className='relative z-10 hidden md:flex items-center gap-5 lg:gap-8
+                     border-t border-white/20 pt-5 lg:pt-6'
+          >
+            <StatBadge value='Tech' label='Drivern Operations' />
+            <div className='w-px h-7 bg-white/20' />
+            <StatBadge value='24/7' label='Operations' />
+            <div className='w-px h-7 bg-white/20' />
+            <StatBadge value='Est. 2026' label='Founded' />
+          </div>
+
+          {/* Mobile: compact tagline only */}
+          <p className='relative z-10 md:hidden text-white/60 text-xs italic mt-4 text-center'>
             "Where Safety Leads, Technology Drives, and Community Thrives"
           </p>
         </div>
 
-        {/* Stats row — visible md+ */}
-        <div
-          data-aos='fade-up'
-          data-aos-delay='200'
-          className='relative z-10 hidden md:flex items-center gap-5 lg:gap-8
-                     border-t border-white/20 pt-5 lg:pt-6'
-        >
-          <StatBadge value='Tech' label='Drivern Operations' />
-          <div className='w-px h-7 bg-white/20' />
-          <StatBadge value='24/7' label='Operations' />
-          <div className='w-px h-7 bg-white/20' />
-          <StatBadge value='Est. 2026' label='Founded' />
-        </div>
-
-        {/* Mobile: compact tagline only */}
-        <p className='relative z-10 md:hidden text-white/60 text-xs italic mt-4 text-center'>
-          "Where Safety Leads, Technology Drives, and Community Thrives"
-        </p>
-      </div>
-
-      {/* ── Form Panel ───────────────────────────────────────────────────── */}
-      <div className='flex-1 flex items-center justify-center p-6 sm:p-10 lg:p-16'>
-        <div data-aos='fade-left' className='w-full max-w-md'>
-          {/* Heading */}
-          <div className='mb-6 lg:mb-8'>
-            <h2 className='text-gray-900 font-bold text-2xl sm:text-3xl'>
-              Welcome back
-            </h2>
-            <p className='text-gray-500 text-xs sm:text-sm mt-1'>
-              Sign in to your Ebun account to continue.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className='space-y-4 lg:space-y-5'>
-            {/* Email */}
-            <div>
-              <label className='block text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
-                Email Address
-              </label>
-              <div
-                className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 lg:py-3.5 min-w-0
-                            focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20
-                            transition-all duration-200 shadow-sm'
-              >
-                <FaUser className='text-gray-400 group-focus-within:text-primaryColor transition-colors shrink-0 text-sm' />
-                <input
-                  type='email'
-                  name='email'
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder='you@example.com'
-                  required
-                  className='min-w-0 flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none'
-                />
-              </div>
+        {/* ── Form Panel ───────────────────────────────────────────────────── */}
+        <div className='flex-1 flex items-center justify-center p-6 sm:p-10 lg:p-16'>
+          <div data-aos='fade-left' className='w-full max-w-md'>
+            {/* Heading */}
+            <div className='mb-6 lg:mb-8'>
+              <h2 className='text-gray-900 font-bold text-2xl sm:text-3xl'>
+                Welcome back
+              </h2>
+              <p className='text-gray-500 text-xs sm:text-sm mt-1'>
+                Sign in to your Ebun account to continue.
+              </p>
             </div>
 
-            {/* Password */}
-            <div>
-              <label className='block text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
-                Password
-              </label>
-              <div
-                className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 lg:py-3.5 min-w-0
+            <form onSubmit={handleSubmit} className='space-y-4 lg:space-y-5'>
+              {/* Email */}
+              <div>
+                <label className='block text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
+                  Email Address
+                </label>
+                <div
+                  className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 lg:py-3.5 min-w-0
                             focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20
                             transition-all duration-200 shadow-sm'
-              >
-                <FaLock className='text-gray-400 group-focus-within:text-primaryColor transition-colors shrink-0 text-sm' />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name='password'
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder='••••••••'
-                  required
-                  className='min-w-0 flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none'
-                />
-                <button
-                  type='button'
-                  onClick={() => setShowPassword(p => !p)}
-                  className='text-gray-400 hover:text-primaryColor transition-colors text-xs font-medium shrink-0 select-none'
                 >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
+                  <FaUser className='text-gray-400 group-focus-within:text-primaryColor transition-colors shrink-0 text-sm' />
+                  <input
+                    type='email'
+                    name='email'
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder='you@example.com'
+                    required
+                    className='min-w-0 flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none'
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Submit */}
-            <button
-              type='submit'
-              disabled={isLoading}
-              className='w-full mt-2 py-3 lg:py-3.5 rounded-xl font-semibold text-white text-sm
+              {/* Password */}
+              <div>
+                <label className='block text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5'>
+                  Password
+                </label>
+                <div
+                  className='group flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 lg:py-3.5 min-w-0
+                            focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20
+                            transition-all duration-200 shadow-sm'
+                >
+                  <FaLock className='text-gray-400 group-focus-within:text-primaryColor transition-colors shrink-0 text-sm' />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name='password'
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder='••••••••'
+                    required
+                    className='min-w-0 flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none'
+                  />
+                  <button
+                    type='button'
+                    onClick={() => setShowPassword(p => !p)}
+                    className='text-gray-400 hover:text-primaryColor transition-colors text-xs font-medium shrink-0 select-none'
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                type='submit'
+                disabled={isLoading}
+                className='w-full mt-2 py-3 lg:py-3.5 rounded-xl font-semibold text-white text-sm
                          shadow-md hover:shadow-lg hover:brightness-105 active:scale-[0.99]
                          transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed
                          flex items-center justify-center gap-2.5'
-              style={{
-                background:
-                  'linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)'
-              }}
-            >
-              {isLoading ? (
-                <>
-                  <span className='loading loading-spinner loading-xs sm:loading-sm' />
-                  <span>Authenticating...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <svg
-                    className='w-4 h-4'
-                    fill='none'
-                    viewBox='0 0 24 24'
-                    stroke='currentColor'
-                    strokeWidth={2.5}
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      d='M13 7l5 5m0 0l-5 5m5-5H6'
-                    />
-                  </svg>
-                </>
-              )}
-            </button>
-          </form>
+                style={{
+                  background:
+                    'linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)'
+                }}
+              >
+                {isLoading ? (
+                  <>
+                    <span className='loading loading-spinner loading-xs sm:loading-sm' />
+                    <span>Authenticating...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Sign In</span>
+                    <svg
+                      className='w-4 h-4'
+                      fill='none'
+                      viewBox='0 0 24 24'
+                      stroke='currentColor'
+                      strokeWidth={2.5}
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        d='M13 7l5 5m0 0l-5 5m5-5H6'
+                      />
+                    </svg>
+                  </>
+                )}
+              </button>
+            </form>
 
-          {/* Footer */}
-          <p className='text-gray-500 mt-5 lg:mt-6 text-xs sm:text-sm text-center'>
-            Don&apos;t have an account?{' '}
-            <Link
-              to='/signup'
-              className='text-primaryColor font-semibold hover:underline underline-offset-2'
-            >
-              Sign up
-            </Link>
-          </p>
+            {/* Footer */}
+            <p className='text-gray-500 mt-5 lg:mt-6 text-xs sm:text-sm text-center'>
+              Don&apos;t have an account?{' '}
+              <Link
+                to='/signup'
+                className='text-primaryColor font-semibold hover:underline underline-offset-2'
+              >
+                Sign up
+              </Link>
+            </p>
 
-          <p className='text-gray-400 text-xxs sm:text-xs text-center mt-6 lg:mt-8'>
-            © {new Date().getFullYear()} Ebun Freight Inc. All rights reserved.
-          </p>
+            <p className='text-gray-400 text-xxs sm:text-xs text-center mt-6 lg:mt-8'>
+              © {new Date().getFullYear()} Ebun Freight OPC. All rights
+              reserved.
+            </p>
+          </div>
         </div>
+
+        <AIChatWidget />
       </div>
-    </div>
+    </>
   )
 }
 

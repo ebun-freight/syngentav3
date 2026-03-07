@@ -31,3 +31,6 @@ export const API_TIMELINE_LOGS = `${LIVE}/api/timeline-logs`
 
 // system settings
 export const API_SYSTEM_SETTINGS = `${LIVE}/api/system-settings`
+
+// ai chat
+export const API_AI_CHAT = `${LIVE}/api/ai/chat`

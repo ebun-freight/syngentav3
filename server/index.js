@@ -36,6 +36,7 @@ app.use('/api/analytics', require('./routes/dashboardRoute'))
 app.use('/api/activity-logs', require('./routes/activityLogRoute'))
 app.use('/api/timeline-logs', require('./routes/timelineRoute'))
 app.use('/api/system-settings', require('./routes/systemSettingsRoute'))
+app.use('/api/ai', require('./routes/AiChatRoute'))
 
 // error-handling middleware
 app.use(routeNotFoundHandler)
