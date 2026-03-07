@@ -3,200 +3,370 @@ const createError = require('http-errors')
 
 const sendStatusEmail = async ({ user, status }) => {
   const { firstname, email } = user
-  const LOGO_URL =
-    'https://res.cloudinary.com/dc0xsuayr/image/upload/v1767423539/logo_banner_lybihy.png'
-  const checkIcon =
-    'https://res.cloudinary.com/dc0xsuayr/image/upload/v1767419385/check_f4qyum.png'
-  const xIcon =
-    'https://res.cloudinary.com/dc0xsuayr/image/upload/v1767419385/ex_y8r8ug.png'
 
-  const supportEmail = 'chairlesadane.yza@gmail.com'
+  /* ── Constants & Links ──────────────────────────────────────────── */
+  const LOGO_ICON =
+    'https://res.cloudinary.com/dtkc90aw8/image/upload/v1772844481/ebun_logo_light_pxzxt3.png'
 
-  // Status-specific content for your application
+  const supportEmail = 'alacambradev@gmail.com'
+  const appUrl = 'https://ebun-monitoring.vercel.app'
+  const websiteUrl = 'https://www.yzaagri.tech/'
+  const facebookUrl = 'https://www.facebook.com/profile.php?id=61581659459017'
+  const supportMailto = `mailto:${supportEmail}`
+
+  /* ── Status-specific config ─────────────────────────────────────── */
   const statusConfig = {
     active: {
-      subject: 'Account Approved - Ebun Freight OPC',
-      title: 'Account Approved',
-      greeting: `Congratulations ${firstname}! Your account has been approved.`,
-      body: 'Your registration has been reviewed and approved by our administrators. You can now log in to your account and access all features of Ebun Freight OPC.',
-      actionMessage: 'Please log in using your credentials to get started.',
-      buttonText: 'Login to Your Account',
-      buttonLink: 'https://ebun-tracking.vercel.app',
-      icon: checkIcon,
-      iconAlt: 'Check Mark Icon'
+      subject: 'Account Approved — Ebun Freight OPC',
+      title: 'Welcome Aboard!',
+      subtitle: 'Your account is ready to go.',
+      greeting: `Congratulations, ${firstname}!`,
+      body: "You're now part of the Ebun Freight OPC platform. Track deployments, monitor trucks, and stay connected with your team — all in one place.",
+      actionMessage: 'Use your registered email and password to sign in.',
+      buttonText: 'Sign In to Your Account',
+      buttonLink: appUrl,
+      badgeBg: '#ecfdf5',
+      badgeColor: '#059669',
+      badgeBorder: '#6ee7b7',
+      badgeLabel: 'APPROVED',
+      accentColor: '#059669',
+      iconEmoji: '✓'
     },
     rejected: {
-      subject: 'Account Registration Update - Ebun Freight OPC',
+      subject: 'Account Registration Update — Ebun Freight OPC',
       title: 'Registration Not Approved',
+      subtitle: 'Account status update',
       greeting: `Dear ${firstname},`,
-      body: 'After careful review, we are unable to approve your account registration at this time.',
-      actionMessage:
-        'If you believe this is a mistake or would like more information, please contact our support team.',
+      body: "Thank you for your interest in Ebun Freight OPC. After reviewing your registration, we're unable to approve your account at this time.",
+      actionMessage: "Think there's been a mistake? Our team is happy to help.",
       buttonText: 'Contact Support',
-      buttonLink: `mailto:${supportEmail}`,
-      icon: xIcon,
-      iconAlt: 'X Mark Icon'
+      buttonLink: supportMailto,
+      badgeBg: '#fef2f2',
+      badgeColor: '#dc2626',
+      badgeBorder: '#fca5a5',
+      badgeLabel: 'NOT APPROVED',
+      accentColor: '#dc2626',
+      iconEmoji: '✕'
     },
     inactive: {
-      subject: 'Account Deactivated - Ebun Freight OPC',
+      subject: 'Account Deactivated — Ebun Freight OPC',
       title: 'Account Deactivated',
+      subtitle: 'Your account has been temporarily deactivated.',
       greeting: `Dear ${firstname},`,
-      body: 'Your account has been deactivated. This could be due to prolonged inactivity or administrative action.',
+      body: 'Your account has been temporarily deactivated. This may be due to inactivity or a routine administrative update on your profile.',
       actionMessage:
-        'If you believe this was done in error, please contact our support team to reactivate your account.',
+        "Want to restore access? Reach out and we'll get you sorted.",
       buttonText: 'Contact Support',
-      buttonLink: `mailto:${supportEmail}`,
-      icon: xIcon,
-      iconAlt: 'Pause Icon'
+      buttonLink: supportMailto,
+      badgeBg: '#fff7ed',
+      badgeColor: '#ea580c',
+      badgeBorder: '#fdba74',
+      badgeLabel: 'INACTIVE',
+      accentColor: '#ea580c',
+      iconEmoji: '⏸'
     },
     revoked: {
-      subject: 'Account Access Revoked - Ebun Freight OPC',
+      subject: 'Account Access Revoked — Ebun Freight OPC',
       title: 'Access Revoked',
+      subtitle: 'Your platform access has been removed.',
       greeting: `Dear ${firstname},`,
-      body: 'Your account access has been revoked by the administrators.',
+      body: 'Your access to the Ebun Freight OPC platform has been removed by an administrator. Your data remains secure.',
       actionMessage:
-        'For more information regarding this action, please contact our support team.',
+        "Questions or think this was an error? We're here to help.",
       buttonText: 'Contact Support',
-      buttonLink: `mailto:${supportEmail}`,
-      icon: xIcon,
-      iconAlt: 'Revoked Icon'
+      buttonLink: supportMailto,
+      badgeBg: '#fef2f2',
+      badgeColor: '#dc2626',
+      badgeBorder: '#fca5a5',
+      badgeLabel: 'REVOKED',
+      accentColor: '#dc2626',
+      iconEmoji: '⊘'
     }
   }
 
-  const config = statusConfig[status]
+  const c = statusConfig[status]
+  const year = new Date().getFullYear()
 
-  // Email template optimized for your agricultural services
+  /* ── Email HTML ─────────────────────────────────────────────────── */
   const htmlTemplate = `
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>${config.title}</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      @media only screen and (max-width: 600px) {
-        .container {
-          width: 100% !important;
-          padding: 10px !important;
-        }
-        .button {
-          width: 100% !important;
-        }
-        .status-icon {
-          width: 60px !important;
-          height: 60px !important;
-        }
-        .logo-container {
-          flex-direction: column !important;
-          gap: 10px !important;
-        }
-        .logo-text {
-          text-align: center !important;
-        }
-      }
-    </style>
-  </head>
-  <body style="font-family: 'Poppins', sans-serif; margin: 0; padding: 0; background-color: #f7fafc;">
-    <div class="container" style="max-width: 600px; margin: auto; padding: 20px 0;">
-      <div style="border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-     
-       <!-- Header Banner -->
-        <div style="background-color: #001e36; text-align: center;">
-          <img 
-            src="${LOGO_URL}" 
-            alt="Ebun Freight OPC Banner" 
-            style="width: 100%; max-width: 600px; height: auto; display: block;"
-            class="header-banner"
-          />
-        </div>
-        
-        <!-- Body Content -->
-        <div style="padding: 32px;">
-          <!-- Status Icon -->
-          <div style="text-align: center; margin-bottom: 24px;">
-            <img 
-              src="${config.icon}" 
-              alt="${config.iconAlt}"
-              style="width: 50px; height: 50px; object-fit: contain; border-radius: 50%;"
-              class="status-icon"
-            />
-            <h2 style="font-size: 28px; font-weight: 600; margin: 0 0 8px 0; color: #1f2937;">
-              ${config.title}
-            </h2>
-            <p style="color: #6b7280; margin: 0;">
-              ${
-                status === 'active'
-                  ? 'Your account is now ready!'
-                  : 'Account Status Update'
-              }
-            </p>
-          </div>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>${c.title}</title>
+  <!--[if mso]>
+  <noscript>
+    <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { margin: 0 !important; padding: 0 !important; background-color: #f1f5f9; }
+    a { color: inherit; }
 
-          <!-- Greeting -->
-          <div style="margin-bottom: 24px;">
-            <p style="font-size: 16px; line-height: 1.6; color: #4b5563; margin: 0;">
-              ${config.greeting}
-            </p>
-          </div>
+    @media only screen and (max-width: 620px) {
+      .email-wrapper { padding: 0 !important; }
+      .card         { border-radius: 0 !important; }
+      .header-inner { padding: 28px 20px 24px !important; }
+      .body-inner   { padding: 28px 20px !important; }
+      .footer-inner { padding: 20px !important; }
+      .stat-row     { gap: 12px !important; }
+      .stat-block   { padding: 10px 14px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:'Poppins',Georgia,sans-serif;">
 
-          <!-- Main Message -->
-          <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #001e36;">
-            <p style="font-size: 16px; line-height: 1.6; color: #4b5563; margin: 0;">
-              ${config.body}
-            </p>
-          </div>
+  <!-- Outer wrapper -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="background-color:#f1f5f9;min-height:100vh;">
+    <tr>
+      <td class="email-wrapper" align="center" style="padding:32px 16px;">
 
-          <!-- Action Button -->
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="${config.buttonLink}" 
-               style="background-color: #001e36; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; font-size: 16px; transition: background-color 0.3s;"
-               onmouseover="this.style.backgroundColor='oklch(12.9% 0.042 264.695)'"
-               onmouseout="this.style.backgroundColor='#001e36'">
-              ${config.buttonText}
-            </a>
-          </div>
+        <!-- Card -->
+        <table role="presentation" class="card" width="100%" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:580px;border-radius:20px;overflow:hidden;
+                      box-shadow:0 20px 60px rgba(2,6,23,0.18),0 4px 16px rgba(0,0,0,0.08);">
 
-          <!-- Additional Instructions -->
-          <div style="margin-bottom: 24px;">
-            <p style="font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center; margin: 0;">
-              ${config.actionMessage}
-            </p>
-          </div>
+          <!-- ═══ HEADER — dark navy gradient ════════════════════════ -->
+          <tr>
+            <td style="background:linear-gradient(155deg,#020617 0%,#001e36 55%,#0f172a 100%);
+                       position:relative;overflow:hidden;">
 
-          <!-- Footer -->
-          <div style="border-top: 1px solid #e5e7eb; padding-top: 24px; margin-top: 24px;">
-            <p style="font-size: 14px; color: #6b7280; margin: 0 0 8px 0;">Best regards,</p>
-            <p style="font-weight: 600; color: #1f2937; margin: 0 0 16px 0;">Ebun Freight OPC Team</p>
-            
-            <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
-              <a href="https://www.yzaagri.tech/" style="color: #001e36; text-decoration: none; font-size: 14px;">Website</a>
-              <span style="color: #d1d5db;"> • </span>
-              <a href="https://www.facebook.com/profile.php?id=61581659459017" style="color: #001e36; text-decoration: none; font-size: 14px;">Facebook</a>
-            </div>
-            
-            <p style="font-size: 12px; color: #9ca3af; text-align: center; margin-top: 20px;">
-              © ${new Date().getFullYear()} Ebun Freight OPC All rights reserved.<br>
-              This is an automated message, please do not reply to this email.
-            </p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Help Section -->
-      <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 12px;">
-        <p style="margin: 0;">
-          Need help? Contact our support team at 
-          <a href="mailto: ${supportEmail}" style="color: #001e36; text-decoration: none;"> ${supportEmail}</a>
+              <div class="header-inner"
+                   style="position:relative;z-index:1;padding:24px 36px 28px;text-align:center;">
+
+                <!-- Logo block -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+                       align="center" style="margin:0 auto 20px;width:100%;">
+                  <tr>
+                    <td align="center"
+                        style="padding:16px;border-bottom:1px solid rgba(255,255,255,0.1);">
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
+                        <tr>
+                          <td style="vertical-align:middle;padding-right:12px;">
+                            <img src="${LOGO_ICON}"
+                                 alt=""
+                                 width="40"
+                                 style="display:block;width:40px;height:auto;" />
+                          </td>
+                          <td style="vertical-align:middle;">
+                            <h1 style="font-family:'Poppins',sans-serif;font-size:30px;font-weight:600;
+                                       letter-spacing:0.1em;color:#ffffff;text-transform:uppercase;
+                                       margin:0;line-height:1.2;">
+                              EBUN
+                            </h1>
+                            <p style="font-family:'Poppins',sans-serif;font-size:12px;font-weight:400;
+                                      letter-spacing:0.1em;color:#ffffff;text-transform:uppercase;
+                                      margin:-6px 0 0 2px;line-height:1;">
+                              Freight OPC
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Status badge -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"
+                       style="margin:0 auto 16px;">
+                  <tr>
+                    <td style="background:${c.badgeBg};
+                               border:1px solid ${c.badgeBorder};
+                               border-radius:999px;
+                               padding:6px 18px;">
+                      <span style="font-family:'Poppins',sans-serif;
+                                   font-size:11px;font-weight:700;
+                                   letter-spacing:0.12em;color:${c.badgeColor};
+                                   text-transform:uppercase;white-space:nowrap;">
+                        ${c.iconEmoji}&nbsp;&nbsp;${c.badgeLabel}
+                      </span>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Title -->
+                <h1 style="font-family:'Poppins',sans-serif;font-size:26px;font-weight:700;
+                           color:#ffffff;letter-spacing:-0.3px;margin:0 0 6px;line-height:1.2;">
+                  ${c.title}
+                </h1>
+                <p style="font-family:'Poppins',sans-serif;font-size:13px;font-weight:400;
+                          color:rgba(255,255,255,0.5);margin:0;letter-spacing:0.02em;">
+                  ${c.subtitle}
+                </p>
+
+              </div>
+            </td>
+          </tr>
+
+          <!-- ═══ BODY — white panel ═══════════════════════════════════ -->
+          <tr>
+            <td style="background:#ffffff;">
+              <div class="body-inner" style="padding:36px 36px 32px;">
+
+                <!-- Greeting -->
+                <p style="font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;
+                          color:#111827;margin:0 0 12px;">
+                  ${c.greeting}
+                </p>
+
+                <!-- Message card -->
+                <div style="background:#f8fafc;border-left:3px solid ${c.accentColor};
+                            border-radius:0 12px 12px 0;padding:18px 20px;margin-bottom:24px;">
+                  <p style="font-family:'Poppins',sans-serif;font-size:14px;line-height:1.7;
+                            color:#374151;margin:0;">
+                    ${c.body}
+                  </p>
+                </div>
+
+                <!-- Action note -->
+                <p style="font-family:'Poppins',sans-serif;font-size:13px;line-height:1.65;
+                          color:#6b7280;margin:0 0 28px;text-align:center;">
+                  ${c.actionMessage}
+                </p>
+
+                <!-- CTA Button -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"
+                       style="margin:0 auto 32px;">
+                  <tr>
+                    <td style="border-radius:12px;overflow:hidden;
+                               box-shadow:0 4px 14px rgba(1,30,54,0.35);">
+                      <a href="${c.buttonLink}"
+                         style="display:inline-block;
+                                background:linear-gradient(135deg,#020617 0%,#001e36 60%,#0f172a 100%);
+                                color:#ffffff;
+                                font-family:'Poppins',sans-serif;
+                                font-size:14px;font-weight:600;
+                                letter-spacing:0.04em;
+                                text-decoration:none;
+                                padding:14px 36px;
+                                border-radius:12px;
+                                white-space:nowrap;">
+                        ${c.buttonText} &nbsp;→
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Stat row -->
+                <table role="presentation" class="stat-row" cellpadding="0" cellspacing="0" border="0"
+                       width="100%" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;
+                                           margin-bottom:0;">
+                  <tr>
+                    <td class="stat-block" align="center"
+                        style="padding:14px 18px;border-right:1px solid #e5e7eb;width:33.33%;">
+                      <p style="font-family:'Poppins',sans-serif;font-size:13px;font-weight:700;
+                                color:#111827;margin:0 0 2px;">Tech</p>
+                      <p style="font-family:'Poppins',sans-serif;font-size:11px;color:#9ca3af;
+                                margin:0;letter-spacing:0.04em;text-transform:uppercase;">
+                        Driven Ops
+                      </p>
+                    </td>
+                    <td class="stat-block" align="center"
+                        style="padding:14px 18px;border-right:1px solid #e5e7eb;width:33.33%;">
+                      <p style="font-family:'Poppins',sans-serif;font-size:13px;font-weight:700;
+                                color:#111827;margin:0 0 2px;">24 / 7</p>
+                      <p style="font-family:'Poppins',sans-serif;font-size:11px;color:#9ca3af;
+                                margin:0;letter-spacing:0.04em;text-transform:uppercase;">
+                        Operations
+                      </p>
+                    </td>
+                    <td class="stat-block" align="center"
+                        style="padding:14px 18px;width:33.33%;">
+                      <p style="font-family:'Poppins',sans-serif;font-size:13px;font-weight:700;
+                                color:#111827;margin:0 0 2px;">Est. 2026</p>
+                      <p style="font-family:'Poppins',sans-serif;font-size:11px;color:#9ca3af;
+                                margin:0;letter-spacing:0.04em;text-transform:uppercase;">
+                        Founded
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+              </div>
+            </td>
+          </tr>
+
+          <!-- ═══ FOOTER — dark gradient ═══════════════════════════════ -->
+          <tr>
+            <td style="background:linear-gradient(180deg,#0f172a 0%,#020617 100%);">
+              <div class="footer-inner" style="padding:28px 36px;text-align:center;">
+
+                <!-- Brand name -->
+                <p style="font-family:'Poppins',sans-serif;font-size:13px;font-weight:700;
+                          color:rgba(255,255,255,0.85);letter-spacing:0.14em;
+                          text-transform:uppercase;margin:0 0 4px;">
+                  EBUN
+                </p>
+                <p style="font-family:'Poppins',sans-serif;font-size:10px;font-weight:400;
+                          color:rgba(255,255,255,0.4);letter-spacing:0.18em;
+                          text-transform:uppercase;margin:0 0 20px;">
+                  Freight OPC
+                </p>
+
+                <!-- Divider -->
+                <div style="height:1px;background:rgba(255,255,255,0.08);margin:0 0 20px;"></div>
+
+                <!-- Links -->
+                <p style="font-family:'Poppins',sans-serif;font-size:12px;
+                          color:rgba(255,255,255,0.4);margin:0 0 16px;">
+                  <a href="${websiteUrl}"
+                     style="color:rgba(255,255,255,0.6);text-decoration:none;
+                            font-weight:500;margin:0 10px;">
+                    Website
+                  </a>
+                  <span style="color:rgba(255,255,255,0.2);">•</span>
+                  <a href="${facebookUrl}"
+                     style="color:rgba(255,255,255,0.6);text-decoration:none;
+                            font-weight:500;margin:0 10px;">
+                    Facebook
+                  </a>
+                  <span style="color:rgba(255,255,255,0.2);">•</span>
+                  <a href="${supportMailto}"
+                     style="color:rgba(255,255,255,0.6);text-decoration:none;
+                            font-weight:500;margin:0 10px;">
+                    Support
+                  </a>
+                </p>
+
+                <!-- Copyright -->
+                <p style="font-family:'Poppins',sans-serif;font-size:11px;
+                          color:rgba(255,255,255,0.25);margin:0;line-height:1.6;">
+                  © ${year} Ebun Freight OPC. All rights reserved.<br />
+                  This is an automated message — please do not reply directly.
+                </p>
+
+              </div>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Card -->
+
+        <!-- Below-card help note -->
+        <p style="font-family:'Poppins',sans-serif;font-size:12px;color:#94a3b8;
+                  text-align:center;margin-top:20px;">
+          Need help?&nbsp;
+          <a href="${supportMailto}"
+             style="color:#475569;text-decoration:underline;font-weight:500;">
+            ${supportEmail}
+          </a>
         </p>
-      </div>
-    </div>
-  </body>
+
+      </td>
+    </tr>
+  </table>
+  <!-- /Outer wrapper -->
+
+</body>
 </html>
 `
 
+  /* ── Nodemailer transport ────────────────────────────────────────── */
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
@@ -211,13 +381,11 @@ const sendStatusEmail = async ({ user, status }) => {
     await transporter.sendMail({
       from: `"Ebun Freight OPC" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: config.subject,
+      subject: c.subject,
       html: htmlTemplate
     })
 
-    console.log(
-      `Status email sent successfully to ${email} for status: ${status}`
-    )
+    console.log(`Status email sent → ${email} [status: ${status}]`)
   } catch (error) {
     console.error('Email sending error:', error)
     throw createError(500, 'Failed to send status email')

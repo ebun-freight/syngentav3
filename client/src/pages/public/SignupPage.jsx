@@ -195,7 +195,7 @@ function SignupPage () {
             <h1 className='font-semibold text-3xl sm:text-4xl tracking-widest text-white uppercase'>
               EBUN
             </h1>
-            <p className='max-sm:text-xs text-white -mt-1.5 uppercase tracking-widest sm:tracking-wider sm:ml-0.5'>
+            <p className='max-sm:text-xs text-sm text-white -mt-1.5 uppercase tracking-widest sm:ml-0.5'>
               Freight OPC
             </p>
           </div>
