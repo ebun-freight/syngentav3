@@ -20,8 +20,11 @@ import NotFoundPage from './pages/public/NotFoundPage'
 import SystemSettingsPage from './pages/admin/SystemSettingsPage'
 import { SettingsProvider } from './contexts/SettingsContext'
 import { useState, useEffect } from 'react'
+import AIChatWidget from './components/AIChatWidget'
 
 function App () {
+  console.log(import.meta.env.MODE)
+
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
   useEffect(() => {

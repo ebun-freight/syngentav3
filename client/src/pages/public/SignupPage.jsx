@@ -375,7 +375,7 @@ function SignupPage () {
                 className='w-full py-3.5 rounded-xl font-semibold text-white text-sm
                            shadow-md hover:shadow-lg hover:brightness-105 active:scale-[0.99]
                            transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed
-                           flex items-center justify-center gap-2.5'
+                           flex items-center justify-center gap-2.5 cursor-pointer'
                 style={{
                   background:
                     'linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)'
