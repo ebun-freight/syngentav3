@@ -319,7 +319,7 @@ const deploymentSchema = new mongoose.Schema(
       enum: {
         values: [
           'preparing',
-          'in-transit',
+          'ongoing',
           'delivered',
           'cancelled',
           'incomplete'
