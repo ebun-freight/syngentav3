@@ -365,10 +365,6 @@ const loginUser = async (req, res, next) => {
       return next(createError(401, 'Invalid email or password'))
     }
 
-    if (user.isSoftDeleted) {
-      return next(createError(401, 'This account has been deleted'))
-    }
-
     const invalidStatuses = {
       inactive: 'This account is deactivated',
       pending: 'This account approval is still pending',
@@ -754,18 +750,21 @@ const updateUser = async (req, res, next) => {
     Object.assign(existingUser, updatedFieldsData)
     await existingUser.save()
 
-    // Send status-change email (non-blocking)
-    if (isStatusChanged) {
-      sendStatusEmail({
-        user: { firstname: existingUser.firstname, email: existingUser.email },
-        status: existingUser.status
-      })
-        .then(() =>
-          console.log(
-            `Status email sent to ${existingUser.email}: ${existingUser.status}`
-          )
-        )
-        .catch(err => console.error('Failed to send status email:', err))
+    // Send status-change email only for visitor and subcon accounts
+    let emailSent = false
+    if (isStatusChanged && ['visitor', 'subcon'].includes(existingUser.role)) {
+      try {
+        await sendStatusEmail({
+          user: {
+            firstname: existingUser.firstname,
+            email: existingUser.email
+          },
+          status: existingUser.status
+        })
+        emailSent = true
+      } catch (err) {
+        console.error('Failed to send status email:', err)
+      }
     }
 
     await ActivityLog.create({
@@ -783,7 +782,8 @@ const updateUser = async (req, res, next) => {
       message: 'User updated successfully',
       user: userResponse,
       statusChanged: isStatusChanged,
-      newStatus: existingUser.status
+      newStatus: existingUser.status,
+      emailSent: isStatusChanged ? emailSent : undefined
     })
   } catch (error) {
     next(error)

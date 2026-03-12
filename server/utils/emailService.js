@@ -85,6 +85,8 @@ const sendStatusEmail = async ({ user, status }) => {
   }
 
   const c = statusConfig[status]
+  if (!c) return // status has no email template, skip silently
+
   const year = new Date().getFullYear()
 
   /* ── Email HTML ─────────────────────────────────────────────────── */
@@ -370,7 +372,7 @@ const sendStatusEmail = async ({ user, status }) => {
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
+      port: parseInt(process.env.EMAIL_PORT),
       secure: true,
       auth: {
         user: process.env.EMAIL_USER,

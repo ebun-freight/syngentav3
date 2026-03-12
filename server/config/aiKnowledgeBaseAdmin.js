@@ -16,7 +16,7 @@ Contact: +639 9563 4027
 Tagline: "Where Safety Leads, Technology Drives, and Community Thrives"
 Brand Inspiration: The eagle — symbolizing strength, clarity, and forward vision
 Live platform: https://ebun-monitoring.vercel.app
-Developer: Euro Abao
+Lead Developer: Euro Abao
 Co-Developer: Andrew Lacambra
 QA: Chairles Adane
 

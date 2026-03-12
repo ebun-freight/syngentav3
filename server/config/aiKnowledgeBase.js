@@ -14,7 +14,7 @@ Established: 2026
 Founder & CEO: John Robert Mangsat Ocumen
 Tagline: "Where Safety Leads, Technology Drives, and Community Thrives"
 Brand Inspiration: The eagle — symbolizing strength, clarity, and forward vision
-Developer: Euro Abao
+Lead Developer: Euro Abao
 Co-Developer: Andrew Lacambra
 QA: Chairles Adane
 
