@@ -33,7 +33,7 @@ export const UserProvider = ({ children }) => {
       })
 
       // remove this shit
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
       console.log('CURRENT USER', response.data.user)
       setUserData({

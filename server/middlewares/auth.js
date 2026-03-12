@@ -16,6 +16,10 @@ const authenticateToken = async (req, res, next) => {
     const user = await User.findById(decoded.id).select('-password')
     if (!user) throw createError(404, 'User not found')
 
+    if (user.isSoftDeleted) {
+      throw createError(401, 'This account has been deleted')
+    }
+
     if (user.status === 'inactive') {
       throw createError(401, 'This account is deactivated')
     }

@@ -46,8 +46,6 @@ const createTruck = async (req, res, next) => {
     }
 
     if (req.file) {
-      console.log(req.file)
-
       try {
         // validate file type
         if (!isValidFileType(req.file.mimetype)) {
@@ -221,8 +219,6 @@ const updateTruck = async (req, res, next) => {
       return next(createError(403, 'Access denied'))
     }
 
-    console.log('UPDATE TRUCK BODY', req.body)
-
     // find the truck
     const existingTruck = await Truck.findById(id)
     if (!existingTruck) {
@@ -235,8 +231,6 @@ const updateTruck = async (req, res, next) => {
 
     // if images are provided
     if (req.file) {
-      console.log('IMAGE FOR UPDATE', req.file)
-
       try {
         // validate file type
         if (!isValidFileType(req.file.mimetype)) {
@@ -256,16 +250,28 @@ const updateTruck = async (req, res, next) => {
           await cloudinary.uploader.destroy(imagePublicId)
         }
 
+        // compress the image with sharp
+        const compressedImage = await sharp(req.file.buffer)
+          .rotate()
+          .resize({
+            width: 1200,
+            withoutEnlargement: true
+          })
+          .jpeg({
+            quality: 80,
+            mozjpeg: true
+          })
+          .toBuffer()
+
         // upload new image
         const uploadResult = await uploadImageToCloudinary(
-          req.file.buffer,
+          compressedImage,
           'Ebun/truck'
         )
 
         imageUrl = uploadResult.secure_url
         imagePublicId = uploadResult.public_id
       } catch (error) {
-        console.error('Cloudinary error:', error)
         return next(createError(500, 'Failed to upload image'))
       }
     }
@@ -307,7 +313,7 @@ const updateTruck = async (req, res, next) => {
       type: 'truck',
       performedBy: req.user._id,
       action: actionMessage,
-      targetDriver: existingTruck._id
+      targetTruck: existingTruck._id
     })
 
     res.status(200).json({
@@ -377,7 +383,7 @@ const softDeleteTruck = async (req, res, next) => {
       type: 'truck',
       performedBy: req.user._id,
       action: 'Deleted a truck',
-      targetDriver: truck._id
+      targetTruck: truck._id
     })
 
     res.status(200).json({

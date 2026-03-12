@@ -10,7 +10,8 @@ const {
   updateUser,
   createAdmin,
   hardDeleteUser,
-  softDeleteUser
+  softDeleteUser,
+  restoreUser
 } = require('../controllers/userController')
 
 const router = express.Router()
@@ -30,14 +31,15 @@ router.post(
   createAdmin
 )
 
+router.get('/current-user', authenticateToken, getCurrentUser)
+
 router
   .route('/:id')
   .patch(authenticateToken, upload.single('image'), updateUser)
 
-router.get('/current-user', authenticateToken, getCurrentUser)
-
-// delete route
+// delete routes
 router.delete('/hard-delete/:id', authenticateToken, hardDeleteUser)
 router.delete('/soft-delete/:id', authenticateToken, softDeleteUser)
+router.patch('/restore/:id', authenticateToken, restoreUser)
 
 module.exports = router

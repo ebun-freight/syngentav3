@@ -365,6 +365,10 @@ const loginUser = async (req, res, next) => {
       return next(createError(401, 'Invalid email or password'))
     }
 
+    if (user.isSoftDeleted) {
+      return next(createError(401, 'This account has been deleted'))
+    }
+
     const invalidStatuses = {
       inactive: 'This account is deactivated',
       pending: 'This account approval is still pending',

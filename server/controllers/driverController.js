@@ -151,11 +151,17 @@ const getAllDrivers = async (req, res, next) => {
     // search
     if (search) {
       const regex = { $regex: search, $options: 'i' }
-      query.$or = [
+      const searchConditions = [
         { firstname: regex },
         { lastname: regex },
         { phoneNo: regex }
       ]
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, { $or: searchConditions }]
+        delete query.$or
+      } else {
+        query.$or = searchConditions
+      }
     }
 
     // pagination
@@ -246,9 +252,22 @@ const updateDriver = async (req, res, next) => {
           await cloudinary.uploader.destroy(imagePublicId)
         }
 
+        // compress the image with sharp
+        const compressedImage = await sharp(req.file.buffer)
+          .rotate()
+          .resize({
+            width: 1200,
+            withoutEnlargement: true
+          })
+          .jpeg({
+            quality: 80,
+            mozjpeg: true
+          })
+          .toBuffer()
+
         // upload new image
         const uploadResult = await uploadImageToCloudinary(
-          req.file.buffer,
+          compressedImage,
           'Ebun/driver'
         )
 
