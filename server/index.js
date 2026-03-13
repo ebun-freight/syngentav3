@@ -19,7 +19,7 @@ const app = express()
 app.use(
   cors({
     origin: [
-      'https://ebun-monitoring.vercel.app',
+      'https://ebun-monitoring-three.vercel.app/',
       'http://localhost:5173',
       'http://localhost:5174'
     ],
