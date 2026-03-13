@@ -10,7 +10,7 @@ import { RiFolderUploadLine } from 'react-icons/ri'
 import { FaSave } from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import clsx from 'clsx'
-import useCreateUser from '../../hooks/userCreateUser'
+import useCreateUser from '../../hooks/useCreateUser'
 import { no_image } from '../../consts/images'
 
 /* ─── Decorative dot pattern ────────────────────────────────────────────── */

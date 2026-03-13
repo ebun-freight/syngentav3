@@ -7,6 +7,8 @@ const { validateFields } = require('../utils/validationFields')
 const { cloudinary } = require('../middlewares/multerCloudinary')
 const ActivityLog = require('../models/activityLogsModel')
 
+const MAX_FILE_SIZE = 16 * 1024 * 1024 // 16 MB
+
 // create driver
 const createDriver = async (req, res, next) => {
   try {
@@ -22,7 +24,6 @@ const createDriver = async (req, res, next) => {
         firstname,
         lastname,
         phoneNo,
-        status,
         subcon
       },
       false
@@ -46,14 +47,18 @@ const createDriver = async (req, res, next) => {
     }
 
     if (req.file) {
-      console.log(req.file)
-
       try {
         // validate file type
         if (!isValidFileType(req.file.mimetype)) {
           return next(
             createError(400, 'Invalid file type. Only images are allowed')
           )
+        }
+
+        // FIX #6 — File size was not validated on driver creation (only on update).
+        // Added the same 16 MB guard that already exists in updateDriver.
+        if (req.file.size > MAX_FILE_SIZE) {
+          return next(createError(400, 'Image size must be less than 16MB'))
         }
 
         // compress the image with sharp
@@ -113,7 +118,7 @@ const createDriver = async (req, res, next) => {
   }
 }
 
-// test driver
+// get all drivers
 const getAllDrivers = async (req, res, next) => {
   try {
     const {
@@ -164,10 +169,6 @@ const getAllDrivers = async (req, res, next) => {
       }
     }
 
-    // pagination
-    const limit = parseInt(perPage)
-    const skip = (parseInt(page) - 1) * limit
-
     // sorting
     const sortOptions = {
       oldest: { createdAt: 1 },
@@ -182,18 +183,43 @@ const getAllDrivers = async (req, res, next) => {
 
     const sortQuery = sortOptions[sort] || sortOptions.latest
 
-    // query database
-    const [total, drivers] = await Promise.all([
-      Driver.countDocuments(query),
-      Driver.find(query).skip(skip).limit(limit).sort(sortQuery)
-    ])
+    // FIX #7 — Original code called parseInt(perPage) unconditionally and used the
+    // result even when perPage was undefined. parseInt(undefined) === NaN, so:
+    //   - skip = (page - 1) * NaN  →  NaN  →  MongoDB ignores the skip entirely
+    //   - limit = NaN              →  MongoDB returns ALL documents
+    //   - totalPages = Math.ceil(total / NaN)  →  NaN
+    // Fixed by mirroring the hasPagination guard used in getAllTrucks.
+    const hasPagination =
+      perPage !== undefined &&
+      perPage !== '' &&
+      !isNaN(parseInt(perPage)) &&
+      page !== undefined &&
+      page !== '' &&
+      !isNaN(parseInt(page))
 
-    return res.status(200).json({
-      total,
-      page: Number(page),
-      totalPages: Math.ceil(total / limit),
-      drivers
-    })
+    if (hasPagination) {
+      const limit = parseInt(perPage)
+      const skip = (parseInt(page) - 1) * limit
+
+      const [total, drivers] = await Promise.all([
+        Driver.countDocuments(query),
+        Driver.find(query).skip(skip).limit(limit).sort(sortQuery)
+      ])
+
+      return res.status(200).json({
+        total,
+        page: Number(page),
+        totalPages: Math.ceil(total / limit),
+        drivers
+      })
+    } else {
+      const drivers = await Driver.find(query).sort(sortQuery)
+
+      return res.status(200).json({
+        total: drivers.length,
+        drivers
+      })
+    }
   } catch (error) {
     next(error)
   }
@@ -217,8 +243,6 @@ const updateDriver = async (req, res, next) => {
       return next(createError(403, 'Access denied'))
     }
 
-    console.log(req.body)
-
     // find the driver
     const existingDriver = await Driver.findById(id)
     if (!existingDriver) {
@@ -231,8 +255,6 @@ const updateDriver = async (req, res, next) => {
 
     // if images are provided
     if (req.file) {
-      console.log('IMAGE FOR UPDATE', req.file)
-
       try {
         // validate file type
         if (!isValidFileType(req.file.mimetype)) {
@@ -241,8 +263,6 @@ const updateDriver = async (req, res, next) => {
           )
         }
 
-        // Validate file size (16MB max)
-        const MAX_FILE_SIZE = 16 * 1024 * 1024
         if (req.file.size > MAX_FILE_SIZE) {
           return next(createError(400, 'Image size must be less than 16MB'))
         }
@@ -274,7 +294,6 @@ const updateDriver = async (req, res, next) => {
         imageUrl = uploadResult.secure_url
         imagePublicId = uploadResult.public_id
       } catch (error) {
-        console.error('Cloudinary error:', error)
         return next(createError(500, 'Failed to upload image'))
       }
     }
@@ -300,15 +319,18 @@ const updateDriver = async (req, res, next) => {
         ? `Updated driver's ${updatedFields.join(', ')}`
         : 'Updated driver details'
 
-    // update fields
+    // FIX #8 — Original code used `|| existingDriver.X` (falsy fallback) for all fields.
+    // Sending an empty string to intentionally clear subcon, licenseNo, etc. would silently
+    // keep the old value. Fixed by using `!== undefined` checks so only truly absent
+    // fields fall back to the existing value.
     const updatedFieldsData = {
-      firstname: firstname || existingDriver.firstname,
-      lastname: lastname || existingDriver.lastname,
-      phoneNo: phoneNo || existingDriver.phoneNo,
-      status: status || existingDriver.status,
-      licenseNo: licenseNo || existingDriver.licenseNo,
-      subcon: subcon || existingDriver.subcon,
-      tripCount: tripCount || existingDriver.tripCount,
+      firstname: firstname !== undefined ? firstname : existingDriver.firstname,
+      lastname: lastname !== undefined ? lastname : existingDriver.lastname,
+      phoneNo: phoneNo !== undefined ? phoneNo : existingDriver.phoneNo,
+      status: status !== undefined ? status : existingDriver.status,
+      licenseNo: licenseNo !== undefined ? licenseNo : existingDriver.licenseNo,
+      subcon: subcon !== undefined ? subcon : existingDriver.subcon,
+      tripCount: tripCount !== undefined ? tripCount : existingDriver.tripCount,
       imageUrl,
       imagePublicId
     }
@@ -333,7 +355,7 @@ const updateDriver = async (req, res, next) => {
   }
 }
 
-// delete driver
+// hard delete driver
 const hardDeleteDriver = async (req, res, next) => {
   try {
     const { id } = req.params
@@ -342,24 +364,38 @@ const hardDeleteDriver = async (req, res, next) => {
       return next(createError(403, 'Access denied'))
     }
 
-    console.log('DELETE DRIVER ID', id)
-
-    // Find the driver to delete
-    const driverToDelete = await Driver.findByIdAndDelete(id)
+    // FIX #9 — Original code called findByIdAndDelete immediately, which means:
+    //   (a) If the driver didn't exist, driverToDelete was null and calling
+    //       cloudinary.uploader.destroy(null.imagePublicId) would throw a crash
+    //       instead of returning a clean 404.
+    //   (b) There was no activity log entry for a permanent delete, leaving a
+    //       gap in the audit trail (hardDeleteUser correctly logs this).
+    // Fixed by finding first, returning 404 cleanly if missing, then deleting,
+    // then logging.
+    const driverToDelete = await Driver.findById(id)
     if (!driverToDelete) {
       return next(createError(404, 'Driver not found'))
     }
+
+    await Driver.findByIdAndDelete(id)
 
     // Delete profile picture from Cloudinary if it exists
     if (driverToDelete.imagePublicId) {
       await cloudinary.uploader.destroy(driverToDelete.imagePublicId)
     }
 
+    // FIX #9 (cont.) — Added missing activity log for hard delete.
+    await ActivityLog.create({
+      type: 'driver',
+      performedBy: req.user._id,
+      action: `Permanently deleted driver ${driverToDelete.firstname} ${driverToDelete.lastname}`,
+      targetDriver: driverToDelete._id
+    })
+
     return res.status(200).json({
       message: 'Driver deleted successfully'
     })
   } catch (error) {
-    console.error('Error deleting driver:', error)
     next(createError(500, 'Failed to delete driver'))
   }
 }

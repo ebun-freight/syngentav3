@@ -1,14 +1,12 @@
 import axios from 'axios'
 import { useState } from 'react'
-import { API_DRIVER } from '../utils/APIRoutes'
+import { API_USER } from '../utils/APIRoutes'
 
-const useCreateDriver = () => {
+const useCreateUser = () => {
   const [isLoading, setIsLoading] = useState(false)
 
-  const createDriverFunction = async data => {
+  const createUserFunction = async data => {
     setIsLoading(true)
-
-    const token = sessionStorage.getItem('userToken')
 
     const formData = new FormData()
 
@@ -20,17 +18,33 @@ const useCreateDriver = () => {
     })
 
     try {
-      console.log(data)
-      const response = await axios.post(API_DRIVER, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`
-        }
-      })
+      if (data.role === 'admin' || data.role === 'subcon') {
+        const token = sessionStorage.getItem('userToken')
+        const response = await axios.post(
+          `${API_USER}/create-admin`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${token}`
+            }
+          }
+        )
 
-      console.log('HOOK - CREATED DRIVER', response.data)
+        console.log('HOOK - CREATED ADMIN', response.data)
 
-      return response.data
+        return response.data
+      } else {
+        const response = await axios.post(API_USER, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+
+        console.log('HOOK - CREATED ADMIN', response.data)
+
+        return response.data
+      }
     } catch (error) {
       console.log(error.response.data.message)
       return error.response?.data?.message || 'Something went wrong!'
@@ -39,7 +53,7 @@ const useCreateDriver = () => {
     }
   }
 
-  return { createDriverFunction, isLoading }
+  return { createUserFunction, isLoading }
 }
 
-export default useCreateDriver
+export default useCreateUser

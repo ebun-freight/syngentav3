@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router'
 import { toast } from 'react-toastify'
 import { ebun_logo_light } from '../../consts/images'
 import clsx from 'clsx'
-import useCreateUser from '../../hooks/userCreateUser'
+import useCreateUser from '../../hooks/useCreateUser'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
 

@@ -7,6 +7,8 @@ const { uploadImageToCloudinary } = require('../utils/cloudinaryUtils')
 const { cloudinary } = require('../middlewares/multerCloudinary')
 const ActivityLog = require('../models/activityLogsModel')
 
+const MAX_FILE_SIZE = 16 * 1024 * 1024 // 16 MB
+
 // create truck
 const createTruck = async (req, res, next) => {
   try {
@@ -16,10 +18,14 @@ const createTruck = async (req, res, next) => {
       return next(createError(403, 'Access denied'))
     }
 
-    // validate fields
-    validateFields(plateNo)
+    // FIX #2 — Original code called validateFields(plateNo), passing a raw string.
+    // Object.values('ABC123') returns individual characters so validation was a no-op:
+    // any truthy character passes, meaning plateNo could be empty and none of the
+    // other required fields were validated at all.
+    // Fixed by passing a proper fields object so all required fields are checked.
+    validateFields({ plateNo, truckType, status, subcon })
 
-    // truckType and status are validated against System Settings values at runtime
+    // truckType and status are also validated against System Settings values at runtime
 
     // check if truck with same plate number already exists
     const isTruckAlreadyExist = await Truck.findOne({
@@ -45,6 +51,14 @@ const createTruck = async (req, res, next) => {
           return next(
             createError(400, 'Invalid file type. Only images are allowed')
           )
+        }
+
+        // FIX #3 — File size was never checked on truck creation (only on update).
+        // An oversized image would be uploaded to Cloudinary and then potentially
+        // fail mid-stream or silently consume storage. Added the same 16 MB guard
+        // that already exists in updateTruck and updateDriver.
+        if (req.file.size > MAX_FILE_SIZE) {
+          return next(createError(400, 'Image size must be less than 16MB'))
         }
 
         // compress the image with sharp
@@ -233,7 +247,6 @@ const updateTruck = async (req, res, next) => {
         }
 
         // Validate file size (16MB max)
-        const MAX_FILE_SIZE = 16 * 1024 * 1024
         if (req.file.size > MAX_FILE_SIZE) {
           return next(createError(400, 'Image size must be less than 16MB'))
         }
@@ -286,14 +299,18 @@ const updateTruck = async (req, res, next) => {
         ? `Updated truck's ${updatedFields.join(', ')}`
         : 'Updated truck details'
 
-    // update fields
+    // FIX #4 — Original code used `|| existingTruck.X` (falsy fallback) for all fields.
+    // This meant sending an empty string or 0 to intentionally clear an optional field
+    // (e.g. clearing subcon) would silently keep the old value instead.
+    // Fixed by using `!== undefined` checks so only truly absent fields fall back to
+    // the existing value, while an explicit empty string or 0 is honoured.
     const updatedFieldsData = {
-      plateNo: plateNo || existingTruck.plateNo,
-      truckType: truckType ?? existingTruck.truckType,
-      status: status || existingTruck.status,
-      tripCount: tripCount || existingTruck.tripCount,
-      maxLoad: maxLoad || existingTruck.maxLoad,
-      subcon: subcon || existingTruck.subcon,
+      plateNo: plateNo !== undefined ? plateNo : existingTruck.plateNo,
+      truckType: truckType !== undefined ? truckType : existingTruck.truckType,
+      status: status !== undefined ? status : existingTruck.status,
+      tripCount: tripCount !== undefined ? tripCount : existingTruck.tripCount,
+      maxLoad: maxLoad !== undefined ? maxLoad : existingTruck.maxLoad,
+      subcon: subcon !== undefined ? subcon : existingTruck.subcon,
       imageUrl,
       imagePublicId
     }
@@ -327,22 +344,38 @@ const hardDeleteTruck = async (req, res, next) => {
       return next(createError(403, 'Access denied'))
     }
 
-    // Find the truck to delete
-    const truckToDelete = await Truck.findByIdAndDelete(id)
+    // FIX #5 — Original code called findByIdAndDelete immediately, which means if the
+    // truck didn't exist we'd call cloudinary.uploader.destroy on undefined — crashing
+    // the handler. Also there was no activity log for a permanent delete action.
+    // Fixed by finding first (to confirm existence and retrieve details for the log),
+    // then deleting, then logging.
+    const truckToDelete = await Truck.findById(id)
     if (!truckToDelete) {
       return next(createError(404, 'Truck not found'))
     }
+
+    await Truck.findByIdAndDelete(id)
 
     // Delete profile picture from Cloudinary if it exists
     if (truckToDelete.imagePublicId) {
       await cloudinary.uploader.destroy(truckToDelete.imagePublicId)
     }
 
+    // FIX #5 (cont.) — Added missing activity log for hard delete (matches the
+    // pattern already established in hardDeleteUser).
+    await ActivityLog.create({
+      type: 'truck',
+      performedBy: req.user._id,
+      action: `Permanently deleted truck ${truckToDelete.plateNo.toUpperCase()} (${
+        truckToDelete.truckType
+      })`,
+      targetTruck: truckToDelete._id
+    })
+
     return res.status(200).json({
       message: 'Truck deleted successfully'
     })
   } catch (error) {
-    console.error('Error deleting truck:', error)
     next(createError(500, 'Failed to delete truck'))
   }
 }
