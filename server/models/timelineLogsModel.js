@@ -17,9 +17,8 @@ const timelineLogSchema = new mongoose.Schema(
       required: [true, 'Action status is required']
     },
     timestamp: {
-      type: String,
-      required: [true, 'Date and time is required'],
-      trim: true
+      type: Date,
+      required: [true, 'Date and time is required']
     },
     targetDeployment: {
       type: mongoose.Schema.Types.ObjectId,

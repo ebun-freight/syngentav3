@@ -167,13 +167,10 @@ const getAllTimelineLogs = async (req, res, next) => {
 
     // Re-sort after in-memory filtering to guarantee timestamp order is preserved
     // (DB sort + pagination runs before in-memory filters, so order can drift)
-    // Parse timestamps to ms so legacy "Sat Mar 14..." strings sort correctly
-    // alongside ISO strings — plain string comparison fails on mixed formats
+    // Parse timestamps to ms for sorting — handles Date objects and ISO strings
     const toMs = ts => {
       if (!ts) return 0
-      // Bare "YYYY-MM-DDTHH:mm" or "YYYY-MM-DDTHH:mm:ss" have no TZ info.
-      // new Date() treats them as UTC, which shifts Manila times by +8 hrs.
-      // Append +08:00 so they're correctly interpreted as Manila time.
+      if (ts instanceof Date) return isNaN(ts.getTime()) ? 0 : ts.getTime()
       const normalized = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(ts)
         ? ts + '+08:00'
         : ts
