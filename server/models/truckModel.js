@@ -9,25 +9,15 @@ const truckSchema = new mongoose.Schema(
       uppercase: true,
       minlength: [2, 'Plate No. must be at least 2 characters long'],
       maxlength: [7, 'Plate No. cannot exceed 7 characters'],
-      match: [/^[A-Z0-9\s-]+$/, 'Plate No. must contain letters, numbers, spaces, or hyphens only']
+      match: [
+        /^[A-Z0-9\s-]+$/,
+        'Plate No. must contain letters, numbers, spaces, or hyphens only'
+      ]
     },
     truckType: {
       type: String,
       trim: true,
-      lowercase: true,
-      enum: {
-        values: [
-          'single-tire',
-          'elf',
-          'forward',
-          '10-wheeler',
-          '12-wheeler',
-          'wing-van',
-          'L300',
-          'multicab'
-        ],
-        message: '{VALUE} is not a valid truck type'
-      }
+      lowercase: true
     },
     maxLoad: {
       type: Number,
@@ -42,10 +32,6 @@ const truckSchema = new mongoose.Schema(
       type: String,
       trim: true,
       lowercase: true,
-      enum: {
-        values: ['available', 'deployed', 'unavailable'],
-        message: '{VALUE} is not a valid status'
-      },
       default: 'available'
     },
     tripCount: {

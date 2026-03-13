@@ -115,20 +115,7 @@ const deploymentSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Truck type is required'],
       trim: true,
-      lowercase: true,
-      enum: {
-        values: [
-          'single-tire',
-          'elf',
-          'forward',
-          '10-wheeler',
-          '12-wheeler',
-          'wing-van',
-          'L300',
-          'multicab'
-        ],
-        message: '{VALUE} is not a valid truck type'
-      }
+      lowercase: true
     },
     driverId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -220,21 +207,7 @@ const deploymentSchema = new mongoose.Schema(
       replacementTruckType: {
         type: String,
         trim: true,
-        lowercase: true,
-        enum: {
-          values: [
-            '',
-            'single-tire',
-            'elf',
-            'forward',
-            '10-wheeler',
-            '12-wheeler',
-            'wing-van',
-            'L300',
-            'multicab'
-          ],
-          message: '{VALUE} is not a valid replacement truck type'
-        }
+        lowercase: true
       },
       replacementHelperCount: {
         type: Number,

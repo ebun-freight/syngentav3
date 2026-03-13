@@ -52,10 +52,6 @@ const driverSchema = new mongoose.Schema(
       type: String,
       trim: true,
       lowercase: true,
-      enum: {
-        values: ['available', 'deployed', 'unavailable'],
-        message: '{VALUE} is not a valid status'
-      },
       default: 'available'
     },
     subcon: {

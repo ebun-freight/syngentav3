@@ -3,11 +3,6 @@ const sharp = require('sharp')
 const Truck = require('../models/truckModel')
 const { validateFields } = require('../utils/validationFields')
 const { isValidFileType } = require('../utils/validationFile')
-const {
-  validateCondition,
-  validateStatus,
-  validateType
-} = require('../utils/validationTruckFields')
 const { uploadImageToCloudinary } = require('../utils/cloudinaryUtils')
 const { cloudinary } = require('../middlewares/multerCloudinary')
 const ActivityLog = require('../models/activityLogsModel')
@@ -24,9 +19,7 @@ const createTruck = async (req, res, next) => {
     // validate fields
     validateFields(plateNo)
 
-    // validate other fields
-    validateType(truckType)
-    validateStatus(status)
+    // truckType and status are validated against System Settings values at runtime
 
     // check if truck with same plate number already exists
     const isTruckAlreadyExist = await Truck.findOne({
