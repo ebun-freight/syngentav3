@@ -48,7 +48,10 @@ function CalendarPage () {
 
   useEffect(() => {
     const handleGetAllDeployments = async () => {
-      const { deployments, error } = await getAllDeploymentFunction({})
+      const { deployments, error } = await getAllDeploymentFunction({
+        sort: 'latest',
+        perPage: 99999
+      })
       if (error) setDeploymentsError(error)
       setAllDeployments(deployments || [])
     }
