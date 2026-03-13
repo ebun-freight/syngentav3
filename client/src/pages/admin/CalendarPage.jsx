@@ -144,7 +144,8 @@ function CalendarPage () {
 
     const makeEvent = (deployment, timestamp, eventType, title, icon) => {
       if (!timestamp) return null
-      const eventDate = new Date(timestamp)
+      const eventDate =
+        timestamp instanceof Date ? timestamp : new Date(timestamp)
       if (isNaN(eventDate.getTime())) return null
       return {
         id: `${deployment._id}-${eventType}`,
@@ -228,7 +229,9 @@ function CalendarPage () {
       if (destDepartureEvent) events.push(destDepartureEvent)
     })
 
-    return events.sort((a, b) => b.start - a.start)
+    return events
+      .filter(e => e.start instanceof Date && !isNaN(e.start.getTime()))
+      .sort((a, b) => b.start - a.start)
   }
 
   // ─── navigation ────────────────────────────────────────────────────────────
