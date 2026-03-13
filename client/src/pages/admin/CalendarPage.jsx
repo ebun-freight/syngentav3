@@ -74,11 +74,21 @@ function CalendarPage () {
 
   // ─── helpers ───────────────────────────────────────────────────────────────
 
+  // Always render times in Manila timezone regardless of the browser's local timezone
+  const toManilaDateStr = date =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(date)
+
   const formatTime = date =>
     date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
+      timeZone: 'Asia/Manila'
     })
 
   const getStatusColor = status => {
@@ -175,13 +185,14 @@ function CalendarPage () {
       )
       if (departedEvent) events.push(departedEvent)
       ;(deployment.pickups || []).forEach((stop, index) => {
-        const stopLabel = `Stop #${index + 1}`
+        const isMultiStop = (deployment.pickups || []).length >= 2
+        const stopLabel = isMultiStop ? `Stop #${index + 1}` : null
         if (stop.pickupIn) {
           const ev = makeEvent(
             deployment,
             stop.pickupIn,
             `pickupIn-${index}`,
-            `Pickup Arrival (${stopLabel})`,
+            `Pickup Arrival${stopLabel ? ` (${stopLabel})` : ''}`,
             FaWarehouse
           )
           if (ev) events.push(ev)
@@ -191,7 +202,7 @@ function CalendarPage () {
             deployment,
             stop.pickupOut,
             `pickupOut-${index}`,
-            `Pickup Departure (${stopLabel})`,
+            `Pickup Departure${stopLabel ? ` (${stopLabel})` : ''}`,
             FaBoxOpen
           )
           if (ev) events.push(ev)
@@ -217,7 +228,7 @@ function CalendarPage () {
       if (destDepartureEvent) events.push(destDepartureEvent)
     })
 
-    return events.sort((a, b) => a.start - b.start)
+    return events.sort((a, b) => b.start - a.start)
   }
 
   // ─── navigation ────────────────────────────────────────────────────────────
@@ -323,9 +334,9 @@ function CalendarPage () {
         day
       )
       const dayEvents = events.filter(
-        e => e.start.toDateString() === date.toDateString()
+        e => toManilaDateStr(e.start) === toManilaDateStr(date)
       )
-      const isToday = date.toDateString() === new Date().toDateString()
+      const isToday = toManilaDateStr(date) === toManilaDateStr(new Date())
 
       currentWeek.push(
         <td
@@ -396,7 +407,7 @@ function CalendarPage () {
     const headers = Array.from({ length: 7 }).map((_, i) => {
       const date = new Date(startOfWeek)
       date.setDate(startOfWeek.getDate() + i)
-      const isToday = date.toDateString() === new Date().toDateString()
+      const isToday = toManilaDateStr(date) === toManilaDateStr(new Date())
       return (
         <th
           key={i}
@@ -424,9 +435,9 @@ function CalendarPage () {
       const date = new Date(startOfWeek)
       date.setDate(startOfWeek.getDate() + i)
       const dayEvents = events.filter(
-        e => e.start.toDateString() === date.toDateString()
+        e => toManilaDateStr(e.start) === toManilaDateStr(date)
       )
-      const isToday = date.toDateString() === new Date().toDateString()
+      const isToday = toManilaDateStr(date) === toManilaDateStr(new Date())
 
       return (
         <td
@@ -476,7 +487,7 @@ function CalendarPage () {
 
   const renderDayView = () => {
     const events = getCalendarEvents().filter(
-      e => e.start.toDateString() === currentDate.toDateString()
+      e => toManilaDateStr(e.start) === toManilaDateStr(currentDate)
     )
 
     const borderColorClass = color => {

@@ -7,7 +7,7 @@ const sharp = require('sharp')
 const { uploadImageToCloudinary } = require('../utils/cloudinaryUtils')
 const User = require('../models/userModel')
 const { cloudinary } = require('../middlewares/multerCloudinary')
-const sendStatusEmail = require('../utils/emailService')
+// const sendStatusEmail = require('../utils/emailService')
 const ActivityLog = require('../models/activityLogsModel')
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -751,21 +751,22 @@ const updateUser = async (req, res, next) => {
     await existingUser.save()
 
     // Send status-change email only for visitor and subcon accounts
+    // NOTE: Email sender temporarily disabled
     let emailSent = false
-    if (isStatusChanged && ['visitor', 'subcon'].includes(existingUser.role)) {
-      try {
-        await sendStatusEmail({
-          user: {
-            firstname: existingUser.firstname,
-            email: existingUser.email
-          },
-          status: existingUser.status
-        })
-        emailSent = true
-      } catch (err) {
-        console.error('Failed to send status email:', err)
-      }
-    }
+    // if (isStatusChanged && ['visitor', 'subcon'].includes(existingUser.role)) {
+    //   try {
+    //     await sendStatusEmail({
+    //       user: {
+    //         firstname: existingUser.firstname,
+    //         email: existingUser.email
+    //       },
+    //       status: existingUser.status
+    //     })
+    //     emailSent = true
+    //   } catch (err) {
+    //     console.error('Failed to send status email:', err)
+    //   }
+    // }
 
     await ActivityLog.create({
       type: 'admin',

@@ -14,7 +14,7 @@ const getAllActivityLogs = async (req, res, next) => {
     // filters
     if (type) query.type = type
 
-    // Date filter for specific day (alternative using $expr)
+    // Date filter for specific day
     if (date) {
       const targetDate = new Date(date)
 
@@ -31,10 +31,6 @@ const getAllActivityLogs = async (req, res, next) => {
       }
     }
 
-    // pagination
-    const limit = parseInt(perPage)
-    const skip = (parseInt(page) - 1) * limit
-
     // sorting
     const sortOptions = {
       oldest: { createdAt: 1 },
@@ -42,29 +38,59 @@ const getAllActivityLogs = async (req, res, next) => {
     }
     const sortQuery = sortOptions[sort] || sortOptions.latest
 
-    // query database
-    const [total, activityLogs] = await Promise.all([
-      ActivityLog.countDocuments(query),
-      ActivityLog.find(query)
-        .skip(skip)
-        .limit(limit)
+    // FIX: parseInt(undefined) === NaN. When perPage is not provided,
+    // limit becomes NaN — MongoDB ignores it and returns ALL documents,
+    // skip becomes NaN — MongoDB ignores it and starts from the beginning,
+    // and totalPages becomes NaN.
+    // Added hasPagination guard matching the pattern used in getAllTrucks.
+    const hasPagination =
+      perPage !== undefined &&
+      perPage !== '' &&
+      !isNaN(parseInt(perPage)) &&
+      page !== undefined &&
+      page !== '' &&
+      !isNaN(parseInt(page))
+
+    if (hasPagination) {
+      const limit = parseInt(perPage)
+      const skip = (parseInt(page) - 1) * limit
+
+      const [total, activityLogs] = await Promise.all([
+        ActivityLog.countDocuments(query),
+        ActivityLog.find(query)
+          .skip(skip)
+          .limit(limit)
+          .sort(sortQuery)
+          .populate({ path: 'performedBy', select: '-password' })
+          .populate('targetDeployment')
+          .populate('targetDriver')
+          .populate('targetTruck')
+          .populate('targetUser')
+      ])
+
+      return res.status(200).json({
+        total,
+        page: Number(page),
+        totalPages: Math.ceil(total / limit),
+        activityLogs
+      })
+    } else {
+      // No pagination — return all matching logs
+      const activityLogs = await ActivityLog.find(query)
         .sort(sortQuery)
-        .populate({
-          path: 'performedBy',
-          select: '-password'
-        })
+        .populate({ path: 'performedBy', select: '-password' })
         .populate('targetDeployment')
         .populate('targetDriver')
         .populate('targetTruck')
         .populate('targetUser')
-    ])
 
-    return res.status(200).json({
-      total,
-      page: Number(page),
-      totalPages: Math.ceil(total / limit),
-      activityLogs
-    })
+      return res.status(200).json({
+        total: activityLogs.length,
+        page: 1,
+        totalPages: 1,
+        activityLogs
+      })
+    }
   } catch (error) {
     next(error)
   }

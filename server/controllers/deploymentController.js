@@ -29,7 +29,8 @@ const mapPickup = p => ({
   actualWeightKg: p.actualWeightKg || '',
   pickupIn: p.pickupIn || '',
   pickupOut: p.pickupOut || '',
-  sacksCount: p.sacksCount || 0
+  sacksCount:
+    p.sacksCount !== undefined && p.sacksCount !== '' ? Number(p.sacksCount) : 0
 })
 
 // Helper: apply a date range filter.
@@ -213,7 +214,6 @@ const getAllDeployments = async (req, res, next) => {
       flagging
     } = req.query
 
-    // If filtering by completedAt range, implicitly scope to completed status
     if (completedAtFrom || completedAtTo) status = 'completed'
 
     const subconFilter =
@@ -223,7 +223,6 @@ const getAllDeployments = async (req, res, next) => {
         ? subcon.toLowerCase()
         : null
 
-    // ── Base query ────────────────────────────────────────────────────────
     let baseQuery = Deployment.find()
 
     if (includeDeleted !== 'true')
@@ -236,7 +235,6 @@ const getAllDeployments = async (req, res, next) => {
     baseQuery = applyStringFilter(baseQuery, 'hybrid', hybrid)
     baseQuery = applyStringFilter(baseQuery, 'flagging', flagging)
 
-    // createdAt is a native Date; departed/destDeparture are ISO strings
     baseQuery = applyDateRange(
       baseQuery,
       'createdAt',
@@ -287,14 +285,12 @@ const getAllDeployments = async (req, res, next) => {
 
     let deployments = await baseQuery
 
-    // In-memory subcon filter (subcon lives on a populated ref, not a top-level field)
     if (subconFilter) {
       deployments = deployments.filter(
         d => getActiveSubcon(d).toLowerCase() === subconFilter
       )
     }
 
-    // In-memory search filter
     if (search && search !== '') {
       const s = search.toLowerCase()
       deployments = deployments.filter(deployment => {
@@ -334,7 +330,6 @@ const getAllDeployments = async (req, res, next) => {
       })
     }
 
-    // ── Count ─────────────────────────────────────────────────────────────
     const buildCountQuery = () => {
       let q = Deployment.find()
       if (includeDeleted !== 'true') q = q.where('isSoftDeleted').ne(true)
@@ -530,11 +525,14 @@ const updateDeployment = async (req, res, next) => {
     let replacementDriverDetails = null
 
     const createReplacementTimelineLog = async (action, timestamp) => {
+      const ts = timestamp
+        ? new Date(timestamp).toISOString()
+        : DateTime.now().setZone(MANILA_TZ).toISO()
       await TimelineLog.create({
         performedBy: req.user._id,
         action,
         status: existingDeployment.status,
-        timestamp: timestamp || new Date(),
+        timestamp: ts,
         targetDeployment: existingDeployment._id
       })
     }
@@ -612,9 +610,12 @@ const updateDeployment = async (req, res, next) => {
           existingDeployment.replacement?.replacementTruckType ||
           existingDeployment.truckType,
         replacementHelperCount:
-          replacement.replacementHelperCount ||
-          existingDeployment.replacement?.replacementHelperCount ||
-          existingDeployment.helperCount,
+          replacement.replacementHelperCount !== undefined
+            ? Number(replacement.replacementHelperCount)
+            : existingDeployment.replacement?.replacementHelperCount !==
+              undefined
+            ? existingDeployment.replacement.replacementHelperCount
+            : Number(existingDeployment.helperCount),
         replacedAt: replacement.replacedAt || new Date().toISOString(),
         reason: replacement.reason,
         remarks: replacement.remarks
@@ -701,7 +702,7 @@ const updateDeployment = async (req, res, next) => {
           replacementTruckId: existingDeployment.truckId,
           replacementDriverId,
           replacementTruckType: existingDeployment.truckType,
-          replacementHelperCount: existingDeployment.helperCount,
+          replacementHelperCount: Number(existingDeployment.helperCount),
           replacedAt: replacement.replacedAt || new Date().toISOString(),
           reason: replacement.reason,
           remarks: replacement.remarks
@@ -910,7 +911,8 @@ const updateDeployment = async (req, res, next) => {
         if (update.pickupOut !== undefined) stop.pickupOut = update.pickupOut
         if (update.actualWeightKg !== undefined)
           stop.actualWeightKg = update.actualWeightKg
-        if (update.sacksCount !== undefined) stop.sacksCount = update.sacksCount
+        if (update.sacksCount !== undefined)
+          stop.sacksCount = Number(update.sacksCount)
       }
       existingDeployment.markModified('pickups')
     }
@@ -1026,51 +1028,68 @@ const updateDeployment = async (req, res, next) => {
       activityLogs.push(action)
     }
 
-    // Pickup timeline logs
+    // ── Pickup timeline logs ──────────────────────────────────────────────
+    // Stop label is only shown when there are 2 or more pickups
     if (pickups !== undefined && finalStatus !== 'canceled') {
+      const isMultiStop = pickups.length >= 2
+
       for (let i = 0; i < pickups.length; i++) {
         const p = pickups[i]
         const originalStop = p.tmoNo
           ? originalValues.pickups?.find(op => op.tmoNo === p.tmoNo)
           : originalValues.pickups?.[i]
-        const stopLabel = p.tmoNo
-          ? `Stop #${i + 1} (${p.tmoNo})`
-          : `Stop #${i + 1}`
+
+        const stopLabel = isMultiStop
+          ? p.tmoNo
+            ? `Stop #${i + 1} (${p.tmoNo})`
+            : `Stop #${i + 1}`
+          : null
 
         if (p.pickupIn && !originalStop?.pickupIn) {
           await TimelineLog.create({
             performedBy: req.user._id,
-            action: `Arrived at pickup location (${stopLabel})`,
+            action: `Arrived at pickup location${
+              stopLabel ? ` (${stopLabel})` : ''
+            }`,
             status: finalStatus || 'ongoing',
             timestamp: p.pickupIn,
             targetDeployment: existingDeployment._id
           })
-          timelineLogs.push(`pickupIn ${stopLabel}`)
-          await createActivityLog(`Arrived at pickup location (${stopLabel})`)
+          timelineLogs.push(`pickupIn${stopLabel ? ` ${stopLabel}` : ''}`)
+          await createActivityLog(
+            `Arrived at pickup location${stopLabel ? ` (${stopLabel})` : ''}`
+          )
         }
 
         if (p.pickupOut && !originalStop?.pickupOut) {
           await TimelineLog.create({
             performedBy: req.user._id,
-            action: `Departed from pickup location (${stopLabel})`,
+            action: `Departed from pickup location${
+              stopLabel ? ` (${stopLabel})` : ''
+            }`,
             status: finalStatus || 'ongoing',
             timestamp: p.pickupOut,
             targetDeployment: existingDeployment._id
           })
-          timelineLogs.push(`pickupOut ${stopLabel}`)
+          timelineLogs.push(`pickupOut${stopLabel ? ` ${stopLabel}` : ''}`)
           await createActivityLog(
-            `Departed from pickup location (${stopLabel})`
+            `Departed from pickup location${stopLabel ? ` (${stopLabel})` : ''}`
           )
         }
       }
     }
 
     if (pickupUpdates && Array.isArray(pickupUpdates)) {
+      const isMultiStop = existingDeployment.pickups.length >= 2
+
       for (const update of pickupUpdates) {
         const originalStop = originalValues.pickups[update.index]
-        const stopLabel = originalStop?.tmoNo
-          ? `Stop #${update.index + 1} (${originalStop.tmoNo})`
-          : `Stop #${update.index + 1}`
+
+        const stopLabel = isMultiStop
+          ? originalStop?.tmoNo
+            ? `Stop #${update.index + 1} (${originalStop.tmoNo})`
+            : `Stop #${update.index + 1}`
+          : null
 
         if (
           update.pickupIn &&
@@ -1079,13 +1098,17 @@ const updateDeployment = async (req, res, next) => {
         ) {
           await TimelineLog.create({
             performedBy: req.user._id,
-            action: `Arrived at pickup location (${stopLabel})`,
+            action: `Arrived at pickup location${
+              stopLabel ? ` (${stopLabel})` : ''
+            }`,
             status: finalStatus || 'ongoing',
             timestamp: update.pickupIn,
             targetDeployment: existingDeployment._id
           })
-          timelineLogs.push(`pickupIn ${stopLabel}`)
-          await createActivityLog(`Arrived at pickup location (${stopLabel})`)
+          timelineLogs.push(`pickupIn${stopLabel ? ` ${stopLabel}` : ''}`)
+          await createActivityLog(
+            `Arrived at pickup location${stopLabel ? ` (${stopLabel})` : ''}`
+          )
         }
 
         if (
@@ -1095,14 +1118,16 @@ const updateDeployment = async (req, res, next) => {
         ) {
           await TimelineLog.create({
             performedBy: req.user._id,
-            action: `Departed from pickup location (${stopLabel})`,
+            action: `Departed from pickup location${
+              stopLabel ? ` (${stopLabel})` : ''
+            }`,
             status: finalStatus || 'ongoing',
             timestamp: update.pickupOut,
             targetDeployment: existingDeployment._id
           })
-          timelineLogs.push(`pickupOut ${stopLabel}`)
+          timelineLogs.push(`pickupOut${stopLabel ? ` ${stopLabel}` : ''}`)
           await createActivityLog(
-            `Departed from pickup location (${stopLabel})`
+            `Departed from pickup location${stopLabel ? ` (${stopLabel})` : ''}`
           )
         }
       }
@@ -1162,7 +1187,6 @@ const updateDeployment = async (req, res, next) => {
       timelineLogs.push('Deployment resumed')
     }
 
-    // Departure / arrival logs
     if (
       departed !== undefined &&
       departed !== originalValues.departed &&
@@ -1208,7 +1232,6 @@ const updateDeployment = async (req, res, next) => {
       await createActivityLog('Departed from destination')
     }
 
-    // Replacement activity logs
     if (performedReplacement && replacementTruckDetails) {
       await createActivityLog(
         hasExistingReplacement
@@ -1225,7 +1248,6 @@ const updateDeployment = async (req, res, next) => {
       )
     }
 
-    // Misc change logs
     if (
       extractedTruckId !== undefined &&
       extractedTruckId.toString() !== originalValues.truckId &&

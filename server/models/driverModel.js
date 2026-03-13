@@ -28,12 +28,7 @@ const driverSchema = new mongoose.Schema(
       type: String,
       trim: true,
       uppercase: true,
-      minlength: [5, 'License No. must be at least 5 characters long'],
-      maxlength: [20, 'License No. cannot exceed 20 characters'],
-      match: [
-        /^[A-Z0-9-]+$/,
-        'License No. must contain letters, numbers, or hyphens only'
-      ]
+      maxlength: [20, 'License No. cannot exceed 20 characters']
     },
     imageUrl: {
       type: String,

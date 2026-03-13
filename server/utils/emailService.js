@@ -368,31 +368,33 @@ const sendStatusEmail = async ({ user, status }) => {
 </html>
 `
 
-  /* ── Nodemailer transport ────────────────────────────────────────── */
-  try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    })
+  /* ── Nodemailer transport — temporarily disabled ────────────────────── */
+  // try {
+  //   const transporter = nodemailer.createTransport({
+  //     host: process.env.EMAIL_HOST,
+  //     port: 587,
+  //     secure: false,
+  //     requireTLS: true,
+  //     auth: {
+  //       user: process.env.EMAIL_USER,
+  //       pass: process.env.EMAIL_PASS
+  //     }
+  //   })
 
-    await transporter.sendMail({
-      from: `"Ebun Freight OPC" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: c.subject,
-      html: htmlTemplate
-    })
+  //   await transporter.sendMail({
+  //     from: `"Ebun Freight OPC" <${process.env.EMAIL_USER}>`,
+  //     to: email,
+  //     subject: c.subject,
+  //     html: htmlTemplate
+  //   })
 
-    console.log(`Status email sent → ${email} [status: ${status}]`)
-  } catch (error) {
-    console.error('Email sending error:', error)
-    throw createError(500, 'Failed to send status email')
-  }
+  //   console.log(`Status email sent → ${email} [status: ${status}]`)
+  // } catch (error) {
+  //   console.error('Email sending error:', error)
+  //   throw createError(500, 'Failed to send status email')
+  // }
+
+  console.log(`[Email disabled] Would have sent "${c.subject}" → ${email}`)
 }
 
 module.exports = sendStatusEmail

@@ -34,10 +34,14 @@ const defaultFilters = {
 
 const formatDate = dateString => {
   try {
-    const dt = DateTime.fromISO(dateString)
-    return dt.isValid ? dt.toFormat('MMM dd, yyyy hh:mm a') : 'Invalid date'
+    if (!dateString) return '—'
+    // Try ISO first, then fall back to JS Date parsing (handles legacy non-ISO strings)
+    let dt = DateTime.fromISO(dateString, { zone: 'Asia/Manila' })
+    if (!dt.isValid)
+      dt = DateTime.fromJSDate(new Date(dateString), { zone: 'Asia/Manila' })
+    return dt.isValid ? dt.toFormat('MMM dd, yyyy hh:mm a') : '—'
   } catch {
-    return 'Invalid date'
+    return '—'
   }
 }
 
@@ -155,7 +159,7 @@ function TimelineLogs () {
     setIsTimelineLogDetailsModalOpen(true)
   }
 
-  const getActionTimestamp = log => formatDate(log.timestamp || log.createdAt)
+  const getActionTimestamp = log => formatDate(log.timestamp)
   const getDeploymentCode = log => log.targetDeployment?.deploymentCode || 'N/A'
 
   const getDriverName = log => {

@@ -18,17 +18,13 @@ const createDriver = async (req, res, next) => {
       return next(createError(403, 'Access denied'))
     }
 
-    // validate fields
-    validateFields(
-      {
-        firstname,
-        lastname,
-        phoneNo,
-        subcon
-      },
-      false
-    )
-    // check if driver already exist
+    // FIX 1: Only firstname, lastname, phoneNo, and subcon are required:true
+    // in driverModel. status is NOT required — it has a default of 'available'.
+    // Removing it prevents false "Required fields are missing" errors when
+    // a client submits without a status.
+    validateFields({ firstname, lastname, phoneNo, subcon }, false)
+
+    // check if driver already exists
     const isDriverAlreadyExist = await Driver.findOne({
       firstname: { $regex: new RegExp(`^${firstname}$`, 'i') },
       lastname: { $regex: new RegExp(`^${lastname}$`, 'i') }
@@ -40,46 +36,31 @@ const createDriver = async (req, res, next) => {
       })
     }
 
-    // upload profile picture to cloudinary (if provided)
-    let imageData = {
-      url: '',
-      publicId: ''
-    }
+    let imageData = { url: '', publicId: '' }
 
     if (req.file) {
       try {
-        // validate file type
         if (!isValidFileType(req.file.mimetype)) {
           return next(
             createError(400, 'Invalid file type. Only images are allowed')
           )
         }
 
-        // FIX #6 — File size was not validated on driver creation (only on update).
-        // Added the same 16 MB guard that already exists in updateDriver.
+        // FIX 2: File size was not checked on creation, only on update.
         if (req.file.size > MAX_FILE_SIZE) {
           return next(createError(400, 'Image size must be less than 16MB'))
         }
 
-        // compress the image with sharp
         const compressedImage = await sharp(req.file.buffer)
           .rotate()
-          .resize({
-            width: 1200,
-            withoutEnlargement: true
-          })
-          .jpeg({
-            quality: 80,
-            mozjpeg: true
-          })
+          .resize({ width: 1200, withoutEnlargement: true })
+          .jpeg({ quality: 80, mozjpeg: true })
           .toBuffer()
 
-        // upload the image to cloudinary
         const uploadResult = await uploadImageToCloudinary(
           compressedImage,
           'Ebun/driver'
         )
-
         imageData = {
           url: uploadResult.secure_url,
           publicId: uploadResult.public_id
@@ -89,7 +70,6 @@ const createDriver = async (req, res, next) => {
       }
     }
 
-    // create new driver
     const newDriver = await Driver.create({
       firstname,
       lastname,
@@ -101,11 +81,10 @@ const createDriver = async (req, res, next) => {
       imagePublicId: imageData.publicId
     })
 
-    // create activity log
     await ActivityLog.create({
       type: 'driver',
       performedBy: req.user._id,
-      action: 'Created new driver',
+      action: `Created new driver ${newDriver.firstname} ${newDriver.lastname}`,
       targetDriver: newDriver._id
     })
 
@@ -144,16 +123,14 @@ const getAllDrivers = async (req, res, next) => {
       ]
     }
 
-    //  filters
     if (status) query.status = status
 
     if (req.user.role === 'subcon') {
       query.subcon = req.user.subcon
     } else if (subcon) {
-      if (subcon) query.subcon = subcon
+      query.subcon = subcon
     }
 
-    // search
     if (search) {
       const regex = { $regex: search, $options: 'i' }
       const searchConditions = [
@@ -169,7 +146,6 @@ const getAllDrivers = async (req, res, next) => {
       }
     }
 
-    // sorting
     const sortOptions = {
       oldest: { createdAt: 1 },
       latest: { createdAt: -1 },
@@ -183,12 +159,9 @@ const getAllDrivers = async (req, res, next) => {
 
     const sortQuery = sortOptions[sort] || sortOptions.latest
 
-    // FIX #7 — Original code called parseInt(perPage) unconditionally and used the
-    // result even when perPage was undefined. parseInt(undefined) === NaN, so:
-    //   - skip = (page - 1) * NaN  →  NaN  →  MongoDB ignores the skip entirely
-    //   - limit = NaN              →  MongoDB returns ALL documents
-    //   - totalPages = Math.ceil(total / NaN)  →  NaN
-    // Fixed by mirroring the hasPagination guard used in getAllTrucks.
+    // FIX 3: parseInt(undefined) === NaN, which causes MongoDB to skip pagination
+    // entirely and return ALL documents. totalPages also becomes NaN.
+    // Added the same hasPagination guard used in getAllTrucks.
     const hasPagination =
       perPage !== undefined &&
       perPage !== '' &&
@@ -214,11 +187,7 @@ const getAllDrivers = async (req, res, next) => {
       })
     } else {
       const drivers = await Driver.find(query).sort(sortQuery)
-
-      return res.status(200).json({
-        total: drivers.length,
-        drivers
-      })
+      return res.status(200).json({ total: drivers.length, drivers })
     }
   } catch (error) {
     next(error)
@@ -243,20 +212,16 @@ const updateDriver = async (req, res, next) => {
       return next(createError(403, 'Access denied'))
     }
 
-    // find the driver
     const existingDriver = await Driver.findById(id)
     if (!existingDriver) {
       return next(createError(404, 'Driver not found'))
     }
 
-    // handle file upload if provided
     let imageUrl = existingDriver.imageUrl
     let imagePublicId = existingDriver.imagePublicId
 
-    // if images are provided
     if (req.file) {
       try {
-        // validate file type
         if (!isValidFileType(req.file.mimetype)) {
           return next(
             createError(400, 'Invalid file type. Only images are allowed')
@@ -267,30 +232,20 @@ const updateDriver = async (req, res, next) => {
           return next(createError(400, 'Image size must be less than 16MB'))
         }
 
-        // delete old picture if exist
         if (imagePublicId) {
           await cloudinary.uploader.destroy(imagePublicId)
         }
 
-        // compress the image with sharp
         const compressedImage = await sharp(req.file.buffer)
           .rotate()
-          .resize({
-            width: 1200,
-            withoutEnlargement: true
-          })
-          .jpeg({
-            quality: 80,
-            mozjpeg: true
-          })
+          .resize({ width: 1200, withoutEnlargement: true })
+          .jpeg({ quality: 80, mozjpeg: true })
           .toBuffer()
 
-        // upload new image
         const uploadResult = await uploadImageToCloudinary(
           compressedImage,
           'Ebun/driver'
         )
-
         imageUrl = uploadResult.secure_url
         imagePublicId = uploadResult.public_id
       } catch (error) {
@@ -298,7 +253,6 @@ const updateDriver = async (req, res, next) => {
       }
     }
 
-    // Track which fields are being updated for activity log
     const updatedFields = []
     if (firstname && firstname !== existingDriver.firstname)
       updatedFields.push('firstname')
@@ -309,7 +263,11 @@ const updateDriver = async (req, res, next) => {
     if (status && status !== existingDriver.status) updatedFields.push('status')
     if (licenseNo && licenseNo !== existingDriver.licenseNo)
       updatedFields.push('license number')
-    if (tripCount && parseInt(tripCount) !== existingDriver.tripCount)
+    if (
+      tripCount !== undefined &&
+      tripCount !== '' &&
+      parseInt(tripCount) !== existingDriver.tripCount
+    )
       updatedFields.push('trip count')
     if (subcon && subcon !== existingDriver.subcon) updatedFields.push('subcon')
     if (req.file) updatedFields.push('profile picture')
@@ -319,10 +277,8 @@ const updateDriver = async (req, res, next) => {
         ? `Updated driver's ${updatedFields.join(', ')}`
         : 'Updated driver details'
 
-    // FIX #8 — Original code used `|| existingDriver.X` (falsy fallback) for all fields.
-    // Sending an empty string to intentionally clear subcon, licenseNo, etc. would silently
-    // keep the old value. Fixed by using `!== undefined` checks so only truly absent
-    // fields fall back to the existing value.
+    // FIX 4: Use !== undefined (not ||) so optional fields can be cleared.
+    // FIX 5: tripCount is Number in the model — parse from the string FormData sends.
     const updatedFieldsData = {
       firstname: firstname !== undefined ? firstname : existingDriver.firstname,
       lastname: lastname !== undefined ? lastname : existingDriver.lastname,
@@ -330,7 +286,10 @@ const updateDriver = async (req, res, next) => {
       status: status !== undefined ? status : existingDriver.status,
       licenseNo: licenseNo !== undefined ? licenseNo : existingDriver.licenseNo,
       subcon: subcon !== undefined ? subcon : existingDriver.subcon,
-      tripCount: tripCount !== undefined ? tripCount : existingDriver.tripCount,
+      tripCount:
+        tripCount !== undefined && tripCount !== ''
+          ? parseInt(tripCount)
+          : existingDriver.tripCount,
       imageUrl,
       imagePublicId
     }
@@ -338,7 +297,6 @@ const updateDriver = async (req, res, next) => {
     Object.assign(existingDriver, updatedFieldsData)
     await existingDriver.save()
 
-    // create activity log
     await ActivityLog.create({
       type: 'driver',
       performedBy: req.user._id,
@@ -364,14 +322,8 @@ const hardDeleteDriver = async (req, res, next) => {
       return next(createError(403, 'Access denied'))
     }
 
-    // FIX #9 — Original code called findByIdAndDelete immediately, which means:
-    //   (a) If the driver didn't exist, driverToDelete was null and calling
-    //       cloudinary.uploader.destroy(null.imagePublicId) would throw a crash
-    //       instead of returning a clean 404.
-    //   (b) There was no activity log entry for a permanent delete, leaving a
-    //       gap in the audit trail (hardDeleteUser correctly logs this).
-    // Fixed by finding first, returning 404 cleanly if missing, then deleting,
-    // then logging.
+    // FIX 6: Find before delete — avoids crash on null.imagePublicId,
+    // and captures data needed for the activity log.
     const driverToDelete = await Driver.findById(id)
     if (!driverToDelete) {
       return next(createError(404, 'Driver not found'))
@@ -379,12 +331,11 @@ const hardDeleteDriver = async (req, res, next) => {
 
     await Driver.findByIdAndDelete(id)
 
-    // Delete profile picture from Cloudinary if it exists
     if (driverToDelete.imagePublicId) {
       await cloudinary.uploader.destroy(driverToDelete.imagePublicId)
     }
 
-    // FIX #9 (cont.) — Added missing activity log for hard delete.
+    // FIX 7: Added missing activity log for hard delete.
     await ActivityLog.create({
       type: 'driver',
       performedBy: req.user._id,
@@ -392,15 +343,13 @@ const hardDeleteDriver = async (req, res, next) => {
       targetDriver: driverToDelete._id
     })
 
-    return res.status(200).json({
-      message: 'Driver deleted successfully'
-    })
+    return res.status(200).json({ message: 'Driver deleted successfully' })
   } catch (error) {
     next(createError(500, 'Failed to delete driver'))
   }
 }
 
-// soft delete
+// soft delete driver
 const softDeleteDriver = async (req, res, next) => {
   try {
     const { id } = req.params
@@ -409,34 +358,28 @@ const softDeleteDriver = async (req, res, next) => {
       return next(createError(403, 'Access denied'))
     }
 
-    // Find the driver
     const driver = await Driver.findById(id)
     if (!driver) {
       return next(createError(404, 'Driver not found'))
     }
 
-    // Check if already deleted
     if (driver.isSoftDeleted) {
       return next(createError(400, 'Driver is already deleted'))
     }
 
-    // Soft delete the driver
     driver.isSoftDeleted = true
-
     await driver.save()
 
-    // create activity log
     await ActivityLog.create({
       type: 'driver',
       performedBy: req.user._id,
-      action: 'Deleted a driver',
+      action: `Deleted driver ${driver.firstname} ${driver.lastname}`,
       targetDriver: driver._id
     })
 
-    res.status(200).json({
-      success: true,
-      message: 'Driver deleted successfully'
-    })
+    res
+      .status(200)
+      .json({ success: true, message: 'Driver deleted successfully' })
   } catch (error) {
     next(error)
   }

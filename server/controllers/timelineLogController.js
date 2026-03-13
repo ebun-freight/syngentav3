@@ -12,8 +12,8 @@ const getActiveSubcon = deployment => {
   return deployment?.truckId?.subcon || ''
 }
 
-// Same applyDateRange as deployments controller.
-// timestamp is a native Date field so no isISO needed.
+// timestamp is stored as an ISO String, so we compare against ISO strings
+// (not JS Date objects — mixing types causes MongoDB to silently return wrong results)
 const applyDateRange = (query, field, from, to) => {
   if (from) {
     const [year, month, day] = from.split('-').map(Number)
@@ -22,7 +22,7 @@ const applyDateRange = (query, field, from, to) => {
       { zone: MANILA_TZ }
     )
     if (!start.isValid) return query
-    query = query.where(field).gte(start.toJSDate())
+    query = query.where(field).gte(start.toISO())
   }
   if (to) {
     const [year, month, day] = to.split('-').map(Number)
@@ -31,7 +31,7 @@ const applyDateRange = (query, field, from, to) => {
       { zone: MANILA_TZ }
     )
     if (!end.isValid) return query
-    query = query.where(field).lte(end.toJSDate())
+    query = query.where(field).lte(end.toISO())
   }
   return query
 }
@@ -164,6 +164,26 @@ const getAllTimelineLogs = async (req, res, next) => {
         )
       })
     }
+
+    // Re-sort after in-memory filtering to guarantee timestamp order is preserved
+    // (DB sort + pagination runs before in-memory filters, so order can drift)
+    // Parse timestamps to ms so legacy "Sat Mar 14..." strings sort correctly
+    // alongside ISO strings — plain string comparison fails on mixed formats
+    const toMs = ts => {
+      if (!ts) return 0
+      // Bare "YYYY-MM-DDTHH:mm" or "YYYY-MM-DDTHH:mm:ss" have no TZ info.
+      // new Date() treats them as UTC, which shifts Manila times by +8 hrs.
+      // Append +08:00 so they're correctly interpreted as Manila time.
+      const normalized = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(ts)
+        ? ts + '+08:00'
+        : ts
+      const ms = new Date(normalized).getTime()
+      return isNaN(ms) ? 0 : ms
+    }
+    const sortDir = sort === 'oldest' ? 1 : -1
+    timelineLogs = timelineLogs.sort(
+      (a, b) => (toMs(a.timestamp) - toMs(b.timestamp)) * sortDir
+    )
 
     // ── Count ─────────────────────────────────────────────────────────────
     const buildCountQuery = () => {
