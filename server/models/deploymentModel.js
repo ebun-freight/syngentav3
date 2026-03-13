@@ -289,16 +289,6 @@ const deploymentSchema = new mongoose.Schema(
       type: String,
       trim: true,
       lowercase: true,
-      enum: {
-        values: [
-          'preparing',
-          'ongoing',
-          'delivered',
-          'cancelled',
-          'incomplete'
-        ],
-        message: '{VALUE} is not a valid status'
-      },
       default: 'preparing'
     },
     cancellationReason: {
