@@ -6,7 +6,6 @@ const systemSettingsSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Category is required'],
       trim: true,
-      lowercase: true,
       enum: {
         values: ['trucksDrivers', 'deployments'],
         message: '{VALUE} is not a valid category'

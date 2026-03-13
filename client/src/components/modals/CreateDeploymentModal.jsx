@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   Dialog,
   DialogBackdrop,
@@ -139,7 +139,7 @@ const ComboboxField = ({
   onChange,
   displayValue,
   onQueryChange,
-  onReset, // ← NEW: resets the search query
+  onReset,
   options,
   placeholder,
   required = true
@@ -160,14 +160,11 @@ const ComboboxField = ({
           className='w-full bg-transparent text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 focus:outline-none capitalize'
           displayValue={displayValue}
           onChange={onQueryChange}
-          // Reset filter on focus so clicking into the field always shows all options
           onFocus={() => onReset?.()}
           placeholder={placeholder}
           required={required}
           autoComplete='off'
         />
-        {/* Reset query when the arrow button is clicked so the dropdown
-            always opens with the full list, even after a no-result search */}
         <ComboboxButton
           onClick={() => onReset?.()}
           className='absolute right-4 max-sm:right-3 flex items-center text-gray-400 group-focus-within:text-primaryColor transition-colors'
@@ -251,6 +248,14 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
 
   const selectedTruck = truckOptions.find(t => t.value === formData.truckId)
   const selectedDriver = driverOptions.find(d => d.value === formData.driverId)
+
+  // Set destination to first option whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const firstDestination = settings.deployments.destination?.[0] ?? ''
+      setFormData(prev => ({ ...prev, destination: firstDestination }))
+    }
+  }, [isOpen, settings.deployments.destination])
 
   const handleClose = () => {
     onClose()
@@ -478,7 +483,6 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 >
                   {/* ── PICKUP STOPS ── */}
                   <div>
-                    {/* Sticky header — floats above the scrolling content */}
                     <div className='sticky top-0 z-10 flex items-center justify-between bg-white px-6 py-3 max-sm:px-4 border-b border-gray-100'>
                       <div className='flex items-center gap-2'>
                         <h3 className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
@@ -611,7 +615,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                         value={formData.truckId}
                         onChange={value => {
                           setFormData(prev => ({ ...prev, truckId: value }))
-                          setTruckQuery('') // ← clear filter after selection
+                          setTruckQuery('')
                         }}
                         displayValue={() => selectedTruck?.label || ''}
                         onQueryChange={e => setTruckQuery(e.target.value)}
@@ -624,7 +628,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                         value={formData.driverId}
                         onChange={value => {
                           setFormData(prev => ({ ...prev, driverId: value }))
-                          setDriverQuery('') // ← clear filter after selection
+                          setDriverQuery('')
                         }}
                         displayValue={() => selectedDriver?.label || ''}
                         onQueryChange={e => setDriverQuery(e.target.value)}
@@ -676,18 +680,18 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                         options={settings.deployments.hybrid}
                       />
                       <SelectField
-                        label='Territory'
-                        name='territory'
-                        value={formData.territory}
+                        label='Flagging'
+                        name='flagging'
+                        value={formData.flagging}
                         onChange={handleChange}
-                        options={settings.deployments.territory}
+                        options={settings.deployments.flagging}
+                        colSpan={2}
                       />
-                      <SelectField
-                        label='Destination'
+                      {/* Destination — hidden, value auto-set to first option */}
+                      <input
+                        type='hidden'
                         name='destination'
                         value={formData.destination}
-                        onChange={handleChange}
-                        options={settings.deployments.destination}
                       />
                       <InputField
                         label='Contact No.'
@@ -700,11 +704,11 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                         colSpan={2}
                       />
                       <SelectField
-                        label='Flagging'
-                        name='flagging'
-                        value={formData.flagging}
+                        label='Territory'
+                        name='territory'
+                        value={formData.territory}
                         onChange={handleChange}
-                        options={settings.deployments.flagging}
+                        options={settings.deployments.territory}
                       />
                       <InputField
                         label='Flagging Remarks'
@@ -752,18 +756,12 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                         options={settings.deployments.territory}
                       />
                       <SelectField
-                        label='Destination'
-                        name='destination'
-                        value={formData.destination}
-                        onChange={handleChange}
-                        options={settings.deployments.destination}
-                      />
-                      <SelectField
                         label='Flagging'
                         name='flagging'
                         value={formData.flagging}
                         onChange={handleChange}
                         options={settings.deployments.flagging}
+                        mobileColSpan={2}
                       />
                       <InputField
                         label='Flagging Remarks'
