@@ -3,7 +3,7 @@ const ENV = import.meta.env.MODE || 'development'
 
 // host
 export const LOCAL = 'http://localhost:5000'
-export const LIVE = 'https://ebun-monitoring.onrender.com'
+export const LIVE = 'https://ebun-monitoring-4fne.onrender.com'
 
 const BASE = ENV === 'production' ? LIVE : LOCAL
 
