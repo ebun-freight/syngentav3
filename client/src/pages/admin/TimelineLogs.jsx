@@ -485,7 +485,7 @@ function TimelineLogs () {
                       <td>Status</td>
                       <td>Truck Plate</td>
                       <td>Driver</td>
-                      <td>TimesTamp</td>
+                      <td>TimeSTamp</td>
                     </tr>
                   </thead>
                   <tbody>
