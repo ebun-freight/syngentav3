@@ -498,7 +498,6 @@ function TimelineLogs () {
                         <td className='text-xxs sm:text-xs font-semibold text-gray-400'>
                           {(page - 1) * filters.perPage + index + 1}
                         </td>
-
                         <td className='p-0 relative max-sm:text-xxs'>
                           <div
                             className='cursor-copy h-full w-fit p-2 hover:bg-gray-100 transition-colors rounded relative group'
