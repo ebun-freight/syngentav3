@@ -44,7 +44,10 @@ const userSockets = new Map()
 const onlineAdmins = new Set()
 
 const broadcastAdminStatus = () => {
-  io.emit('admin-status', { online: onlineAdmins.size > 0, count: onlineAdmins.size })
+  io.emit('admin-status', {
+    online: onlineAdmins.size > 0,
+    count: onlineAdmins.size
+  })
 }
 
 io.on('connection', socket => {
@@ -59,7 +62,10 @@ io.on('connection', socket => {
     }
 
     // Tell the registering socket current admin status immediately
-    socket.emit('admin-status', { online: onlineAdmins.size > 0, count: onlineAdmins.size })
+    socket.emit('admin-status', {
+      online: onlineAdmins.size > 0,
+      count: onlineAdmins.size
+    })
   })
 
   // Join a conversation room
@@ -79,7 +85,9 @@ io.on('connection', socket => {
   // New message sent
   socket.on('send-message', data => {
     const { conversationId, message, conversation } = data
-    socket.to(`chat-${conversationId}`).emit('new-message', { conversationId, message })
+    socket
+      .to(`chat-${conversationId}`)
+      .emit('new-message', { conversationId, message })
     io.emit('conversation-updated', { conversation })
     io.emit('unread-count-updated')
   })
@@ -87,8 +95,12 @@ io.on('connection', socket => {
   // Admin resolves/closes a conversation
   socket.on('resolve-conversation', async ({ conversationId }) => {
     try {
-      await ChatConversation.findByIdAndUpdate(conversationId, { status: 'closed' })
-    } catch (e) { /* ignore */ }
+      await ChatConversation.findByIdAndUpdate(conversationId, {
+        status: 'closed'
+      })
+    } catch (e) {
+      /* ignore */
+    }
     io.to(`chat-${conversationId}`).emit('chat-ended', {
       conversationId,
       reason: 'Admin resolved the conversation'
@@ -100,8 +112,12 @@ io.on('connection', socket => {
   socket.on('end-on-unload', async ({ conversationId }) => {
     if (!conversationId) return
     try {
-      await ChatConversation.findByIdAndUpdate(conversationId, { status: 'closed' })
-    } catch (e) { /* ignore */ }
+      await ChatConversation.findByIdAndUpdate(conversationId, {
+        status: 'closed'
+      })
+    } catch (e) {
+      /* ignore */
+    }
     socket.to(`chat-${conversationId}`).emit('chat-ended', {
       conversationId,
       reason: 'User left the session'
@@ -129,8 +145,12 @@ io.on('connection', socket => {
       } else if (conversationId) {
         // Non-admin user disconnected — end their conversation
         try {
-          await ChatConversation.findByIdAndUpdate(conversationId, { status: 'closed' })
-        } catch (e) { /* ignore */ }
+          await ChatConversation.findByIdAndUpdate(conversationId, {
+            status: 'closed'
+          })
+        } catch (e) {
+          /* ignore */
+        }
         socket.to(`chat-${conversationId}`).emit('chat-ended', {
           conversationId,
           reason: 'User left the session'
