@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { ebun_logo_light } from '../consts/images'
 import clsx from 'clsx'
@@ -7,8 +7,10 @@ import { getNavItemsByRole } from '../consts/sidebarItems'
 import { useUserContext } from '../contexts/UserContext'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
-import { useEffect } from 'react'
 import { useUIContext } from '../contexts/UIContext'
+import axios from 'axios'
+import { API_CHAT } from '../utils/APIRoutes'
+import socket from '../config/socket'
 
 /* ─── Decorative SVG dot pattern (matches Login/Signup) ─────────────────── */
 const DotPattern = () => (
@@ -36,12 +38,29 @@ function SideNav () {
   const location = useLocation()
   const { userData } = useUserContext()
   const { isSideBarOpen, setIsSideBarOpen } = useUIContext()
+  const [chatUnreadCount, setChatUnreadCount] = useState(0)
 
   const filteredSidebar = getNavItemsByRole(userData.data.role)
+  const isAdmin = ['head_admin', 'admin'].includes(userData.data.role)
+  const isOnChatPage = location.pathname === '/secure/live-chat'
 
   const handleNavigate = () => {
     if (window.innerWidth < 1024) {
       setIsSideBarOpen(false)
+    }
+  }
+
+  // Fetch unread chat count for admins
+  const fetchUnreadCount = async () => {
+    if (!isAdmin) return
+    try {
+      const token = sessionStorage.getItem('userToken')
+      const res = await axios.get(`${API_CHAT}/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setChatUnreadCount(res.data.unreadCount ?? 0)
+    } catch {
+      // silently ignore
     }
   }
 
@@ -52,6 +71,22 @@ function SideNav () {
       easing: 'ease-out-cubic'
     })
   }, [])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    fetchUnreadCount()
+    socket.on('unread-count-updated', fetchUnreadCount)
+    return () => socket.off('unread-count-updated', fetchUnreadCount)
+  }, [isAdmin])
+
+  // Clear badge while on chat page; re-fetch when leaving
+  useEffect(() => {
+    if (isOnChatPage) {
+      setChatUnreadCount(0)
+    } else {
+      fetchUnreadCount()
+    }
+  }, [isOnChatPage])
 
   return (
     <>
@@ -142,10 +177,9 @@ function SideNav () {
                     {content.name}
                   </p>
                   {/* Live chat unread badge for admin */}
-                  {content.path === '/secure/live-chat' && (
+                  {content.path === '/secure/live-chat' && chatUnreadCount > 0 && !isOnChatPage && (
                     <span className='ml-auto text-[11px] bg-red-500 text-white rounded-full px-2 py-0.5 font-semibold'>
-                      {/* placeholder will be replaced by live unread count via DOM or state later */}
-                      0
+                      {chatUnreadCount}
                     </span>
                   )}
                 </Link>
