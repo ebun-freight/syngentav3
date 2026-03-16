@@ -90,6 +90,7 @@ function SideNav () {
               background: 'radial-gradient(circle, #334155 0%, transparent 70%)'
             }}
           />
+
           {/* Logo content */}
           <div className='relative z-10 flex items-center justify-center gap-3'>
             <img src={ebun_logo_light} alt='' className='w-10 sm:w-14' />
