@@ -18,7 +18,7 @@ connectDB()
 const app = express()
 app.use(
   cors({
-    origin: ['https://smc.ebun.ph', 'http://localhost:5173'],
+    origin: ['https://ebun.vercel.app', 'http://localhost:5173'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -26,6 +26,7 @@ app.use(
 )
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
+
 // routes
 app.use('/api/user', require('./routes/userRoute'))
 app.use('/api/driver', require('./routes/driverRoute'))
