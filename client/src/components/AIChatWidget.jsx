@@ -1,101 +1,167 @@
+/**
+ * AIChatWidget — Redesigned
+ * Aesthetic: Industrial Precision / Freight Terminal
+ * Fonts: Syne (display) + DM Mono (labels) — add to your index.html:
+ *   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+ */
+
 import React, { useState, useRef, useEffect } from 'react'
-import { API_AI_CHAT } from '../utils/APIRoutes'
 import { RiCloseLine, RiSendPlaneFill, RiMessage3Fill } from 'react-icons/ri'
 import { ebun_logo_light } from '../consts/images'
 
-/* ─── Typing indicator ───────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────── tokens ── */
+const T = {
+  black:   '#0A0A0A',
+  white:   '#FFFFFF',
+  surface: '#F7F6F3',     // warm off-white message area
+  amber:   '#D97706',     // sole accent
+  amberLt: '#FEF3C7',     // amber tint for suggestion hover
+  border:  '#E4E2DD',
+  muted:   '#9A9690',
+  text:    '#1A1918',
+  mono:    "'DM Mono', 'Courier New', monospace",
+  display: "'Syne', system-ui, sans-serif",
+}
+
+/* ─────────────────────────────────────────────────────── typing ── */
 const TypingDots = () => (
-  <div className='flex items-center gap-1 px-3.5 py-2.5'>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '10px 14px' }}>
     {[0, 1, 2].map(i => (
       <span
         key={i}
-        className='w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce'
-        style={{ animationDelay: `${i * 0.18}s`, animationDuration: '0.85s' }}
+        style={{
+          width: 5, height: 5,
+          borderRadius: '50%',
+          background: T.amber,
+          display: 'inline-block',
+          animation: 'ebun-bounce 0.9s ease-in-out infinite',
+          animationDelay: `${i * 0.18}s`,
+        }}
       />
     ))}
   </div>
 )
 
-/* ─── Chat bubble ────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────── bubble ── */
 const Bubble = ({ role, text }) => {
   const isUser = role === 'user'
   return (
-    <div
-      className={`flex items-end gap-2 mb-3 ${
-        isUser ? 'justify-end' : 'justify-start'
-      }`}
-    >
+    <div style={{
+      display: 'flex',
+      alignItems: 'flex-end',
+      gap: 8,
+      marginBottom: 10,
+      justifyContent: isUser ? 'flex-end' : 'flex-start',
+    }}>
       {!isUser && (
-        <div
-          className='w-6 sm:w-8 aspect-square p-1 sm:p-1.5 rounded-lg shrink-0 flex items-center justify-center mb-0.5'
-          style={{
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)'
-          }}
-        >
-          <img src={ebun_logo_light} alt='Logo' />
+        <div style={{
+          width: 28, height: 28,
+          background: T.black,
+          borderRadius: 4,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 5,
+          flexShrink: 0,
+          marginBottom: 2,
+        }}>
+          <img src={ebun_logo_light} alt='Ebun' style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
       )}
-      <div
-        className={`max-w-[75%] px-3.5 py-2.5 text-xs leading-relaxed ${
-          isUser
-            ? 'text-white rounded-2xl rounded-br-sm'
-            : 'bg-white text-gray-700 border border-gray-100 rounded-2xl rounded-bl-sm shadow-sm'
-        }`}
-        style={
-          isUser
-            ? {
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)'
-              }
-            : {}
-        }
-      >
+
+      <div style={{
+        maxWidth: '73%',
+        padding: '9px 13px',
+        fontSize: 12.5,
+        lineHeight: 1.6,
+        borderRadius: isUser ? '10px 10px 2px 10px' : '10px 10px 10px 2px',
+        ...(isUser
+          ? {
+              background: T.black,
+              color: T.white,
+              fontFamily: T.mono,
+              letterSpacing: 0.1,
+            }
+          : {
+              background: T.white,
+              color: T.text,
+              borderLeft: `2.5px solid ${T.amber}`,
+              border: `0.5px solid ${T.border}`,
+              borderLeft: `2.5px solid ${T.amber}`,
+            }
+        ),
+      }}>
         {text}
       </div>
     </div>
   )
 }
 
-/* ─── Suggestions ────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────── consts ── */
 const SUGGESTIONS = [
   'What does Ebun Freight do?',
   'How do I track a shipment?',
   'How do I reset my password?',
-  'What services are available?'
+  'What services are available?',
 ]
 
 const COOLDOWN_SECS = 5
 
-/* ─── Main Widget ────────────────────────────────────────────────────────── */
-export default function AIChatWidget () {
-  const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      text: "Hi! I'm Ebun AI 👋 Ask me anything about the platform — tracking, your account, or how things work."
-    }
-  ])
-  const [input, setInput] = useState('')
+const SYSTEM_DETAILS =
+  'System details: I can explain Ebun Freight features and workflows based on public product info and your inputs. I do not have access to internal databases, live shipment records, or private customer data.'
+
+const getHardcodedReply = (rawText) => {
+  const text = (rawText || '').toLowerCase()
+
+  if (text.includes('track')) {
+    return (
+      'To track a shipment, open your dashboard, go to Tracking, and enter the shipment or reference number. You can also use the tracking link sent in your confirmation email.'
+    )
+  }
+
+  if (text.includes('reset') || text.includes('password')) {
+    return (
+      'To reset your password, click “Forgot password” on the sign-in screen and follow the email verification steps. If the email doesn’t arrive, check spam or wait a few minutes before retrying.'
+    )
+  }
+
+  if (text.includes('services') || text.includes('available')) {
+    return (
+      'Ebun Freight provides shipment booking, tracking, status notifications, and document management. Additional services may include customs support and multi-leg coordination depending on your account.'
+    )
+  }
+
+  if (text.includes('what does') || text.includes('ebun') || text.includes('freight')) {
+    return (
+      'Ebun Freight is a logistics platform that helps you book, track, and manage shipments in one place, with status updates and account tools for teams.'
+    )
+  }
+
+  return (
+    'I can help with tracking, account access, and service details. Try one of the suggested questions below or ask in your own words.'
+  )
+}
+
+/* ─────────────────────────────────────────────────── main widget ── */
+export default function AIChatWidget() {
+  const [open, setOpen]       = useState(false)
+  const [messages, setMessages] = useState([{
+    role: 'assistant',
+    text: `Hi — I'm Ebun AI. Ask me anything about tracking, your account, or how the platform works. ${SYSTEM_DETAILS}`,
+  }])
+  const [input, setInput]     = useState('')
   const [loading, setLoading] = useState(false)
-  const [pulse, setPulse] = useState(true)
-  const [cooldown, setCooldown] = useState(0) // seconds remaining
-  const bottomRef = useRef(null)
-  const inputRef = useRef(null)
-  const textareaRef = useRef(null)
-  const cooldownRef = useRef(null)
+  const [pulse, setPulse]     = useState(true)
+  const [cooldown, setCooldown] = useState(0)
+  const [usedSuggestions, setUsedSuggestions] = useState(new Set())
 
-  useEffect(() => {
-    if (open) setPulse(false)
-  }, [open])
+  const bottomRef    = useRef(null)
+  const inputRef     = useRef(null)
+  const textareaRef  = useRef(null)
+  const cooldownRef  = useRef(null)
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  useEffect(() => { if (open) setPulse(false) }, [open])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
+  useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 200) }, [open])
 
-  useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 200)
-  }, [open])
-
-  // Auto-resize textarea whenever input changes (including clearing after send)
   useEffect(() => {
     const el = textareaRef.current
     if (!el) return
@@ -103,30 +169,12 @@ export default function AIChatWidget () {
     el.style.height = Math.min(el.scrollHeight, 80) + 'px'
   }, [input])
 
-  // Cooldown ticker
-  useEffect(() => {
-    if (cooldown <= 0) return
-    cooldownRef.current = setInterval(() => {
-      setCooldown(prev => {
-        if (prev <= 1) {
-          clearInterval(cooldownRef.current)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-    return () => clearInterval(cooldownRef.current)
-  }, [cooldown > 0 && cooldown === COOLDOWN_SECS]) // only restart when a new cooldown begins
-
   const startCooldown = () => {
     clearInterval(cooldownRef.current)
     setCooldown(COOLDOWN_SECS)
     cooldownRef.current = setInterval(() => {
       setCooldown(prev => {
-        if (prev <= 1) {
-          clearInterval(cooldownRef.current)
-          return 0
-        }
+        if (prev <= 1) { clearInterval(cooldownRef.current); return 0 }
         return prev - 1
       })
     }, 1000)
@@ -142,157 +190,216 @@ export default function AIChatWidget () {
     setLoading(true)
     startCooldown()
 
-    const history = [...messages.slice(1), userMsg].map(m => ({
-      role: m.role === 'assistant' ? 'assistant' : 'user',
-      content: m.text
-    }))
+    const reply = getHardcodedReply(trimmed)
 
-    try {
-      const token = sessionStorage.getItem('userToken')
-      const res = await fetch(API_AI_CHAT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        body: JSON.stringify({ messages: history })
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        const errorMsg =
-          data?.error || 'Something went wrong. Please try again.'
-        setMessages(prev => [...prev, { role: 'assistant', text: errorMsg }])
-        return
-      }
-
-      const reply =
-        data.reply ||
-        "I'm having trouble responding right now. Please try again shortly."
-      setMessages(prev => [...prev, { role: 'assistant', text: reply }])
-    } catch (err) {
-      console.error('Chat error:', err)
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          text: "Can't reach the server. Please check your connection and try again."
-        }
-      ])
-    } finally {
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        text: `${reply} ${SYSTEM_DETAILS}`,
+      }])
       setLoading(false)
-    }
+    }, 500)
   }
 
   const handleKey = e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
   }
 
   const isBlocked = loading || cooldown > 0
-  const canSend = input.trim() && !isBlocked
+  const canSend   = input.trim() && !isBlocked
+  const remainingSuggestions = SUGGESTIONS.filter(s => !usedSuggestions.has(s))
 
   return (
     <>
-      {/* ── Chat Panel ── */}
+      {/* ── Keyframes injected once ── */}
+      <style>{`
+        @keyframes ebun-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: .5; }
+          40%            { transform: translateY(-5px); opacity: 1; }
+        }
+        @keyframes ebun-panel-in {
+          from { opacity: 0; transform: scale(.96) translateY(6px); }
+          to   { opacity: 1; transform: scale(1)   translateY(0); }
+        }
+        @keyframes ebun-fab-ping {
+          0%   { transform: scale(1);   opacity: .35; }
+          70%  { transform: scale(1.5); opacity: 0; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
+        .ebun-fab:hover  { transform: scale(1.06) !important; }
+        .ebun-fab:active { transform: scale(.94)  !important; }
+        .ebun-send:hover:not(:disabled) { background: ${T.amber} !important; }
+        .ebun-send:active:not(:disabled) { transform: scale(.9); }
+        .ebun-suggestion:hover { background: ${T.amberLt} !important; border-color: ${T.amber} !important; color: ${T.black} !important; }
+        .ebun-textarea:focus { outline: none; border-color: ${T.amber} !important; box-shadow: 0 0 0 2px ${T.amber}22 !important; }
+        .ebun-close:hover { background: rgba(255,255,255,.1) !important; }
+        .ebun-msgs::-webkit-scrollbar { width: 3px; }
+        .ebun-msgs::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 2px; }
+      `}</style>
+
+      {/* ══════════════════════ CHAT PANEL ══════════════════════ */}
       <div
-        className={`fixed bottom-20 right-5 z-50 w-80 sm:w-88 flex flex-col
-                    rounded-2xl overflow-hidden shadow-2xl
-                    transition-all duration-300 ease-out origin-bottom-right
-                    ${
-                      open
-                        ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
-                        : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
-                    }`}
-        style={{ maxHeight: '58vh' }}
+        style={{
+          position: 'fixed',
+          bottom: 78,
+          right: 20,
+          zIndex: 9999,
+          width: 340,
+          maxWidth: 'calc(100vw - 40px)',
+          maxHeight: '58vh',
+          display: 'flex',
+          flexDirection: 'column',
+          borderRadius: 12,
+          overflow: 'hidden',
+          border: `1px solid ${T.border}`,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.10)',
+          transformOrigin: 'bottom right',
+          transition: 'opacity .25s ease, transform .25s ease',
+          opacity: open ? 1 : 0,
+          transform: open ? 'scale(1) translateY(0)' : 'scale(.95) translateY(6px)',
+          pointerEvents: open ? 'auto' : 'none',
+          animation: open ? 'ebun-panel-in .25s ease' : 'none',
+        }}
       >
+
         {/* ── Header ── */}
-        <div
-          className='flex items-center gap-2.5 px-4 py-3 shrink-0'
-          style={{
-            background:
-              'linear-gradient(135deg, #0a0f1e 0%, #0f2744 70%, #0a1628 100%)'
-          }}
-        >
-          {/* Avatar */}
-          <div className='relative shrink-0'>
-            <div
-              className='w-8 sm:w-10 aspect-square text-white p-1 rounded-xl flex items-center justify-center'
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.15)'
-              }}
-            >
-              <img src={ebun_logo_light} alt='Logo' />
-            </div>
-            {/* Online dot */}
-            <span className='absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0f2744]' />
+        <div style={{
+          background: T.black,
+          padding: '13px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexShrink: 0,
+          borderBottom: `2px solid ${T.amber}`,
+        }}>
+          {/* Logo mark */}
+          <div style={{
+            width: 34, height: 34,
+            border: '1px solid rgba(255,255,255,.15)',
+            borderRadius: 6,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 6,
+            flexShrink: 0,
+          }}>
+            <img src={ebun_logo_light} alt='Ebun' style={{ width: '100%', objectFit: 'contain' }} />
           </div>
 
-          {/* Title */}
-          <div className='flex-1 min-w-0'>
-            <p className='text-white text-sm font-semibold leading-tight tracking-tight'>
-              Ebun AI
-            </p>
-            <p className='text-emerald-400 text-xxs mt-0.5 font-medium'>
-              Online
-            </p>
+          {/* Title block */}
+          <div style={{ flex: 1 }}>
+            <p style={{
+              margin: 0,
+              fontFamily: T.display,
+              fontWeight: 700,
+              fontSize: 14,
+              color: T.white,
+              letterSpacing: '-0.2px',
+              lineHeight: 1.2,
+            }}>Ebun AI</p>
+            <p style={{
+              margin: '2px 0 0',
+              fontFamily: T.mono,
+              fontSize: 10,
+              color: T.amber,
+              letterSpacing: 1.2,
+              textTransform: 'uppercase',
+            }}>● Online</p>
           </div>
 
           {/* Close */}
           <button
+            className='ebun-close'
             onClick={() => setOpen(false)}
-            className='w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all duration-150'
+            style={{
+              width: 28, height: 28,
+              borderRadius: 5,
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background .15s',
+              flexShrink: 0,
+            }}
           >
-            <RiCloseLine className='w-4 h-4' />
+            <RiCloseLine style={{ color: 'rgba(255,255,255,.5)', width: 16, height: 16 }} />
           </button>
         </div>
 
         {/* ── Messages ── */}
         <div
-          className='flex-1 overflow-y-auto scrollbar-thin sm:scrollbar-none px-3.5 pt-3.5 pb-2 min-h-0'
-          style={{ background: '#f8fafc' }}
+          className='ebun-msgs'
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            background: T.surface,
+            padding: '14px 12px 8px',
+            minHeight: 0,
+          }}
         >
           {messages.map((m, i) => (
             <Bubble key={i} role={m.role} text={m.text} />
           ))}
 
-          {/* Typing indicator — always shown while loading */}
           {loading && (
-            <div className='flex items-end gap-2 mb-3'>
-              <div
-                className='w-6 sm:w-8 aspect-square p-1 sm:p-1.5 rounded-lg shrink-0 flex items-center justify-center'
-                style={{
-                  background:
-                    'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)'
-                }}
-              >
-                <img src={ebun_logo_light} alt='Logo' />
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
+              <div style={{
+                width: 28, height: 28,
+                background: T.black,
+                borderRadius: 4,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 5, flexShrink: 0,
+              }}>
+                <img src={ebun_logo_light} alt='Ebun' style={{ width: '100%', objectFit: 'contain' }} />
               </div>
-              <div className='bg-white border border-gray-100 rounded-2xl rounded-bl-sm shadow-sm'>
+              <div style={{
+                background: T.white,
+                borderLeft: `2.5px solid ${T.amber}`,
+                border: `0.5px solid ${T.border}`,
+                borderLeft: `2.5px solid ${T.amber}`,
+                borderRadius: '10px 10px 10px 2px',
+              }}>
                 <TypingDots />
               </div>
             </div>
           )}
+
           <div ref={bottomRef} />
         </div>
 
-        {/* ── Suggestions (first load only) ── */}
-        {messages.length === 1 && (
-          <div
-            className='px-3.5 pb-2 pt-1.5 flex flex-wrap gap-1.5 border-t border-gray-100'
-            style={{ background: '#f8fafc' }}
-          >
-            {SUGGESTIONS.map(s => (
+        {/* ── Suggestions ── */}
+        {!loading && remainingSuggestions.length > 0 && (
+          <div style={{
+            background: T.surface,
+            borderTop: `1px solid ${T.border}`,
+            padding: '8px 12px 10px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 6,
+          }}>
+            {remainingSuggestions.map(s => (
               <button
                 key={s}
-                onClick={() => sendMessage(s)}
-                className='text-[11px] px-2.5 py-1 rounded-full border border-gray-200 bg-white
-                           text-gray-500 hover:text-slate-800 hover:border-slate-400
-                           transition-all duration-150 shadow-sm'
+                className='ebun-suggestion'
+                onClick={() => {
+                  if (isBlocked) return
+                  setUsedSuggestions(prev => {
+                    const next = new Set(prev)
+                    next.add(s)
+                    return next
+                  })
+                  sendMessage(s)
+                }}
+                style={{
+                  fontSize: 10.5,
+                  fontFamily: T.mono,
+                  padding: '4px 10px',
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 20,
+                  background: T.white,
+                  color: T.muted,
+                  cursor: 'pointer',
+                  transition: 'all .15s',
+                  letterSpacing: 0.2,
+                }}
               >
                 {s}
               </button>
@@ -301,104 +408,138 @@ export default function AIChatWidget () {
         )}
 
         {/* ── Input Bar ── */}
-        <div className='bg-white border-t border-gray-100 px-3 py-2.5 flex items-end gap-2 shrink-0'>
+        <div style={{
+          background: T.white,
+          borderTop: `1px solid ${T.border}`,
+          padding: '10px 10px 10px 12px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 8,
+          flexShrink: 0,
+        }}>
           <textarea
-            ref={el => {
-              inputRef.current = el
-              textareaRef.current = el
-            }}
+            ref={el => { inputRef.current = el; textareaRef.current = el }}
+            className='ebun-textarea'
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
             placeholder='Ask me anything…'
             rows={1}
-            className='flex-1 resize-none text-xs text-gray-800 placeholder-gray-400 bg-gray-50
-                       border border-gray-200 rounded-xl px-3 py-2 focus:outline-none
-                       focus:border-slate-500 focus:ring-2 focus:ring-slate-500/10
-                       transition-all duration-150 overflow-y-auto scrollbar-none'
-            style={{ lineHeight: '1.5', maxHeight: '80px' }}
+            style={{
+              flex: 1,
+              resize: 'none',
+              fontSize: 12.5,
+              fontFamily: T.mono,
+              color: T.text,
+              background: T.surface,
+              border: `1px solid ${T.border}`,
+              borderRadius: 6,
+              padding: '8px 10px',
+              lineHeight: 1.5,
+              maxHeight: 80,
+              overflowY: 'auto',
+              transition: 'border-color .15s, box-shadow .15s',
+            }}
           />
 
-          {/* Send button — fixed size, swaps icon ↔ countdown internally */}
+          {/* Send / Cooldown button */}
           <button
+            className='ebun-send'
             onClick={() => sendMessage()}
             disabled={!canSend}
-            className='w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mb-0.5
-                       transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed
-                       hover:brightness-110 active:scale-90'
             style={{
-              background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)'
+              width: 34, height: 34,
+              borderRadius: 6,
+              border: 'none',
+              background: canSend ? T.black : T.border,
+              cursor: canSend ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+              marginBottom: 1,
+              position: 'relative',
+              transition: 'background .15s',
             }}
           >
-            {/* Both children always rendered; visibility toggled via opacity/scale so size never shifts */}
-            <span
-              className={`absolute transition-all duration-150 ${
-                cooldown > 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
-              }`}
-            >
-              <span
-                className='text-white font-semibold'
-                style={{ fontSize: '11px', lineHeight: 1 }}
-              >
-                {cooldown}s
-              </span>
-            </span>
-            <span
-              className={`absolute transition-all duration-150 ${
-                cooldown > 0 ? 'opacity-0 scale-75' : 'opacity-100 scale-100'
-              }`}
-            >
-              <RiSendPlaneFill className='w-3.5 h-3.5 text-white' />
-            </span>
+            {cooldown > 0 ? (
+              <span style={{
+                fontFamily: T.mono,
+                fontSize: 10,
+                fontWeight: 500,
+                color: T.muted,
+                letterSpacing: 0.5,
+              }}>{cooldown}s</span>
+            ) : (
+              <RiSendPlaneFill style={{ color: canSend ? T.white : T.muted, width: 13, height: 13 }} />
+            )}
           </button>
         </div>
       </div>
 
-      {/* ── FAB Button ── */}
+      {/* ══════════════════════ FAB BUTTON ══════════════════════ */}
       <button
+        className='ebun-fab'
         onClick={() => setOpen(o => !o)}
-        className='fixed bottom-5 right-5 z-50 rounded-2xl shadow-lg
-                   flex items-center justify-center
-                   hover:scale-105 active:scale-95 transition-all duration-200'
-        style={{
-          width: '52px',
-          height: '52px',
-          background:
-            'linear-gradient(135deg, #0a0f1e 0%, #0f2744 60%, #0a1628 100%)'
-        }}
         aria-label='Toggle Ebun AI chat'
+        style={{
+          position: 'fixed',
+          bottom: 20, right: 20,
+          zIndex: 9999,
+          width: 50, height: 50,
+          borderRadius: 10,
+          border: 'none',
+          background: T.black,
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'transform .2s ease',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+        }}
       >
         {/* Ping ring */}
         {pulse && (
-          <span className='absolute inset-0 rounded-2xl animate-ping opacity-20 bg-slate-500' />
+          <span style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 10,
+            background: T.black,
+            animation: 'ebun-fab-ping 1.8s cubic-bezier(0,0,.2,1) infinite',
+          }} />
         )}
 
         {/* Chat icon */}
-        <RiMessage3Fill
-          className={`w-5 h-5 text-white absolute transition-all duration-200 ${
-            open
-              ? 'opacity-0 scale-75 rotate-90'
-              : 'opacity-100 scale-100 rotate-0'
-          }`}
-        />
+        <RiMessage3Fill style={{
+          position: 'absolute',
+          width: 20, height: 20,
+          color: T.white,
+          transition: 'opacity .2s, transform .2s',
+          opacity: open ? 0 : 1,
+          transform: open ? 'scale(.7) rotate(90deg)' : 'scale(1) rotate(0)',
+        }} />
 
         {/* Close icon */}
-        <RiCloseLine
-          className={`w-5 h-5 text-white absolute transition-all duration-200 ${
-            open
-              ? 'opacity-100 scale-100 rotate-0'
-              : 'opacity-0 scale-75 -rotate-90'
-          }`}
-        />
+        <RiCloseLine style={{
+          position: 'absolute',
+          width: 20, height: 20,
+          color: T.white,
+          transition: 'opacity .2s, transform .2s',
+          opacity: open ? 1 : 0,
+          transform: open ? 'scale(1) rotate(0)' : 'scale(.7) rotate(-90deg)',
+        }} />
 
-        {/* Notification badge */}
+        {/* Badge */}
         {pulse && (
-          <span
-            className='absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full
-                           text-[9px] font-bold text-white flex items-center justify-center shadow-md'
-          >
-            1
-          </span>
+          <span style={{
+            position: 'absolute',
+            top: -5, right: -5,
+            width: 16, height: 16,
+            background: T.amber,
+            borderRadius: '50%',
+            fontSize: 9,
+            fontFamily: T.mono,
+            fontWeight: 600,
+            color: T.white,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 0 2px #fff',
+          }}>1</span>
         )}
       </button>
     </>

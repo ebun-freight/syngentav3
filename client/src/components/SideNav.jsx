@@ -141,6 +141,13 @@ function SideNav () {
                   <p className='text-xs sm:text-sm text-nowrap whitespace-nowrap'>
                     {content.name}
                   </p>
+                  {/* Live chat unread badge for admin */}
+                  {content.path === '/secure/live-chat' && (
+                    <span className='ml-auto text-[11px] bg-red-500 text-white rounded-full px-2 py-0.5 font-semibold'>
+                      {/* placeholder will be replaced by live unread count via DOM or state later */}
+                      0
+                    </span>
+                  )}
                 </Link>
               )
             })}

@@ -11,7 +11,8 @@ import {
   TbUserShield,
   TbTimelineEventText,
   TbHeartHandshake,
-  TbSettings
+  TbSettings,
+  TbMessageChatbot
 } from 'react-icons/tb'
 
 export const SIDEBAR_ITEMS = [
@@ -88,6 +89,12 @@ export const SIDEBAR_ITEMS = [
     icon: <TbLicense />,
     name: 'Activity Logs',
     path: '/secure/activity-logs',
+    role: ['head_admin', 'admin']
+  },
+  {
+    icon: <TbMessageChatbot />,
+    name: 'Live Chat',
+    path: '/secure/live-chat',
     role: ['head_admin', 'admin']
   },
   {

@@ -18,6 +18,7 @@ import SubconManagement from './pages/admin/SubconManagement'
 import { UIProvider } from './contexts/UIContext'
 import NotFoundPage from './pages/public/NotFoundPage'
 import SystemSettingsPage from './pages/admin/SystemSettingsPage'
+import LiveChatPage from './pages/admin/LiveChatPage'
 import { SettingsProvider } from './contexts/SettingsContext'
 import { useState, useEffect } from 'react'
 import AIChatWidget from './components/AIChatWidget'
@@ -115,6 +116,8 @@ function App () {
             element={<SubconManagement />}
           />
           <Route path='/secure/activity-logs' element={<ActivityLogsPage />} />
+
+          <Route path='/secure/live-chat' element={<LiveChatPage />} />
 
           <Route
             path='/secure/system-settings'

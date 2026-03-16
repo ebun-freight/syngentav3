@@ -39,3 +39,6 @@ export const API_SYSTEM_SETTINGS = `${BASE}/api/system-settings`
 
 // ai chat
 export const API_AI_CHAT = `${BASE}/api/ai/chat`
+
+// live chat
+export const API_CHAT = `${BASE}/api/chat`
