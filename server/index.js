@@ -92,6 +92,11 @@ io.on('connection', socket => {
     io.emit('unread-count-updated')
   })
 
+  // Admin marks a conversation as read — broadcast updated unread count
+  socket.on('mark-conversation-read', () => {
+    io.emit('unread-count-updated')
+  })
+
   // Admin resolves/closes a conversation
   socket.on('resolve-conversation', async ({ conversationId }) => {
     try {

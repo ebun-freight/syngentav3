@@ -126,10 +126,11 @@ export default function LiveChatPage () {
       setSelectedConv(data)
       socket.emit('join-conversation', conv._id)
 
-      // Clear unread badge locally
+      // Clear unread badge locally and notify other clients
       setConversations(prev =>
         prev.map(c => (c._id === conv._id ? { ...c, unreadByAdmin: 0 } : c))
       )
+      socket.emit('mark-conversation-read')
     } catch (err) {
       console.error('Failed to fetch conversation:', err)
     }
