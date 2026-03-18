@@ -57,6 +57,39 @@ const formatISO = iso =>
         .toFormat('MMM d, yyyy hh:mm a')
     : null
 
+/* ── Status Description ───────────────────────────────────────────────────── */
+const getStatusDescription = deployment => {
+  const {
+    status,
+    departed,
+    pickups = [],
+    destArrival,
+    destDeparture
+  } = deployment
+
+  if (status === 'canceled') return 'Deployment was canceled'
+  if (status === 'completed') return 'Departed from Plant Site'
+
+  if (destDeparture) return 'Departed from Plant Site'
+  if (destArrival) return 'Arrived at Plant Site'
+
+  if (pickups.length > 0) {
+    for (let i = pickups.length - 1; i >= 0; i--) {
+      if (pickups[i].pickupOut)
+        return pickups.length >= 2
+          ? `Departed from S${i + 1}`
+          : 'Departed from pick up site'
+      if (pickups[i].pickupIn)
+        return pickups.length >= 2
+          ? `Arrived at pick up at S${i + 1}`
+          : 'Arrived at pick up site'
+    }
+  }
+
+  if (departed) return 'Departed from Station'
+  return 'Waiting for departure'
+}
+
 /* ── Progress Bar ─────────────────────────────────────────────────────────── */
 const buildProgressSegments = deployment => {
   const raw = []
@@ -83,9 +116,6 @@ const DeploymentProgressBar = ({ deployment }) => {
   const segments = buildProgressSegments(deployment)
   const total = segments.length
   const doneCount = segments.filter(s => s.done).length
-  const isComplete = doneCount === total
-  const currentLabel =
-    doneCount === 0 ? 'Assigned' : segments[doneCount - 1].label
 
   return (
     <div className='mt-1.5 w-full min-w-20'>
@@ -109,7 +139,6 @@ const DeploymentProgressBar = ({ deployment }) => {
           return (
             <div
               key={i}
-              title={seg.label}
               className={clsx(
                 'flex-1 h-1 transition-all duration-300',
                 i === 0 && 'rounded-l-full',
@@ -120,11 +149,9 @@ const DeploymentProgressBar = ({ deployment }) => {
           )
         })}
       </div>
-      {!isComplete && !isCanceled && (
-        <p className='text-xxs mt-0.5 leading-none text-gray-400'>
-          {currentLabel}
-        </p>
-      )}
+      <p className='text-xxs mt-0.5 leading-none text-gray-400 italic text-nowrap'>
+        {getStatusDescription(deployment)}
+      </p>
     </div>
   )
 }
@@ -904,7 +931,7 @@ function Deployments () {
                         </div>
                       </td>
 
-                      {/* ── Status + Progress Bar ── */}
+                      {/* ── Status + Progress Bar + Description ── */}
                       <td>
                         <div
                           className={clsx(
