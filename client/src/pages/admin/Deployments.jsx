@@ -59,18 +59,11 @@ const formatISO = iso =>
 
 /* ── Status Description ───────────────────────────────────────────────────── */
 const getStatusDescription = deployment => {
-  const {
-    status,
-    departed,
-    pickups = [],
-    destArrival,
-    destDeparture
-  } = deployment
+  const { status, departed, pickups = [], destArrival } = deployment
 
   if (status === 'canceled') return 'Deployment was canceled'
-  if (status === 'completed') return 'Departed from Plant Site'
+  if (status === 'completed') return 'Delivery completed'
 
-  if (destDeparture) return 'Departed from Plant Site'
   if (destArrival) return 'Arrived at Plant Site'
 
   if (pickups.length > 0) {
