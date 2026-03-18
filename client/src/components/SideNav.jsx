@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { ebun_logo_light } from '../consts/images'
 import clsx from 'clsx'
@@ -50,9 +50,8 @@ function SideNav () {
     }
   }
 
-  // Fetch unread chat count for admins
-  const fetchUnreadCount = async () => {
-    if (!isAdmin) return
+  // Stable fetch function — safe to use as socket listener
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const token = sessionStorage.getItem('userToken')
       const res = await axios.get(`${API_CHAT}/unread-count`, {
@@ -62,7 +61,7 @@ function SideNav () {
     } catch {
       // silently ignore
     }
-  }
+  }, [])
 
   useEffect(() => {
     AOS.init({
@@ -73,14 +72,28 @@ function SideNav () {
   }, [])
 
   useEffect(() => {
-    if (!isAdmin) return
-    // Ensure socket is connected so badge updates are received from any page
+    if (!isAdmin || !userData.data._id) return
+
+    const register = () => {
+      socket.emit('register', { userId: userData.data._id, role: userData.data.role })
+    }
+
+    // Connect socket and register — works from any page
     if (!socket.connected) socket.connect()
-    socket.emit('register', { userId: userData.data._id, role: userData.data.role })
+    register()
     fetchUnreadCount()
+
+    // Re-register and refresh count on every reconnect
+    socket.on('connect', register)
+    socket.on('connect', fetchUnreadCount)
     socket.on('unread-count-updated', fetchUnreadCount)
-    return () => socket.off('unread-count-updated', fetchUnreadCount)
-  }, [isAdmin])
+
+    return () => {
+      socket.off('connect', register)
+      socket.off('connect', fetchUnreadCount)
+      socket.off('unread-count-updated', fetchUnreadCount)
+    }
+  }, [isAdmin, userData.data._id, fetchUnreadCount])
 
   // Clear badge while on chat page; re-fetch when leaving
   useEffect(() => {
@@ -89,7 +102,7 @@ function SideNav () {
     } else {
       fetchUnreadCount()
     }
-  }, [isOnChatPage])
+  }, [isOnChatPage, fetchUnreadCount])
 
   return (
     <>
