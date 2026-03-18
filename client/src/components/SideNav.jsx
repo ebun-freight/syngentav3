@@ -74,6 +74,9 @@ function SideNav () {
 
   useEffect(() => {
     if (!isAdmin) return
+    // Ensure socket is connected so badge updates are received from any page
+    if (!socket.connected) socket.connect()
+    socket.emit('register', { userId: userData.data._id, role: userData.data.role })
     fetchUnreadCount()
     socket.on('unread-count-updated', fetchUnreadCount)
     return () => socket.off('unread-count-updated', fetchUnreadCount)
