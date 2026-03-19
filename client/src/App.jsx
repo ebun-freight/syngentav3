@@ -21,7 +21,7 @@ import SystemSettingsPage from './pages/admin/SystemSettingsPage'
 import LiveChatPage from './pages/admin/LiveChatPage'
 import { SettingsProvider } from './contexts/SettingsContext'
 import { useState, useEffect } from 'react'
-import AIChatWidget from './components/AIChatWidget'
+import PickupFields from './pages/admin/PickupFields'
 
 function App () {
   console.log(import.meta.env.MODE)
@@ -95,6 +95,7 @@ function App () {
           <Route path='/secure/dashboard' element={<Dashboard />} />
           <Route path='/secure/calendar' element={<CalendarPage />} />
           <Route path='/secure/deployment-logs' element={<TimelineLogs />} />
+          <Route path='/secure/pickup-fields' element={<PickupFields />} />
           <Route path='/secure/deployments' element={<Deployments />} />
 
           <Route

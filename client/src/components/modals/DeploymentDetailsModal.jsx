@@ -39,18 +39,6 @@ import { FaCalendar } from 'react-icons/fa'
 
 const MAX_PICKUPS = 10
 
-const defaultPickup = {
-  pickupSite: '',
-  municipality: '',
-  fieldContactPerson: '',
-  fieldContactPersonNo: '',
-  scheduledPickupTime: '',
-  estimatedWeightKg: '',
-  pickupIn: '',
-  pickupOut: '',
-  sacksCount: 0
-}
-
 const DotPattern = () => (
   <svg
     className='absolute inset-0 w-full h-full opacity-10 pointer-events-none'
@@ -129,14 +117,6 @@ function DeploymentDetailsModal ({
     })
   }
 
-  const addPickupStop = () => {
-    if ((editForm.pickups?.length || 0) >= MAX_PICKUPS) return
-    setEditForm(prev => ({
-      ...prev,
-      pickups: [...(prev.pickups || []), { ...defaultPickup }]
-    }))
-  }
-
   const removePickupStop = index => {
     if ((editForm.pickups?.length || 0) <= 1) return
     setEditForm(prev => ({
@@ -159,7 +139,32 @@ function DeploymentDetailsModal ({
 
   const handleUpdateDeployment = async e => {
     e.preventDefault()
-    const result = await updateDeploymentFunction(deployment._id, editForm)
+
+    // Separate populated pickups from the rest of the form
+    const { pickups: editPickups, ...restForm } = editForm
+
+    // Always send pickupUpdates for timing / weight fields (keyed by PickupField _id)
+    const pickupUpdates = (editPickups || []).map(pickup => ({
+      id: pickup._id,
+      pickupIn: pickup.pickupIn,
+      pickupOut: pickup.pickupOut,
+      fieldWeightKg: pickup.fieldWeightKg,
+      plantWeightKg: pickup.plantWeightKg,
+      sacksCount: pickup.sacksCount
+    }))
+
+    // Only include `pickups` (as IDs) when stops have been removed
+    const originalIds = (deployment.pickups || []).map(p => p._id?.toString())
+    const newIds = (editPickups || []).map(p => p._id?.toString())
+    const stopsChanged = newIds.length !== originalIds.length
+
+    const payload = {
+      ...restForm,
+      pickupUpdates,
+      ...(stopsChanged ? { pickups: newIds } : {})
+    }
+
+    const result = await updateDeploymentFunction(deployment._id, payload)
     if (result.success) {
       onUpdate(result.data.deployment)
       toast.success(result.data.message)
@@ -1186,7 +1191,6 @@ function DeploymentDetailsModal ({
                       editForm={editForm}
                       handlePickupChange={handlePickupChange}
                       handlePickupNumericChange={handlePickupNumericChange}
-                      addPickupStop={addPickupStop}
                       removePickupStop={removePickupStop}
                     />
                   )}
@@ -2005,6 +2009,7 @@ const DeploymentInfoTab = ({
             value={editForm?.receivingContactPerson}
             disabled={!isEditMode}
             onChange={handleChange}
+            isRequired={true}
           />
           <InputField
             label='Receiving Contact No.'
@@ -2015,6 +2020,7 @@ const DeploymentInfoTab = ({
             disabled={!isEditMode}
             onChange={handleChange}
             maxLength={11}
+            isRequired={true}
           />
 
           <InfoField label='Destination'>
@@ -2153,7 +2159,6 @@ const PickupSitesTab = ({
   editForm,
   handlePickupChange,
   handlePickupNumericChange,
-  addPickupStop,
   removePickupStop
 }) => {
   const pickups = editForm?.pickups || []
@@ -2178,16 +2183,6 @@ const PickupSitesTab = ({
             ({pickups.length}/{MAX_PICKUPS})
           </span>
         </div>
-        {isEditMode && (
-          <button
-            type='button'
-            onClick={addPickupStop}
-            disabled={pickups.length >= MAX_PICKUPS}
-            className='flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer'
-          >
-            <FiPlus className='text-sm' /> Add Stop
-          </button>
-        )}
       </div>
 
       <div className='flex-1 overflow-y-auto scrollbar-thin flex flex-col gap-3 min-h-0'>
@@ -2218,15 +2213,17 @@ const PickupSitesTab = ({
               </button>
             )}
 
-            <div className='grid grid-cols-2 gap-x-5 gap-y-4 max-sm:gap-x-3 max-sm:gap-y-3'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3'>
+              {/* Row 1: Pick-up Site · Municipality · Sched Pickup Time */}
               <InputField
                 label='Pick-up Site'
                 type='text'
                 name='pickupSite'
                 placeholder='Pick-up Site'
                 value={pickup.pickupSite}
-                disabled={!isEditMode}
-                onChange={e => handlePickupChange(index, e)}
+                disabled
+                onChange={() => {}}
+                isRequired={false}
               />
               <InputField
                 label='Municipality'
@@ -2234,17 +2231,36 @@ const PickupSitesTab = ({
                 name='municipality'
                 placeholder='Municipality'
                 value={pickup.municipality}
-                disabled={!isEditMode}
-                onChange={e => handlePickupChange(index, e)}
+                disabled
+                onChange={() => {}}
+                isRequired={false}
               />
+              <InfoField label='Scheduled Pickup Time'>
+                {pickup.scheduledPickupTime ? (
+                  <InfoValue>
+                    {DateTime.fromISO(pickup.scheduledPickupTime)
+                      .setZone('Asia/Manila')
+                      .toFormat('MMM d, yyyy - hh:mm a')}
+                  </InfoValue>
+                ) : (
+                  <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 shadow-sm'>
+                    <p className='italic text-gray-400 text-sm max-sm:text-xs'>
+                      Not set
+                    </p>
+                  </div>
+                )}
+              </InfoField>
+
+              {/* Row 2: Field Contact Person · Field Contact No. · Sacks Count */}
               <InputField
                 label='Field Contact Person'
                 type='text'
                 name='fieldContactPerson'
                 placeholder='Contact Person'
                 value={pickup.fieldContactPerson}
-                disabled={!isEditMode}
-                onChange={e => handlePickupChange(index, e)}
+                disabled
+                onChange={() => {}}
+                isRequired={false}
               />
               <InputField
                 label='Field Contact No.'
@@ -2252,63 +2268,64 @@ const PickupSitesTab = ({
                 name='fieldContactPersonNo'
                 placeholder='Contact Number'
                 value={pickup.fieldContactPersonNo}
-                disabled={!isEditMode}
-                onChange={e => handlePickupChange(index, e)}
-                maxLength={11}
+                disabled
+                onChange={() => {}}
+                isRequired={false}
               />
-
-              {isEditMode ? (
-                <InputField
-                  label='Scheduled Pickup Time'
-                  type='datetime-local'
-                  name='scheduledPickupTime'
-                  value={pickup.scheduledPickupTime}
-                  onChange={e => handlePickupChange(index, e)}
-                  isCapitalize={false}
-                />
-              ) : (
-                <InfoField label='Scheduled Pickup Time'>
-                  {pickup.scheduledPickupTime ? (
-                    <InfoValue>
-                      {DateTime.fromISO(pickup.scheduledPickupTime)
-                        .setZone('Asia/Manila')
-                        .toFormat('MMM d, yyyy - hh:mm a')}
-                    </InfoValue>
-                  ) : (
-                    <div className='flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 max-sm:px-3 max-sm:py-2 shadow-sm'>
-                      <p className='italic text-gray-400 text-sm max-sm:text-xs'>
-                        Not set
-                      </p>
+              {(() => {
+                const readOnly = false
+                return (
+                  <div className='flex flex-col gap-1.5'>
+                    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider text-nowrap'>
+                      Sacks Count
+                    </span>
+                    <div
+                      className={clsx(
+                        'flex items-center border rounded-xl px-3 py-2.5 shadow-sm transition-all',
+                        !isEditMode || readOnly
+                          ? 'bg-gray-50 border-gray-200'
+                          : 'bg-white border-gray-200 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20'
+                      )}
+                    >
+                      <NumericFormat
+                        thousandSeparator={false}
+                        decimalScale={0}
+                        allowNegative={false}
+                        value={pickup.sacksCount}
+                        onValueChange={v =>
+                          handlePickupNumericChange(
+                            index,
+                            'sacksCount',
+                            v.floatValue
+                          )
+                        }
+                        disabled={!isEditMode}
+                        className='flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none min-w-0'
+                      />
                     </div>
-                  )}
-                </InfoField>
-              )}
+                  </div>
+                )
+              })()}
 
-              {/* sm+ : 3-col weight/sacks row */}
-              <div className='grid grid-cols-3 gap-3 max-sm:hidden'>
+              {/* Row 3: Est. Weight · Field Weight · Plant Weight — always 3 cols */}
+              <div className='col-span-full grid grid-cols-3 gap-x-4 gap-y-3'>
                 {[
                   {
                     label: 'Est. Weight (Kg)',
                     field: 'estimatedWeightKg',
-                    sep: true,
-                    dec: 2,
-                    req: true
+                    readOnly: true
                   },
                   {
-                    label: 'Act. Weight (Kg)',
-                    field: 'actualWeightKg',
-                    sep: true,
-                    dec: 2,
-                    req: false
+                    label: 'Field Weight (Kg)',
+                    field: 'fieldWeightKg',
+                    readOnly: false
                   },
                   {
-                    label: 'Sacks Count',
-                    field: 'sacksCount',
-                    sep: false,
-                    dec: 0,
-                    req: false
+                    label: 'Plant Weight (Kg)',
+                    field: 'plantWeightKg',
+                    readOnly: false
                   }
-                ].map(({ label, field, sep, dec, req }) => (
+                ].map(({ label, field, readOnly }) => (
                   <div key={field} className='flex flex-col gap-1.5'>
                     <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider text-nowrap'>
                       {label}
@@ -2316,75 +2333,26 @@ const PickupSitesTab = ({
                     <div
                       className={clsx(
                         'flex items-center border rounded-xl px-3 py-2.5 shadow-sm transition-all',
-                        !isEditMode
+                        !isEditMode || readOnly
                           ? 'bg-gray-50 border-gray-200'
                           : 'bg-white border-gray-200 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20'
                       )}
                     >
                       <NumericFormat
-                        thousandSeparator={sep}
-                        decimalScale={dec}
+                        thousandSeparator
+                        decimalScale={2}
                         allowNegative={false}
                         value={pickup[field]}
                         onValueChange={v =>
                           handlePickupNumericChange(index, field, v.floatValue)
                         }
-                        disabled={!isEditMode}
-                        required={req}
+                        disabled={!isEditMode || readOnly}
                         className='flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none min-w-0'
                       />
                     </div>
                   </div>
                 ))}
               </div>
-
-              {/* xs: stacked weight/sacks */}
-              {[
-                {
-                  label: 'Sacks Count',
-                  field: 'sacksCount',
-                  sep: false,
-                  dec: 0
-                },
-                {
-                  label: 'Est. Weight (Kg)',
-                  field: 'estimatedWeightKg',
-                  sep: true,
-                  dec: 2
-                },
-                {
-                  label: 'Act. Weight (Kg)',
-                  field: 'actualWeightKg',
-                  sep: true,
-                  dec: 2
-                }
-              ].map(({ label, field, sep, dec }) => (
-                <div key={field} className='flex flex-col gap-1.5 sm:hidden'>
-                  <span className='text-xxs font-semibold text-gray-600 uppercase tracking-wider text-nowrap'>
-                    {label}
-                  </span>
-                  <div
-                    className={clsx(
-                      'flex items-center border rounded-xl px-3 py-2 shadow-sm transition-all',
-                      !isEditMode
-                        ? 'bg-gray-50 border-gray-200'
-                        : 'bg-white border-gray-200 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20'
-                    )}
-                  >
-                    <NumericFormat
-                      thousandSeparator={sep}
-                      decimalScale={dec}
-                      allowNegative={false}
-                      value={pickup[field]}
-                      onValueChange={v =>
-                        handlePickupNumericChange(index, field, v.floatValue)
-                      }
-                      disabled={!isEditMode}
-                      className='flex-1 text-xs text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none min-w-0'
-                    />
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         ))}
@@ -2447,7 +2415,7 @@ const InputField = ({
   onChange,
   disabled,
   maxLength,
-  isRequired = true,
+  isRequired = false,
   isCapitalize = true,
   isUpperCase = false,
   formatNumber = false,
@@ -2457,7 +2425,7 @@ const InputField = ({
 }) => {
   const labelEl = (
     <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider text-nowrap truncate'>
-      {label} {isRequired && <span className='text-red-400'>*</span>}
+      {label}
     </span>
   )
   const wrapperClass = clsx(

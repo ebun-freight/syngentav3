@@ -100,7 +100,7 @@ const SelectFilter = ({ label, name, value, onChange, colSpan, children }) => (
 
 function TimelineLogs () {
   // 🚧 Set to false to restore the page
-  const [isUnderConstruction] = useState(true)
+  const [isUnderConstruction] = useState(false)
 
   const [isTimelineLogDetailsModalOpen, setIsTimelineLogDetailsModalOpen] =
     useState(false)

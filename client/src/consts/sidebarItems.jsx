@@ -12,7 +12,9 @@ import {
   TbTimelineEventText,
   TbHeartHandshake,
   TbSettings,
-  TbMessageChatbot
+  TbMessageChatbot,
+  TbMapPinFilled,
+  TbTruckLoading
 } from 'react-icons/tb'
 
 export const SIDEBAR_ITEMS = [
@@ -38,6 +40,12 @@ export const SIDEBAR_ITEMS = [
     name: 'Deployment Logs',
     path: '/secure/deployment-logs',
     role: ['head_admin', 'admin', 'visitor', 'subcon']
+  },
+  {
+    icon: <TbTruckLoading />,
+    name: 'Pickup Fields',
+    path: '/secure/pickup-fields',
+    role: ['head_admin', 'admin']
   },
   {
     icon: <TbMapPin />,

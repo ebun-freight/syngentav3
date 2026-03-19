@@ -42,3 +42,6 @@ export const API_AI_CHAT = `${BASE}/api/ai/chat`
 
 // live chat
 export const API_CHAT = `${BASE}/api/chat`
+
+// pickup fields
+export const API_PICKUP_FIELDS = `${BASE}/api/pickup-fields`

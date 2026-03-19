@@ -17,6 +17,7 @@ import clsx from 'clsx'
 import { PiMapPinAreaFill } from 'react-icons/pi'
 import { FiPlus, FiTrash2 } from 'react-icons/fi'
 import useCreateDeployment from '../../hooks/useCreateDeployment'
+import useGetAllPickupFields from '../../hooks/useGetAllPickupFields'
 import { NumericFormat } from 'react-number-format'
 import { useSettingsContext } from '../../contexts/SettingsContext'
 
@@ -30,7 +31,7 @@ const defaultPickup = {
 }
 
 const defaultValue = {
-  pickups: [{ ...defaultPickup }],
+  pickups: [],
   truckId: '',
   driverId: '',
   truckType: '',
@@ -105,7 +106,7 @@ const SelectField = ({
       'flex flex-col gap-1.5'
     )}
   >
-    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
       {label} {required && <span className='text-red-400'>*</span>}
     </span>
     <div className='relative group flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
@@ -151,7 +152,7 @@ const ComboboxField = ({
       'flex flex-col gap-1.5'
     )}
   >
-    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
       {label} {required && <span className='text-red-400'>*</span>}
     </span>
     <Combobox value={value} onChange={onChange}>
@@ -210,6 +211,11 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
   const [driverQuery, setDriverQuery] = useState('')
   const scrollRef = useRef(null)
 
+  // ── Pickup field selector state ────────────────────────────────────────
+  const [availableFields, setAvailableFields] = useState([])
+  const [selectedFieldIds, setSelectedFieldIds] = useState([])
+  const [fieldSearch, setFieldSearch] = useState('')
+
   const truckOptions =
     trucks
       ?.filter(truck => truck.status === 'available')
@@ -254,14 +260,64 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
     if (isOpen) {
       const firstDestination = settings.deployments.destination?.[0] ?? ''
       setFormData(prev => ({ ...prev, destination: firstDestination }))
+      fetchAvailableFields()
     }
   }, [isOpen, settings.deployments.destination])
+
+  const { getAllPickupFieldsFunction } = useGetAllPickupFields()
+
+  const fetchAvailableFields = async () => {
+    const result = await getAllPickupFieldsFunction({
+      unassignedOnly: true,
+      perPage: 200
+    })
+    if (!result.error) setAvailableFields(result.pickupFields)
+  }
+
+  const toggleFieldSelection = field => {
+    const alreadySelected = selectedFieldIds.includes(field._id)
+    if (alreadySelected) {
+      setSelectedFieldIds(prev => prev.filter(id => id !== field._id))
+      setFormData(prev => ({
+        ...prev,
+        pickups: prev.pickups.filter(p => p._pickupFieldId !== field._id)
+      }))
+    } else {
+      if (formData.pickups.length >= MAX_PICKUPS) return
+      setSelectedFieldIds(prev => [...prev, field._id])
+      setFormData(prev => ({
+        ...prev,
+        pickups: [
+          ...prev.pickups,
+          {
+            _pickupFieldId: field._id,
+            // display-only metadata (not sent to server as pickup payload fields)
+            _fieldId: field.fieldId,
+            _growerName: field.growerName,
+            _areaHectares: field.areaHectares,
+            _tmoNo: field.tmoNo || '',
+            _sacksCount: field.sacksCount ?? 0,
+            _status: field.status,
+            // actual pickup payload fields
+            pickupSite: field.pickupSite,
+            municipality: field.municipality,
+            fieldContactPerson: field.fieldContactPerson,
+            fieldContactPersonNo: field.fieldContactPersonNo || '',
+            scheduledPickupTime: field.scheduledPickupTime || '',
+            estimatedWeightKg: field.estimatedWeightKg
+          }
+        ]
+      }))
+    }
+  }
 
   const handleClose = () => {
     onClose()
     setFormData(defaultValue)
     setTruckQuery('')
     setDriverQuery('')
+    setSelectedFieldIds([])
+    setFieldSearch('')
   }
 
   const handleChange = e => {
@@ -281,7 +337,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
   const handlePickupNumericChange = (index, name, floatValue) => {
     setFormData(prev => {
       const updated = [...prev.pickups]
-      updated[index] = { ...updated[index], [name]: floatValue || '' }
+      updated[index] = { ...updated[index], [name]: floatValue ?? '' }
       return { ...prev, pickups: updated }
     })
   }
@@ -301,7 +357,12 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
   }
 
   const removePickup = index => {
-    if (formData.pickups.length <= 1) return
+    const pickup = formData.pickups[index]
+    if (pickup?._pickupFieldId) {
+      setSelectedFieldIds(prev =>
+        prev.filter(id => id !== pickup._pickupFieldId)
+      )
+    }
     setFormData(prev => ({
       ...prev,
       pickups: prev.pickups.filter((_, i) => i !== index)
@@ -310,7 +371,21 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
 
   const handleSubmit = async e => {
     e.preventDefault()
-    const result = await createDeploymentFunction(formData)
+
+    console.log(e)
+
+    if (formData.pickups.length === 0) {
+      toast.error('Select at least one pickup field before submitting.')
+      return
+    }
+    const { pickups, ...rest } = formData
+    const payload = {
+      ...rest,
+      // helperCount must be a string to pass the server regex /^\d+$/
+      helperCount: String(rest.helperCount ?? 0),
+      pickupFieldIds: selectedFieldIds
+    }
+    const result = await createDeploymentFunction(payload)
     if (result.deployment) {
       toast.success(result.message)
       onCreate(result.deployment)
@@ -361,7 +436,7 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
           leaveFrom='opacity-100 scale-100'
           leaveTo='opacity-0 scale-95'
         >
-          <DialogPanel className='font-poppins text-gray-900 w-full max-w-6xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row max-h-[80vh]'>
+          <DialogPanel className='font-poppins text-gray-900 w-full max-w-[1400px] rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row max-h-[81vh] h-full'>
             {/* ══ LEFT PANEL ══════════════════════════════════════════════════ */}
             <div
               className='relative flex flex-col overflow-hidden lg:w-72 shrink-0 max-sm:p-5 max-sm:pb-4'
@@ -455,11 +530,12 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
               {/* Header */}
               <div className='flex items-start justify-between px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0'>
                 <div>
-                  <h2 className='text-gray-900 font-bold text-lg max-sm:text-base'>
+                  <h2 className='text-gray-900 font-bold text-xl max-sm:text-base'>
                     Create a Deployment
                   </h2>
-                  <p className='text-gray-400 text-xs mt-0.5'>
-                    Fill in the details to deploy a truck.
+                  <p className='text-gray-500 text-sm mt-0.5'>
+                    Select pickup fields on the right, then fill in the
+                    deployment details.
                   </p>
                 </div>
                 <button
@@ -471,315 +547,465 @@ function CreateDeploymentModal ({ isOpen, onClose, onCreate, trucks, drivers }) 
                 </button>
               </div>
 
-              {/* Single scrollable form body */}
-              <div
-                ref={scrollRef}
-                className='flex-1 overflow-y-auto scrollbar-thin min-h-0'
-              >
-                <form
-                  id='create-deployment-form'
-                  onSubmit={handleSubmit}
-                  className='flex flex-col gap-7'
+              {/* ── Body: middle form + right field list ── */}
+              <div className='flex-1 flex min-h-0 overflow-hidden'>
+                {/* ── MIDDLE: selected stops + truck/driver + delivery ── */}
+                <div
+                  ref={scrollRef}
+                  className='flex-1 overflow-y-auto scrollbar-thin min-h-0'
                 >
-                  {/* ── PICKUP STOPS ── */}
-                  <div>
-                    <div className='sticky top-0 z-10 flex items-center justify-between bg-white px-6 py-3 max-sm:px-4 border-b border-gray-100'>
-                      <div className='flex items-center gap-2'>
-                        <h3 className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                          Pickup Details
+                  <form
+                    id='create-deployment-form'
+                    onSubmit={handleSubmit}
+                    className='flex flex-col gap-8 px-6 py-5 max-sm:px-4'
+                  >
+                    {/* ── SELECTED STOPS ── */}
+                    <div>
+                      <div className='flex items-center justify-between mb-3'>
+                        <h3 className='text-sm font-semibold text-gray-700 uppercase tracking-wider'>
+                          Selected Stops
                         </h3>
-                        <span className='text-xxs text-gray-400'>
-                          ({formData.pickups.length}/{MAX_PICKUPS} stops)
+                        <span className='text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700'>
+                          {formData.pickups.length}/{MAX_PICKUPS}
                         </span>
                       </div>
-                      <button
-                        type='button'
-                        onClick={addPickup}
-                        disabled={formData.pickups.length >= MAX_PICKUPS}
-                        className='flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer'
-                      >
-                        <FiPlus className='text-sm' />
-                        Add Stop
-                      </button>
-                    </div>
 
-                    <div className='flex flex-col gap-4 px-6 pt-4 max-sm:px-4'>
-                      {formData.pickups.map((pickup, index) => (
-                        <div
-                          key={index}
-                          className='border border-gray-200 rounded-xl p-4 max-sm:p-3 relative bg-gray-50/50'
-                        >
-                          <div className='flex items-center justify-between mb-3'>
-                            <p className='text-xxs sm:text-xs font-semibold text-emerald-600 uppercase tracking-wide'>
-                              Stop #{index + 1}
-                            </p>
-                            {formData.pickups.length > 1 && (
+                      {/* Empty state — only this is conditional */}
+                      {formData.pickups.length === 0 && (
+                        <div className='flex flex-col items-center justify-center py-10 gap-2 rounded-xl border-2 border-dashed border-gray-200 text-gray-400'>
+                          <PiMapPinAreaFill className='text-3xl opacity-30' />
+                          <p className='text-sm'>
+                            Select pickup fields from the list on the right.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className='flex flex-col gap-3'>
+                        {formData.pickups.map((pickup, index) => (
+                          <div
+                            key={pickup._pickupFieldId || index}
+                            className='border border-emerald-200 rounded-xl overflow-hidden bg-white shadow-sm'
+                          >
+                            {/* Card header */}
+                            <div className='flex items-center justify-between px-4 py-2.5 bg-emerald-50 border-b border-emerald-100'>
+                              <div className='flex items-center gap-2 flex-wrap'>
+                                <span className='text-xs font-bold text-emerald-700 uppercase tracking-wide'>
+                                  Stop #{index + 1}
+                                </span>
+                                {pickup._fieldId && (
+                                  <span className='font-mono text-xs bg-white border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded font-semibold'>
+                                    {pickup._fieldId}
+                                  </span>
+                                )}
+                                {pickup._tmoNo && (
+                                  <span className='font-mono text-xs bg-blue-50 border border-blue-200 text-blue-600 px-2 py-0.5 rounded'>
+                                    TMO: {pickup._tmoNo}
+                                  </span>
+                                )}
+                              </div>
                               <button
                                 type='button'
                                 onClick={() => removePickup(index)}
-                                className='text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer'
+                                className='text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ml-2'
                                 title='Remove stop'
                               >
-                                <FiTrash2 className='text-base' />
+                                <FiTrash2 className='text-sm' />
                               </button>
-                            )}
-                          </div>
-
-                          <div className='grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4'>
-                            <InputField
-                              label='Pick-up Site'
-                              type='text'
-                              name='pickupSite'
-                              placeholder='Pick-up Site'
-                              value={pickup.pickupSite}
-                              onChange={e => handlePickupChange(index, e)}
-                            />
-                            <InputField
-                              label='Municipality'
-                              type='text'
-                              name='municipality'
-                              placeholder='Municipality'
-                              value={pickup.municipality}
-                              onChange={e => handlePickupChange(index, e)}
-                            />
-                            <InputField
-                              label='Scheduled Pickup Time'
-                              type='datetime-local'
-                              name='scheduledPickupTime'
-                              value={pickup.scheduledPickupTime}
-                              onChange={e => handlePickupChange(index, e)}
-                              colSpan={1}
-                              mobileColSpan={1}
-                            />
-                            <div className='flex flex-col gap-1.5'>
-                              <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                                Est. Weight (kg){' '}
-                                <span className='text-red-400'>*</span>
-                              </span>
-                              <div className='flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm'>
-                                <NumericFormat
-                                  thousandSeparator
-                                  decimalScale={2}
-                                  allowNegative={false}
-                                  value={pickup.estimatedWeightKg}
-                                  onValueChange={values =>
-                                    handlePickupNumericChange(
-                                      index,
-                                      'estimatedWeightKg',
-                                      values.floatValue
-                                    )
-                                  }
-                                  placeholder='Estimated Weight'
-                                  required
-                                  className='flex-1 text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none'
-                                />
-                              </div>
                             </div>
-                            <InputField
-                              label='Field Contact Person'
-                              type='text'
-                              name='fieldContactPerson'
-                              placeholder='Field Contact Person'
-                              value={pickup.fieldContactPerson}
-                              onChange={e => handlePickupChange(index, e)}
-                            />
-                            <InputField
-                              label='Field Contact No.'
-                              type='tel'
-                              name='fieldContactPersonNo'
-                              placeholder='Contact Number'
-                              value={pickup.fieldContactPersonNo}
-                              onChange={e => handlePickupChange(index, e)}
-                              maxLength={11}
-                            />
-                          </div>
-                        </div>
-                      ))}
 
-                      {formData.pickups.length >= MAX_PICKUPS && (
-                        <p className='text-xs text-gray-400 text-center'>
-                          Maximum of {MAX_PICKUPS} pickup stops reached.
-                        </p>
+                            {/* Card body — 6 fields, 3 per row */}
+                            <div className='px-4 py-3 grid grid-cols-3 gap-x-4 gap-y-3'>
+                              <ReadOnlyField
+                                label='Pick-up Site'
+                                value={pickup.pickupSite}
+                              />
+                              <ReadOnlyField
+                                label='Municipality'
+                                value={pickup.municipality}
+                              />
+                              <ReadOnlyField
+                                label='Sched. Pickup'
+                                value={
+                                  pickup.scheduledPickupTime
+                                    ? new Date(
+                                        pickup.scheduledPickupTime
+                                      ).toLocaleString('en-PH', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })
+                                    : '—'
+                                }
+                              />
+                              <ReadOnlyField
+                                label='Area (ha)'
+                                value={
+                                  pickup._areaHectares !== undefined
+                                    ? `${pickup._areaHectares} ha`
+                                    : '—'
+                                }
+                              />
+                              <ReadOnlyField
+                                label='Est. Weight (kg)'
+                                value={
+                                  pickup.estimatedWeightKg
+                                    ? Number(
+                                        pickup.estimatedWeightKg
+                                      ).toLocaleString()
+                                    : '—'
+                                }
+                                highlight
+                              />
+                              <ReadOnlyField
+                                label='Grower Name'
+                                value={pickup._growerName || '—'}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* ── TRUCK & DRIVER DETAILS ── */}
+                    <div>
+                      <h3 className='text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4'>
+                        Truck & Driver Details
+                      </h3>
+                      <div className='grid grid-cols-1 xs:grid-cols-2 gap-4'>
+                        <ComboboxField
+                          label='Select Truck'
+                          value={formData.truckId}
+                          onChange={value => {
+                            setFormData(prev => ({ ...prev, truckId: value }))
+                            setTruckQuery('')
+                          }}
+                          displayValue={() => selectedTruck?.label || ''}
+                          onQueryChange={e => setTruckQuery(e.target.value)}
+                          onReset={() => setTruckQuery('')}
+                          options={filteredTrucks}
+                          placeholder='Search plate no.'
+                        />
+                        <ComboboxField
+                          label='Select Driver'
+                          value={formData.driverId}
+                          onChange={value => {
+                            setFormData(prev => ({ ...prev, driverId: value }))
+                            setDriverQuery('')
+                          }}
+                          displayValue={() => selectedDriver?.label || ''}
+                          onQueryChange={e => setDriverQuery(e.target.value)}
+                          onReset={() => setDriverQuery('')}
+                          options={filteredDrivers}
+                          placeholder='Search driver name'
+                        />
+                        <SelectField
+                          label='Truck Type'
+                          name='truckType'
+                          value={formData.truckType}
+                          onChange={handleChange}
+                          options={settings.trucksDrivers.truckType}
+                        />
+                        <InputField
+                          label='Helper Count'
+                          type='number'
+                          name='helperCount'
+                          placeholder='Helper Count'
+                          value={formData.helperCount}
+                          onChange={handleChange}
+                          formatNumber
+                        />
+                      </div>
+                    </div>
+
+                    {/* ── DELIVERY DETAILS ── */}
+                    <div className='pb-5'>
+                      <h3 className='text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4'>
+                        Delivery Details
+                      </h3>
+
+                      {/* Desktop (sm+): 5-col layout */}
+                      <div className='hidden sm:grid sm:grid-cols-5 gap-4'>
+                        <InputField
+                          label='Receiving Contact Person'
+                          type='text'
+                          name='receivingContactPerson'
+                          placeholder='Contact Person'
+                          value={formData.receivingContactPerson}
+                          onChange={handleChange}
+                          colSpan={2}
+                        />
+                        <SelectField
+                          label='Hybrid'
+                          name='hybrid'
+                          value={formData.hybrid}
+                          onChange={handleChange}
+                          options={settings.deployments.hybrid}
+                        />
+                        <SelectField
+                          label='Flagging'
+                          name='flagging'
+                          value={formData.flagging}
+                          onChange={handleChange}
+                          options={settings.deployments.flagging}
+                          colSpan={2}
+                        />
+                        <input
+                          type='hidden'
+                          name='destination'
+                          value={formData.destination}
+                        />
+                        <InputField
+                          label='Contact No.'
+                          type='tel'
+                          name='receivingContactPersonNo'
+                          placeholder='Contact Number'
+                          value={formData.receivingContactPersonNo}
+                          onChange={handleChange}
+                          maxLength={11}
+                          colSpan={2}
+                        />
+                        <SelectField
+                          label='Territory'
+                          name='territory'
+                          value={formData.territory}
+                          onChange={handleChange}
+                          options={settings.deployments.territory}
+                        />
+                        <InputField
+                          label='Flagging Remarks'
+                          type='text'
+                          name='flaggingRemarks'
+                          placeholder='Flagging Remarks'
+                          value={formData.flaggingRemarks}
+                          onChange={handleChange}
+                          isRequired={false}
+                          colSpan={2}
+                        />
+                      </div>
+
+                      {/* Mobile: 2-col layout */}
+                      <div className='sm:hidden grid grid-cols-2 gap-3'>
+                        <InputField
+                          label='Receiving Contact Person'
+                          type='text'
+                          name='receivingContactPerson'
+                          placeholder='Contact Person'
+                          value={formData.receivingContactPerson}
+                          onChange={handleChange}
+                        />
+                        <InputField
+                          label='Contact No.'
+                          type='tel'
+                          name='receivingContactPersonNo'
+                          placeholder='Contact Number'
+                          value={formData.receivingContactPersonNo}
+                          onChange={handleChange}
+                          maxLength={11}
+                        />
+                        <SelectField
+                          label='Hybrid'
+                          name='hybrid'
+                          value={formData.hybrid}
+                          onChange={handleChange}
+                          options={settings.deployments.hybrid}
+                        />
+                        <SelectField
+                          label='Territory'
+                          name='territory'
+                          value={formData.territory}
+                          onChange={handleChange}
+                          options={settings.deployments.territory}
+                        />
+                        <SelectField
+                          label='Flagging'
+                          name='flagging'
+                          value={formData.flagging}
+                          onChange={handleChange}
+                          options={settings.deployments.flagging}
+                          mobileColSpan={2}
+                        />
+                        <InputField
+                          label='Flagging Remarks'
+                          type='text'
+                          name='flaggingRemarks'
+                          placeholder='Flagging Remarks'
+                          value={formData.flaggingRemarks}
+                          onChange={handleChange}
+                          isRequired={false}
+                          mobileColSpan={2}
+                        />
+                      </div>
+                    </div>
+                  </form>
+                </div>
+
+                {/* ── RIGHT: Pickup field checklist only ── */}
+                <div className='w-80 shrink-0 flex flex-col min-h-0 border-l border-gray-200 max-lg:hidden'>
+                  {/* Sticky header + search */}
+                  <div className='shrink-0 px-4 pt-4 pb-3 border-b border-gray-200 bg-gray-50'>
+                    <div className='flex items-center justify-between mb-3'>
+                      <h3 className='text-sm font-semibold text-gray-700 uppercase tracking-wider'>
+                        Pickup Fields
+                      </h3>
+                      <span
+                        className={clsx(
+                          'text-xs font-semibold px-2.5 py-1 rounded-full transition-colors',
+                          formData.pickups.length > 0
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-gray-200 text-gray-500'
+                        )}
+                      >
+                        {formData.pickups.length}/{MAX_PICKUPS}
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm'>
+                      <svg
+                        className='text-gray-400 shrink-0 w-3.5 h-3.5'
+                        fill='currentColor'
+                        viewBox='0 0 20 20'
+                      >
+                        <path
+                          fillRule='evenodd'
+                          d='M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z'
+                          clipRule='evenodd'
+                        />
+                      </svg>
+                      <input
+                        type='text'
+                        placeholder='Search fields...'
+                        value={fieldSearch}
+                        onChange={e => setFieldSearch(e.target.value)}
+                        className='w-full text-sm text-gray-700 placeholder-gray-400 bg-transparent focus:outline-none'
+                      />
+                      {fieldSearch && (
+                        <button
+                          type='button'
+                          onClick={() => setFieldSearch('')}
+                          className='text-gray-400 hover:text-gray-600 shrink-0'
+                        >
+                          <IoClose className='text-sm' />
+                        </button>
                       )}
                     </div>
                   </div>
 
-                  {/* ── TRUCK & DRIVER DETAILS ── */}
-                  <div className='px-6 max-sm:px-4'>
-                    <h3 className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3'>
-                      Truck & Driver Details
-                    </h3>
-                    <div className='grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4'>
-                      <ComboboxField
-                        label='Select Truck'
-                        value={formData.truckId}
-                        onChange={value => {
-                          setFormData(prev => ({ ...prev, truckId: value }))
-                          setTruckQuery('')
-                        }}
-                        displayValue={() => selectedTruck?.label || ''}
-                        onQueryChange={e => setTruckQuery(e.target.value)}
-                        onReset={() => setTruckQuery('')}
-                        options={filteredTrucks}
-                        placeholder='Search plate no.'
-                      />
-                      <ComboboxField
-                        label='Select Driver'
-                        value={formData.driverId}
-                        onChange={value => {
-                          setFormData(prev => ({ ...prev, driverId: value }))
-                          setDriverQuery('')
-                        }}
-                        displayValue={() => selectedDriver?.label || ''}
-                        onQueryChange={e => setDriverQuery(e.target.value)}
-                        onReset={() => setDriverQuery('')}
-                        options={filteredDrivers}
-                        placeholder='Search driver name'
-                      />
-                      <SelectField
-                        label='Truck Type'
-                        name='truckType'
-                        value={formData.truckType}
-                        onChange={handleChange}
-                        options={settings.trucksDrivers.truckType}
-                      />
-                      <InputField
-                        label='Helper Count'
-                        type='number'
-                        name='helperCount'
-                        placeholder='Helper Count'
-                        value={formData.helperCount}
-                        onChange={handleChange}
-                        formatNumber
-                      />
-                    </div>
+                  {/* Scrollable field list */}
+                  <div className='flex-1 overflow-y-auto scrollbar-thin min-h-0 bg-white'>
+                    {availableFields.length === 0 ? (
+                      <div className='flex flex-col items-center justify-center py-12 gap-2 text-gray-400'>
+                        <PiMapPinAreaFill className='text-3xl opacity-30' />
+                        <p className='text-sm italic text-center px-4'>
+                          No unassigned pickup fields available.
+                        </p>
+                      </div>
+                    ) : (
+                      availableFields
+                        .filter(f => {
+                          const s = fieldSearch.toLowerCase()
+                          return (
+                            !fieldSearch ||
+                            f.fieldId?.toLowerCase().includes(s) ||
+                            f.growerName?.toLowerCase().includes(s) ||
+                            f.pickupSite?.toLowerCase().includes(s) ||
+                            f.municipality?.toLowerCase().includes(s)
+                          )
+                        })
+                        .map(field => {
+                          const isSelected = selectedFieldIds.includes(
+                            field._id
+                          )
+                          const isMaxed =
+                            formData.pickups.length >= MAX_PICKUPS &&
+                            !isSelected
+                          return (
+                            <button
+                              key={field._id}
+                              type='button'
+                              disabled={isMaxed}
+                              onClick={() => toggleFieldSelection(field)}
+                              className={clsx(
+                                'w-full text-left flex items-center gap-3 px-3 py-3 border-b border-gray-100 last:border-none transition-colors',
+                                isSelected
+                                  ? 'bg-emerald-50'
+                                  : 'hover:bg-gray-50',
+                                isMaxed && 'opacity-40 cursor-not-allowed'
+                              )}
+                            >
+                              {/* Checkbox */}
+                              <div
+                                className={clsx(
+                                  'shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all',
+                                  isSelected
+                                    ? 'bg-emerald-500 border-emerald-500'
+                                    : 'border-gray-300 bg-white'
+                                )}
+                              >
+                                {isSelected && (
+                                  <svg
+                                    className='w-2.5 h-2.5 text-white'
+                                    fill='none'
+                                    viewBox='0 0 24 24'
+                                    stroke='currentColor'
+                                    strokeWidth={3.5}
+                                  >
+                                    <path
+                                      strokeLinecap='round'
+                                      strokeLinejoin='round'
+                                      d='M5 13l4 4L19 7'
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+
+                              {/* Info */}
+                              <div className='min-w-0 flex-1'>
+                                {/* Row 1: field ID + sched pickup */}
+                                <div className='flex items-center gap-1.5 min-w-0'>
+                                  <span className='font-mono text-[10px] font-semibold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded shrink-0'>
+                                    {field.fieldId}
+                                  </span>
+                                  <span className='text-xs font-semibold text-gray-800 truncate'>
+                                    {field.scheduledPickupTime
+                                      ? new Date(
+                                          field.scheduledPickupTime
+                                        ).toLocaleString('en-PH', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })
+                                      : '—'}
+                                  </span>
+                                </div>
+                                {/* Row 2: site · municipality */}
+                                <p className='text-[11px] text-gray-400 mt-0.5 capitalize truncate'>
+                                  {field.pickupSite} · {field.municipality}
+                                </p>
+                                {/* Row 3: weight + area as pills */}
+                                <div className='flex items-center gap-1.5 mt-1'>
+                                  <span className='text-[10px] font-medium bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded'>
+                                    {Number(
+                                      field.estimatedWeightKg
+                                    ).toLocaleString()}{' '}
+                                    kg
+                                  </span>
+                                  <span className='text-[10px] font-medium bg-gray-50 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded'>
+                                    {field.areaHectares} ha
+                                  </span>
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })
+                    )}
                   </div>
-
-                  {/* ── DELIVERY DETAILS ── */}
-                  <div className='px-6 pb-5 max-sm:px-4 max-sm:pb-4'>
-                    <h3 className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3'>
-                      Delivery Details
-                    </h3>
-
-                    {/* Desktop (sm+): original 5-col layout */}
-                    <div className='hidden sm:grid sm:grid-cols-5 gap-4'>
-                      <InputField
-                        label='Receiving Contact Person'
-                        type='text'
-                        name='receivingContactPerson'
-                        placeholder='Contact Person'
-                        value={formData.receivingContactPerson}
-                        onChange={handleChange}
-                        colSpan={2}
-                      />
-                      <SelectField
-                        label='Hybrid'
-                        name='hybrid'
-                        value={formData.hybrid}
-                        onChange={handleChange}
-                        options={settings.deployments.hybrid}
-                      />
-                      <SelectField
-                        label='Flagging'
-                        name='flagging'
-                        value={formData.flagging}
-                        onChange={handleChange}
-                        options={settings.deployments.flagging}
-                        colSpan={2}
-                      />
-                      {/* Destination — hidden, value auto-set to first option */}
-                      <input
-                        type='hidden'
-                        name='destination'
-                        value={formData.destination}
-                      />
-                      <InputField
-                        label='Contact No.'
-                        type='tel'
-                        name='receivingContactPersonNo'
-                        placeholder='Contact Number'
-                        value={formData.receivingContactPersonNo}
-                        onChange={handleChange}
-                        maxLength={11}
-                        colSpan={2}
-                      />
-                      <SelectField
-                        label='Territory'
-                        name='territory'
-                        value={formData.territory}
-                        onChange={handleChange}
-                        options={settings.deployments.territory}
-                      />
-                      <InputField
-                        label='Flagging Remarks'
-                        type='text'
-                        name='flaggingRemarks'
-                        placeholder='Flagging Remarks'
-                        value={formData.flaggingRemarks}
-                        onChange={handleChange}
-                        isRequired={false}
-                        colSpan={2}
-                      />
-                    </div>
-
-                    {/* Mobile (xs): re-paired 2-col layout */}
-                    <div className='sm:hidden grid grid-cols-2 gap-3'>
-                      <InputField
-                        label='Receiving Contact Person'
-                        type='text'
-                        name='receivingContactPerson'
-                        placeholder='Contact Person'
-                        value={formData.receivingContactPerson}
-                        onChange={handleChange}
-                      />
-                      <InputField
-                        label='Contact No.'
-                        type='tel'
-                        name='receivingContactPersonNo'
-                        placeholder='Contact Number'
-                        value={formData.receivingContactPersonNo}
-                        onChange={handleChange}
-                        maxLength={11}
-                      />
-                      <SelectField
-                        label='Hybrid'
-                        name='hybrid'
-                        value={formData.hybrid}
-                        onChange={handleChange}
-                        options={settings.deployments.hybrid}
-                      />
-                      <SelectField
-                        label='Territory'
-                        name='territory'
-                        value={formData.territory}
-                        onChange={handleChange}
-                        options={settings.deployments.territory}
-                      />
-                      <SelectField
-                        label='Flagging'
-                        name='flagging'
-                        value={formData.flagging}
-                        onChange={handleChange}
-                        options={settings.deployments.flagging}
-                        mobileColSpan={2}
-                      />
-                      <InputField
-                        label='Flagging Remarks'
-                        type='text'
-                        name='flaggingRemarks'
-                        placeholder='Flagging Remarks'
-                        value={formData.flaggingRemarks}
-                        onChange={handleChange}
-                        isRequired={false}
-                        mobileColSpan={2}
-                      />
-                    </div>
-                  </div>
-                </form>
+                </div>
               </div>
 
               {/* ── ACTION BAR ── */}
-              <div className='max-sm:hidden flex items-center gap-3 px-6 py-4 border-t border-gray-100 shrink-0 overflow-x-auto'>
+              <div className='max-sm:hidden flex items-center gap-3 px-6 py-4 border-t border-gray-100 shrink-0'>
                 <button
                   type='submit'
                   form='create-deployment-form'
@@ -834,7 +1060,7 @@ const InputField = ({
   allowNegative = false
 }) => {
   const labelEl = (
-    <span className='text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+    <span className='text-xs font-semibold text-gray-600 uppercase tracking-wider'>
       {label} {isRequired && <span className='text-red-400'>*</span>}
     </span>
   )
@@ -868,7 +1094,7 @@ const InputField = ({
             allowNegative={allowNegative}
             value={value}
             onValueChange={values =>
-              onChange({ target: { name, value: values.floatValue || '' } })
+              onChange({ target: { name, value: values.floatValue ?? '' } })
             }
             placeholder={placeholder}
             disabled={disabled}
@@ -901,5 +1127,23 @@ const InputField = ({
     </label>
   )
 }
+
+/* ─── Read-only display field for Selected Stops ───────────────────────── */
+const ReadOnlyField = ({ label, value, highlight = false }) => (
+  <div className='flex flex-col gap-0.5 min-w-0'>
+    <span className='text-[10px] font-semibold text-gray-400 uppercase tracking-wider truncate'>
+      {label}
+    </span>
+    <span
+      className={clsx(
+        'text-xs font-medium truncate capitalize',
+        highlight ? 'text-emerald-600 font-semibold' : 'text-gray-700'
+      )}
+      title={String(value)}
+    >
+      {value || '—'}
+    </span>
+  </div>
+)
 
 export default CreateDeploymentModal

@@ -179,6 +179,7 @@ app.use('/api/timeline-logs', require('./routes/timelineRoute'))
 app.use('/api/system-settings', require('./routes/systemSettingsRoute'))
 app.use('/api/ai', require('./routes/AiChatRoute'))
 app.use('/api/chat', require('./routes/chatRoute'))
+app.use('/api/pickup-fields', require('./routes/pickupFieldRoute'))
 
 // error-handling middleware
 app.use(routeNotFoundHandler)

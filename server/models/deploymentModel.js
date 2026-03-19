@@ -11,97 +11,11 @@ const deploymentSchema = new mongoose.Schema(
       maxlength: [20, 'Deployment code cannot exceed 20 characters']
     },
 
-    // ------------- pickup details ------------- //
+    // ── pickups: ObjectId references to PickupField documents ─────────────
     pickups: [
       {
-        tmoNo: {
-          type: String,
-          trim: true,
-          uppercase: true,
-          unique: false,
-          sparse: true,
-          index: true,
-          maxlength: [20, 'TMO No. cannot exceed 20 characters']
-        },
-        pickupSite: {
-          type: String,
-          required: [true, 'Pick-up site is required'],
-          trim: true,
-          maxlength: [100, 'Pick-up site cannot exceed 100 characters']
-        },
-        municipality: {
-          type: String,
-          required: [true, 'Municipality is required'],
-          trim: true,
-          maxlength: [100, 'Municipality cannot exceed 100 characters']
-        },
-        fieldContactPerson: {
-          type: String,
-          required: [true, 'Field Contact Person is required'],
-          trim: true,
-          maxlength: [100, 'Field Contact Person cannot exceed 100 characters'],
-          match: [
-            /^[a-zA-Z\s'.,-]+$/,
-            'Field Contact Person must contain letters only'
-          ]
-        },
-        fieldContactPersonNo: {
-          type: String,
-          required: [true, "Field Contact Person's No. is required"],
-          trim: true,
-          match: [/^(?:\+639|09)\d{9}$/, 'Invalid contact number format']
-        },
-        scheduledPickupTime: {
-          type: String,
-          required: [true, 'Scheduled Pickup Time is required'],
-          trim: true,
-          match: [
-            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/,
-            'Invalid scheduled pickup time format (expected ISO datetime)'
-          ]
-        },
-        estimatedWeightKg: {
-          type: String,
-          required: [true, 'Estimated Quantity is required'],
-          trim: true,
-          match: [
-            /^\d+(\.\d{1,2})?$/,
-            'Estimated weight must be a valid number'
-          ]
-        },
-        actualWeightKg: {
-          type: String,
-          trim: true,
-          default: '0',
-          match: [/^\d+(\.\d{1,2})?$/, 'Actual weight must be a valid number']
-        },
-        sacksCount: {
-          type: Number,
-          default: 0,
-          min: [0, 'Sacks count cannot be negative'],
-          validate: {
-            validator: Number.isInteger,
-            message: 'Sacks count must be a whole number'
-          }
-        },
-        pickupIn: {
-          type: String,
-          trim: true,
-          default: '',
-          match: [
-            /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?)?$/,
-            'Invalid pickup-in time format'
-          ]
-        },
-        pickupOut: {
-          type: String,
-          trim: true,
-          default: '',
-          match: [
-            /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?)?$/,
-            'Invalid pickup-out time format'
-          ]
-        }
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'PickupField'
       }
     ],
 
@@ -318,12 +232,6 @@ const counterSchema = new mongoose.Schema({
 
 const Counter = mongoose.model('Counter', counterSchema)
 
-/**
- * Generate the next code for a given counter key.
- * @param {string} prefix        - e.g. 'DP' or 'TMO'
- * @param {string} monthKey      - e.g. '2502'
- * @param {string} counterPrefix - e.g. 'deployment' or 'tmo'
- */
 const generateCode = async (prefix, monthKey, counterPrefix) => {
   const counterId = `${counterPrefix}-${monthKey}`
   const counter = await Counter.findByIdAndUpdate(
@@ -335,6 +243,7 @@ const generateCode = async (prefix, monthKey, counterPrefix) => {
 }
 
 // ─── pre-save hook ─────────────────────────────────────────────────────────────
+// tmoNo generation moved to the controller — assigned directly on PickupField docs
 
 deploymentSchema.pre('save', async function (next) {
   try {
@@ -347,12 +256,6 @@ deploymentSchema.pre('save', async function (next) {
       this.deploymentCode = await generateCode('DP', monthKey, 'deployment')
     }
 
-    for (const pickup of this.pickups) {
-      if (!pickup.tmoNo) {
-        pickup.tmoNo = await generateCode('TMO', monthKey, 'tmo')
-      }
-    }
-
     next()
   } catch (error) {
     next(error)
@@ -360,4 +263,4 @@ deploymentSchema.pre('save', async function (next) {
 })
 
 const Deployment = mongoose.model('Deployment', deploymentSchema)
-module.exports = Deployment
+module.exports = { Deployment, generateCode }

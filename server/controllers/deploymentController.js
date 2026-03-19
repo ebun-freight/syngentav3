@@ -1,13 +1,22 @@
 const createError = require('http-errors')
 const { validateFields } = require('../utils/validationFields')
-const Deployment = require('../models/deploymentModel')
+const { Deployment, generateCode } = require('../models/deploymentModel')
 const Truck = require('../models/truckModel')
 const Driver = require('../models/driverModel')
 const ActivityLog = require('../models/activityLogsModel')
 const TimelineLog = require('../models/timelineLogsModel')
+const PickupField = require('../models/pickupFieldModel')
 const { DateTime } = require('luxon')
 
 const MANILA_TZ = 'Asia/Manila'
+
+// Helper: build the month key used in TMO / DP code generation (e.g. "2603")
+const getMonthKey = () => {
+  const now = new Date()
+  const year = now.getFullYear().toString().slice(-2)
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  return `${year}${month}`
+}
 
 // Helper: get active subcon (replacement truck takes priority)
 const getActiveSubcon = deployment => {
@@ -26,12 +35,51 @@ const mapPickup = p => ({
   fieldContactPersonNo: p.fieldContactPersonNo,
   scheduledPickupTime: p.scheduledPickupTime,
   estimatedWeightKg: p.estimatedWeightKg,
-  actualWeightKg: p.actualWeightKg || '',
+  fieldWeightKg: p.fieldWeightKg || '',
+  plantWeightKg: p.plantWeightKg || '',
   pickupIn: p.pickupIn || '',
   pickupOut: p.pickupOut || '',
   sacksCount:
     p.sacksCount !== undefined && p.sacksCount !== '' ? Number(p.sacksCount) : 0
 })
+
+/**
+ * Reset pickup fields back to not_done.
+ * Accepts:
+ *   - fieldIds:    array of PickupField ObjectIds  (update-path stop removal)
+ *   - tmoNos:      array of tmoNo strings          (legacy stop-level removal)
+ *   - deploymentId: single ObjectId               (bulk release on cancel/delete)
+ */
+const releasePickupFields = async ({
+  fieldIds,
+  tmoNos,
+  deploymentId,
+  resetOperational = false
+} = {}) => {
+  try {
+    // Base reset: always restore status, tmoNo, and deploymentId link
+    const reset = { status: 'not_done', tmoNo: null, deploymentId: null }
+
+    // Operational reset: clear all field-level data collected during the deployment
+    if (resetOperational) {
+      reset.fieldWeightKg = '0'
+      reset.plantWeightKg = '0'
+      reset.sacksCount = 0
+      reset.pickupIn = ''
+      reset.pickupOut = ''
+    }
+
+    if (fieldIds && fieldIds.length > 0) {
+      await PickupField.updateMany({ _id: { $in: fieldIds } }, reset)
+    } else if (tmoNos && tmoNos.length > 0) {
+      await PickupField.updateMany({ tmoNo: { $in: tmoNos } }, reset)
+    } else if (deploymentId) {
+      await PickupField.updateMany({ deploymentId }, reset)
+    }
+  } catch (err) {
+    console.error('releasePickupFields error:', err)
+  }
+}
 
 // Helper: apply a date range filter.
 // isISO=false -> field is a native MongoDB Date (createdAt)
@@ -70,6 +118,7 @@ const createDeployment = async (req, res, next) => {
   try {
     const {
       pickups,
+      pickupFieldIds,
       truckId,
       driverId,
       truckType,
@@ -97,7 +146,6 @@ const createDeployment = async (req, res, next) => {
       truckId,
       driverId,
       truckType,
-      helperCount,
       destination,
       receivingContactPerson,
       receivingContactPersonNo,
@@ -106,20 +154,21 @@ const createDeployment = async (req, res, next) => {
       flagging
     })
 
-    if (!pickups || !Array.isArray(pickups) || pickups.length === 0) {
-      return next(createError(400, 'At least one pickup is required'))
+    // helperCount can legitimately be 0, so validate it separately
+    if (
+      helperCount === undefined ||
+      helperCount === null ||
+      helperCount === ''
+    ) {
+      return next(createError(400, 'Helper count is required'))
     }
 
-    for (let i = 0; i < pickups.length; i++) {
-      const p = pickups[i]
-      validateFields({
-        [`pickups[${i}].pickupSite`]: p.pickupSite,
-        [`pickups[${i}].municipality`]: p.municipality,
-        [`pickups[${i}].fieldContactPerson`]: p.fieldContactPerson,
-        [`pickups[${i}].fieldContactPersonNo`]: p.fieldContactPersonNo,
-        [`pickups[${i}].scheduledPickupTime`]: p.scheduledPickupTime,
-        [`pickups[${i}].estimatedWeightKg`]: p.estimatedWeightKg
-      })
+    if (
+      !pickupFieldIds ||
+      !Array.isArray(pickupFieldIds) ||
+      pickupFieldIds.length === 0
+    ) {
+      return next(createError(400, 'At least one pickup field is required'))
     }
 
     const truck = await Truck.findById(truckId)
@@ -133,7 +182,7 @@ const createDeployment = async (req, res, next) => {
       return next(createError(400, 'Driver is already deployed'))
 
     const newDeployment = await Deployment.create({
-      pickups: pickups.map(mapPickup),
+      pickups: pickupFieldIds,
       truckId,
       driverId,
       truckType,
@@ -181,6 +230,20 @@ const createDeployment = async (req, res, next) => {
     const populatedDeployment = await Deployment.findById(newDeployment._id)
       .populate('truckId')
       .populate('driverId')
+      .populate('pickups')
+
+    // ── Assign tmoNo + link each PickupField to this deployment ───────────
+    const monthKey = getMonthKey()
+    await Promise.all(
+      pickupFieldIds.map(async fieldId => {
+        const tmoNo = await generateCode('TMO', monthKey, 'tmo')
+        return PickupField.findByIdAndUpdate(fieldId, {
+          status: 'ongoing',
+          deploymentId: newDeployment._id,
+          tmoNo
+        })
+      })
+    )
 
     res.status(201).json({
       message: 'Deployment created successfully',
@@ -280,6 +343,9 @@ const getAllDeployments = async (req, res, next) => {
       {
         path: 'replacement.replacementDriverId',
         select: 'firstname lastname licenseNo contact subcon'
+      },
+      {
+        path: 'pickups'
       }
     ])
 
@@ -359,6 +425,10 @@ const getAllDeployments = async (req, res, next) => {
         {
           path: 'replacement.replacementDriverId',
           select: 'firstname lastname'
+        },
+        {
+          path: 'pickups',
+          select: 'tmoNo pickupSite municipality fieldContactPerson'
         }
       ])
 
@@ -462,7 +532,7 @@ const updateDeployment = async (req, res, next) => {
     const existingDeployment = await Deployment.findOne({
       _id: id,
       isSoftDeleted: { $ne: true }
-    })
+    }).populate('pickups')
 
     if (!existingDeployment)
       return next(createError(404, 'Deployment not found'))
@@ -900,29 +970,69 @@ const updateDeployment = async (req, res, next) => {
 
     // ── Pickups ───────────────────────────────────────────────────────────
     if (pickups !== undefined) {
-      existingDeployment.pickups = pickups.map(mapPickup)
-    }
+      // pickups is an array of PickupField ObjectIds
+      const oldIds = (originalValues.pickups || []).map(p => p._id?.toString())
+      const newIds = (pickups || []).map(id => id.toString())
 
-    if (pickupUpdates && Array.isArray(pickupUpdates)) {
-      for (const update of pickupUpdates) {
-        const stop = existingDeployment.pickups[update.index]
-        if (!stop) continue
-        if (update.pickupIn !== undefined) stop.pickupIn = update.pickupIn
-        if (update.pickupOut !== undefined) stop.pickupOut = update.pickupOut
-        if (update.actualWeightKg !== undefined)
-          stop.actualWeightKg = update.actualWeightKg
-        if (update.sacksCount !== undefined)
-          stop.sacksCount = Number(update.sacksCount)
+      const removedIds = oldIds.filter(id => !newIds.includes(id))
+      const addedIds = newIds.filter(id => !oldIds.includes(id))
+
+      if (removedIds.length > 0) {
+        await releasePickupFields({ fieldIds: removedIds })
       }
+
+      if (addedIds.length > 0) {
+        const monthKey = getMonthKey()
+        await Promise.all(
+          addedIds.map(async fieldId => {
+            const tmoNo = await generateCode('TMO', monthKey, 'tmo')
+            return PickupField.findByIdAndUpdate(fieldId, {
+              status: 'ongoing',
+              deploymentId: existingDeployment._id,
+              tmoNo
+            })
+          })
+        )
+      }
+
+      existingDeployment.pickups = newIds
       existingDeployment.markModified('pickups')
     }
 
-    const computedSacksCount = existingDeployment.pickups.reduce(
+    if (pickupUpdates && Array.isArray(pickupUpdates)) {
+      // Updates are keyed by PickupField _id — write directly to PickupField docs
+      await Promise.all(
+        pickupUpdates
+          .map(update => {
+            if (!update.id) return null
+            const updateData = {}
+            if (update.pickupIn !== undefined)
+              updateData.pickupIn = update.pickupIn
+            if (update.pickupOut !== undefined)
+              updateData.pickupOut = update.pickupOut
+            if (update.fieldWeightKg !== undefined)
+              updateData.fieldWeightKg = update.fieldWeightKg
+            if (update.plantWeightKg !== undefined)
+              updateData.plantWeightKg = update.plantWeightKg
+            if (update.sacksCount !== undefined)
+              updateData.sacksCount = Number(update.sacksCount)
+            if (Object.keys(updateData).length === 0) return null
+            return PickupField.findByIdAndUpdate(update.id, updateData)
+          })
+          .filter(Boolean)
+      )
+    }
+
+    // Re-fetch updated PickupField docs to compute accurate totals
+    const updatedPickupDocs = await PickupField.find({
+      _id: { $in: existingDeployment.pickups }
+    })
+    const computedSacksCount = updatedPickupDocs.reduce(
       (sum, p) => sum + (Number(p.sacksCount) || 0),
       0
     )
-    const computedWeightKg = existingDeployment.pickups.reduce(
-      (sum, p) => sum + (parseFloat(p.actualWeightKg) || 0),
+    const computedWeightKg = updatedPickupDocs.reduce(
+      (sum, p) => sum + (parseFloat(p.plantWeightKg) || 0),
       0
     )
 
@@ -1082,13 +1192,17 @@ const updateDeployment = async (req, res, next) => {
     if (pickupUpdates && Array.isArray(pickupUpdates)) {
       const isMultiStop = existingDeployment.pickups.length >= 2
 
-      for (const update of pickupUpdates) {
-        const originalStop = originalValues.pickups[update.index]
+      for (let i = 0; i < pickupUpdates.length; i++) {
+        const update = pickupUpdates[i]
+        // originalValues.pickups is populated, find by _id
+        const originalStop = (originalValues.pickups || []).find(
+          p => p._id?.toString() === update.id?.toString()
+        )
 
         const stopLabel = isMultiStop
           ? originalStop?.tmoNo
-            ? `Stop #${update.index + 1} (${originalStop.tmoNo})`
-            : `Stop #${update.index + 1}`
+            ? `Stop #${i + 1} (${originalStop.tmoNo})`
+            : `Stop #${i + 1}`
           : null
 
         if (
@@ -1350,11 +1464,42 @@ const updateDeployment = async (req, res, next) => {
       else await createActivityLog(`Pickup stops updated`)
     }
 
+    // ── Sync pickup fields to completed ───────────────────────────────────
+    if (finalStatus === 'completed' && originalStatus !== 'completed') {
+      try {
+        await PickupField.updateMany(
+          { deploymentId: existingDeployment._id },
+          { status: 'completed' }
+        )
+      } catch (err) {
+        console.error('Error syncing pickup field statuses to completed:', err)
+      }
+    }
+
+    // ── Release pickup fields when canceled ───────────────────────────────
+    if (finalStatus === 'canceled' && originalStatus !== 'canceled') {
+      await releasePickupFields({
+        deploymentId: existingDeployment._id,
+        resetOperational: true
+      })
+    }
+
+    // ── Re-link pickup fields if a canceled deployment is resumed ─────────
+    if (originalStatus === 'canceled' && finalStatus !== 'canceled') {
+      await PickupField.updateMany(
+        { _id: { $in: existingDeployment.pickups } },
+        { status: 'ongoing', deploymentId: existingDeployment._id }
+      ).catch(err =>
+        console.error('Error re-linking pickup fields on resume:', err)
+      )
+    }
+
     const populatedDeployment = await Deployment.findById(id)
       .populate('truckId')
       .populate('driverId')
       .populate('replacement.replacementTruckId')
       .populate('replacement.replacementDriverId')
+      .populate('pickups')
 
     res.status(200).json({
       message: 'Deployment updated successfully',
@@ -1410,6 +1555,13 @@ const softDeleteDeployment = async (req, res, next) => {
 
     deployment.isSoftDeleted = true
     await deployment.save()
+
+    // Release linked pickup fields and wipe all operational data collected
+    // during this deployment (fieldWeightKg, plantWeightKg, sacksCount, pickupIn, pickupOut)
+    await releasePickupFields({
+      deploymentId: deployment._id,
+      resetOperational: true
+    })
 
     await ActivityLog.create({
       type: 'deployment',

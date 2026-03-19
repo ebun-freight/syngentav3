@@ -12,7 +12,8 @@ const activityLogSchema = new mongoose.Schema(
         'visitor',
         'admin',
         'subcon',
-        'system_settings'
+        'system_settings',
+        'pickup_field'
       ]
     },
     performedBy: {
