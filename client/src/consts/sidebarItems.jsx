@@ -35,12 +35,12 @@ export const SIDEBAR_ITEMS = [
     path: '/secure/calendar',
     role: ['head_admin', 'admin', 'visitor', 'subcon']
   },
-  {
-    icon: <TbTimelineEventText />,
-    name: 'Deployment Logs',
-    path: '/secure/deployment-logs',
-    role: ['head_admin', 'admin', 'visitor', 'subcon']
-  },
+  // {
+  //   icon: <TbTimelineEventText />,
+  //   name: 'Deployment Logs',
+  //   path: '/secure/deployment-logs',
+  //   role: ['head_admin', 'admin', 'visitor', 'subcon']
+  // },
   {
     icon: <TbTruckLoading />,
     name: 'Pickup Fields',

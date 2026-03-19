@@ -10,6 +10,20 @@ const { DateTime } = require('luxon')
 
 const MANILA_TZ = 'Asia/Manila'
 
+/**
+ * Parse a bare datetime string (e.g. "2024-01-15T14:30") as Manila time
+ * and return a UTC JS Date for storage in MongoDB type:Date fields.
+ *
+ * Without this, new Date("2024-01-15T14:30") uses the SERVER system timezone:
+ *   - local  (UTC+8) → stored correctly as 06:30 UTC
+ *   - live   (UTC)   → stored wrong as 14:30 UTC (8 hrs off)
+ */
+const toManilaDate = str => {
+  if (!str) return null
+  const dt = DateTime.fromISO(str, { zone: MANILA_TZ })
+  return dt.isValid ? dt.toJSDate() : null
+}
+
 // Helper: build the month key used in TMO / DP code generation (e.g. "2603")
 const getMonthKey = () => {
   const now = new Date()
@@ -595,9 +609,11 @@ const updateDeployment = async (req, res, next) => {
     let replacementDriverDetails = null
 
     const createReplacementTimelineLog = async (action, timestamp) => {
+      // toManilaDate ensures bare strings like "14:30" are parsed as Manila time,
+      // not the live server's system timezone (UTC)
       const ts = timestamp
-        ? new Date(timestamp).toISOString()
-        : DateTime.now().setZone(MANILA_TZ).toISO()
+        ? toManilaDate(timestamp)
+        : DateTime.now().setZone(MANILA_TZ).toJSDate()
       await TimelineLog.create({
         performedBy: req.user._id,
         action,
@@ -1094,9 +1110,11 @@ const updateDeployment = async (req, res, next) => {
 
     const createOrUpdateTimelineLog = async (
       actionType,
-      newTimestamp,
+      rawTimestamp,
       logStatus
     ) => {
+      // Parse as Manila time so live server (UTC) stores the correct UTC instant
+      const newTimestamp = toManilaDate(rawTimestamp)
       const actionMap = {
         departed: 'Departed from station',
         destArrival: 'Arrived at destination',
@@ -1162,7 +1180,7 @@ const updateDeployment = async (req, res, next) => {
               stopLabel ? ` (${stopLabel})` : ''
             }`,
             status: finalStatus || 'ongoing',
-            timestamp: p.pickupIn,
+            timestamp: toManilaDate(p.pickupIn),
             targetDeployment: existingDeployment._id
           })
           timelineLogs.push(`pickupIn${stopLabel ? ` ${stopLabel}` : ''}`)
@@ -1178,7 +1196,7 @@ const updateDeployment = async (req, res, next) => {
               stopLabel ? ` (${stopLabel})` : ''
             }`,
             status: finalStatus || 'ongoing',
-            timestamp: p.pickupOut,
+            timestamp: toManilaDate(p.pickupOut),
             targetDeployment: existingDeployment._id
           })
           timelineLogs.push(`pickupOut${stopLabel ? ` ${stopLabel}` : ''}`)
@@ -1216,7 +1234,7 @@ const updateDeployment = async (req, res, next) => {
               stopLabel ? ` (${stopLabel})` : ''
             }`,
             status: finalStatus || 'ongoing',
-            timestamp: update.pickupIn,
+            timestamp: toManilaDate(update.pickupIn),
             targetDeployment: existingDeployment._id
           })
           timelineLogs.push(`pickupIn${stopLabel ? ` ${stopLabel}` : ''}`)
@@ -1236,7 +1254,7 @@ const updateDeployment = async (req, res, next) => {
               stopLabel ? ` (${stopLabel})` : ''
             }`,
             status: finalStatus || 'ongoing',
-            timestamp: update.pickupOut,
+            timestamp: toManilaDate(update.pickupOut),
             targetDeployment: existingDeployment._id
           })
           timelineLogs.push(`pickupOut${stopLabel ? ` ${stopLabel}` : ''}`)

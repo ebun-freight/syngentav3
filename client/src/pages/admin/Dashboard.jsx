@@ -1714,7 +1714,7 @@ const Dashboard = () => {
               </div>
 
               {/* Deployment Status */}
-              <div className={CLS.card}>
+              <div className={clsx('max-xl:hidden', CLS.card)}>
                 <CardHeader
                   title='Deployment Status'
                   subtitle='Current status distribution'
@@ -1793,6 +1793,20 @@ const Dashboard = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Deployment Status */}
+            <div className={clsx('xl:hidden', CLS.card)}>
+              <CardHeader
+                title='Deployment Status'
+                subtitle='Current status distribution'
+              />
+              <div className={CLS.chartLine}>
+                <Bar
+                  data={getDeploymentStatusData()}
+                  options={verticalBarOptions}
+                />
+              </div>
             </div>
 
             {/* Admin fleet charts */}
