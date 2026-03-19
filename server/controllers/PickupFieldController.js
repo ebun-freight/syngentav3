@@ -200,7 +200,7 @@ const updatePickupField = async (req, res, next) => {
     // ── Sync changes to linked deployment stop ────────────────────────────
     if (field.deploymentId && field.tmoNo) {
       try {
-        const Deployment = require('../models/deploymentModel')
+        const { Deployment } = require('../models/deploymentModel')
         const deployment = await Deployment.findById(field.deploymentId)
         if (deployment) {
           let synced = false

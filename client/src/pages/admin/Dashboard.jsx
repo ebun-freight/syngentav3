@@ -91,6 +91,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [trendPeriod, setTrendPeriod] = useState('weekly')
+  const [weightComparePeriod, setWeightComparePeriod] = useState('weekly')
 
   const colors = {
     green: '#10b981',
@@ -511,6 +512,108 @@ const Dashboard = () => {
         ticks: {
           color: '#6b7280',
           maxTicksLimit: trendPeriod === 'daily' ? 15 : 12
+        }
+      }
+    }
+  }
+
+  // ── Field Weight vs Plant Weight chart ─────────────────────────────────
+  const getFieldVsPlantChartData = () => {
+    const key =
+      weightComparePeriod === 'daily'
+        ? 'dailyFieldVsPlantWeight'
+        : 'weeklyFieldVsPlantWeight'
+    const d = analytics?.charts?.[key]
+    if (!d || !d.labels?.length) return { labels: [], datasets: [] }
+    return {
+      labels: d.labels,
+      datasets: [
+        {
+          label: 'Field Weight (kg)',
+          data: d.fieldWeight,
+          borderColor: colors.green,
+          backgroundColor: `${colors.green}20`,
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: colors.green,
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        },
+        {
+          label: 'Plant Weight (kg)',
+          data: d.plantWeight,
+          borderColor: colors.blue,
+          backgroundColor: `${colors.blue}20`,
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: colors.blue,
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }
+      ]
+    }
+  }
+
+  const fieldVsPlantLineOptions = {
+    ...createBaseOptions(true),
+    plugins: {
+      ...createBaseOptions(true).plugins,
+      datalabels: { display: false },
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 18,
+          font: { size: 12 },
+          color: '#4b5563'
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(255,255,255,0.97)',
+        titleColor: '#1f2937',
+        bodyColor: '#4b5563',
+        borderColor: colors.green,
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 12,
+        callbacks: {
+          label: ctx =>
+            ` ${ctx.dataset.label}: ${(ctx.raw || 0).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })} kg`
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(0,0,0,0.05)' },
+        ticks: {
+          color: '#6b7280',
+          font: { size: 11 },
+          callback: v => v.toLocaleString() + ' kg'
+        },
+        title: {
+          display: true,
+          text: 'Weight (kg)',
+          color: '#6b7280',
+          font: { size: 12, weight: '600' }
+        }
+      },
+      x: {
+        grid: { display: false },
+        ticks: {
+          color: '#6b7280',
+          maxTicksLimit: weightComparePeriod === 'daily' ? 15 : 12
         }
       }
     }
@@ -1300,11 +1403,7 @@ const Dashboard = () => {
                       analytics.performanceMetrics.totalCompletedSacks?.toLocaleString() ||
                       '0'
                     }
-                    subtitle={`Avg: ${
-                      analytics.performanceMetrics.avgCompletedSacks?.toFixed(
-                        2
-                      ) || '0'
-                    } per trip`}
+                    subtitle='Completed trips only'
                     color='emerald-600'
                   />
                   <MetricCard
@@ -1314,10 +1413,7 @@ const Dashboard = () => {
                       analytics.performanceMetrics.totalCompletedWeight?.toLocaleString() ||
                       '0'
                     } kg`}
-                    subtitle={`Avg: ${
-                      analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
-                      '0'
-                    } kg per trip`}
+                    subtitle='Completed trips only'
                     color='violet-600'
                   />
                 </>
@@ -1356,11 +1452,7 @@ const Dashboard = () => {
                     analytics.performanceMetrics.totalCompletedSacks?.toLocaleString() ||
                     '0'
                   }
-                  subtitle={`Avg: ${
-                    analytics.performanceMetrics.avgCompletedSacks?.toFixed(
-                      1
-                    ) || '0'
-                  } per trip`}
+                  subtitle='Completed trips only'
                   color='emerald-600'
                 />
                 <MetricCard
@@ -1370,10 +1462,7 @@ const Dashboard = () => {
                     analytics.performanceMetrics.totalCompletedWeight?.toLocaleString() ||
                     '0'
                   } kg`}
-                  subtitle={`Avg: ${
-                    analytics.performanceMetrics.avgCompletedWeight?.toLocaleString() ||
-                    '0'
-                  } kg per trip`}
+                  subtitle='Completed trips only'
                   color='violet-600'
                 />
                 <MetricCard
@@ -1637,6 +1726,73 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Field Weight vs Plant Weight Comparison */}
+            <div className={CLS.card}>
+              <div
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${CLS.cardHeader}`}
+              >
+                <div>
+                  <h2 className={CLS.cardTitle}>
+                    Field Weight vs Plant Weight
+                  </h2>
+                  <p className={CLS.cardSubtitle}>
+                    {weightComparePeriod === 'daily'
+                      ? 'Last 30 days'
+                      : 'Last 12 weeks'}{' '}
+                    · Completed deployments only
+                  </p>
+                </div>
+                <div className='flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5 self-start sm:self-auto'>
+                  <button
+                    onClick={() => setWeightComparePeriod('daily')}
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      weightComparePeriod === 'daily'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <TbCalendar className='text-sm' />
+                    Daily
+                  </button>
+                  <button
+                    onClick={() => setWeightComparePeriod('weekly')}
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      weightComparePeriod === 'weekly'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <TbCalendarWeek className='text-sm' />
+                    Weekly
+                  </button>
+                </div>
+              </div>
+              {analytics?.charts?.[
+                weightComparePeriod === 'daily'
+                  ? 'dailyFieldVsPlantWeight'
+                  : 'weeklyFieldVsPlantWeight'
+              ]?.labels?.length ? (
+                <ScrollableChart heightClass={CLS.chartLine} minWidth='500px'>
+                  <Line
+                    data={getFieldVsPlantChartData()}
+                    options={fieldVsPlantLineOptions}
+                  />
+                </ScrollableChart>
+              ) : (
+                <div
+                  className={`${CLS.chartLine} flex items-center justify-center`}
+                >
+                  <div className='text-center text-gray-400'>
+                    <p className='text-sm font-medium'>No weight data yet</p>
+                    <p className='text-xs mt-1'>
+                      Complete deployments with field &amp; plant weights to see
+                      comparison
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Admin fleet charts */}

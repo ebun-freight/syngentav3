@@ -1,7 +1,8 @@
 const Truck = require('../models/truckModel')
 const Driver = require('../models/driverModel')
-const Deployment = require('../models/deploymentModel')
+const { Deployment } = require('../models/deploymentModel')
 const User = require('../models/userModel')
+const PickupField = require('../models/pickupFieldModel')
 
 const getDashboardAnalytics = async (req, res) => {
   try {
@@ -166,15 +167,35 @@ const getDashboardAnalytics = async (req, res) => {
       // FIX: removed weeklyDeploymentAnalytics — it was never consumed by the frontend
       // and duplicated data already present in weeklyDeploymentStatusAnalytics
 
-      // Weekly trends (last 12 weeks) — status breakdown used for completed trend line
+      // Weekly trends (last 12 weeks) — grouped by destDeparture (actual completion time)
       weeklyDeploymentStatusAnalytics: Deployment.aggregate([
-        { $match: { ...deploymentFilter, createdAt: { $gte: last12Weeks } } },
+        {
+          $match: {
+            ...deploymentFilter,
+            status: 'completed',
+            destDeparture: { $exists: true, $ne: '' }
+          }
+        },
+        {
+          $addFields: {
+            completedAt: {
+              $dateFromString: {
+                dateString: '$destDeparture',
+                onError: null,
+                onNull: null
+              }
+            }
+          }
+        },
+        { $match: { completedAt: { $ne: null, $gte: last12Weeks } } },
         {
           $group: {
             _id: {
-              year: { $year: '$createdAt' },
-              month: { $month: '$createdAt' },
-              week: { $ceil: { $divide: [{ $dayOfMonth: '$createdAt' }, 7] } },
+              year: { $year: '$completedAt' },
+              month: { $month: '$completedAt' },
+              week: {
+                $ceil: { $divide: [{ $dayOfMonth: '$completedAt' }, 7] }
+              },
               status: '$status'
             },
             count: { $sum: 1 }
@@ -183,15 +204,33 @@ const getDashboardAnalytics = async (req, res) => {
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
       ]),
 
-      // Daily trends (last 30 days)
+      // Daily trends (last 30 days) — grouped by destDeparture (actual completion time)
       dailyDeploymentStatusAnalytics: Deployment.aggregate([
-        { $match: { ...deploymentFilter, createdAt: { $gte: last30Days } } },
+        {
+          $match: {
+            ...deploymentFilter,
+            status: 'completed',
+            destDeparture: { $exists: true, $ne: '' }
+          }
+        },
+        {
+          $addFields: {
+            completedAt: {
+              $dateFromString: {
+                dateString: '$destDeparture',
+                onError: null,
+                onNull: null
+              }
+            }
+          }
+        },
+        { $match: { completedAt: { $ne: null, $gte: last30Days } } },
         {
           $group: {
             _id: {
-              year: { $year: '$createdAt' },
-              month: { $month: '$createdAt' },
-              day: { $dayOfMonth: '$createdAt' },
+              year: { $year: '$completedAt' },
+              month: { $month: '$completedAt' },
+              day: { $dayOfMonth: '$completedAt' },
               status: '$status'
             },
             count: { $sum: 1 }
@@ -624,6 +663,162 @@ const getDashboardAnalytics = async (req, res) => {
           }
         },
         { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
+      ]),
+
+      // ── Field Weight vs Plant Weight (daily) ──────────────────────────
+      // Aggregates from PickupField docs (status: completed) joined to Deployment
+      // ── Field Weight vs Plant Weight (daily) ──────────────────
+      // Groups by destDeparture (actual completion time) not createdAt.
+      // $addFields converts the ISO string → Date so date operators work.
+      dailyFieldVsPlantWeight: PickupField.aggregate([
+        {
+          $match: {
+            status: 'completed',
+            deploymentId: { $ne: null },
+            $or: [
+              { fieldWeightKg: { $exists: true, $ne: '0', $ne: '' } },
+              { plantWeightKg: { $exists: true, $ne: '0', $ne: '' } }
+            ]
+          }
+        },
+        {
+          $lookup: {
+            from: 'deployments',
+            localField: 'deploymentId',
+            foreignField: '_id',
+            as: 'deployment'
+          }
+        },
+        { $unwind: '$deployment' },
+        {
+          $match: {
+            'deployment.isSoftDeleted': { $ne: true },
+            'deployment.status': 'completed',
+            'deployment.destDeparture': { $exists: true, $ne: '' },
+            ...(subconTruckIds
+              ? { 'deployment.truckId': { $in: subconTruckIds } }
+              : {})
+          }
+        },
+        {
+          $addFields: {
+            completedAt: {
+              $dateFromString: {
+                dateString: '$deployment.destDeparture',
+                onError: null,
+                onNull: null
+              }
+            }
+          }
+        },
+        { $match: { completedAt: { $ne: null, $gte: last30Days } } },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$completedAt' },
+              month: { $month: '$completedAt' },
+              day: { $dayOfMonth: '$completedAt' }
+            },
+            totalFieldWeight: {
+              $sum: {
+                $convert: {
+                  input: '$fieldWeightKg',
+                  to: 'double',
+                  onError: 0,
+                  onNull: 0
+                }
+              }
+            },
+            totalPlantWeight: {
+              $sum: {
+                $convert: {
+                  input: '$plantWeightKg',
+                  to: 'double',
+                  onError: 0,
+                  onNull: 0
+                }
+              }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+      ]),
+
+      // ── Field Weight vs Plant Weight (weekly) ──────────────────
+      weeklyFieldVsPlantWeight: PickupField.aggregate([
+        {
+          $match: {
+            status: 'completed',
+            deploymentId: { $ne: null },
+            $or: [
+              { fieldWeightKg: { $exists: true, $ne: '0', $ne: '' } },
+              { plantWeightKg: { $exists: true, $ne: '0', $ne: '' } }
+            ]
+          }
+        },
+        {
+          $lookup: {
+            from: 'deployments',
+            localField: 'deploymentId',
+            foreignField: '_id',
+            as: 'deployment'
+          }
+        },
+        { $unwind: '$deployment' },
+        {
+          $match: {
+            'deployment.isSoftDeleted': { $ne: true },
+            'deployment.status': 'completed',
+            'deployment.destDeparture': { $exists: true, $ne: '' },
+            ...(subconTruckIds
+              ? { 'deployment.truckId': { $in: subconTruckIds } }
+              : {})
+          }
+        },
+        {
+          $addFields: {
+            completedAt: {
+              $dateFromString: {
+                dateString: '$deployment.destDeparture',
+                onError: null,
+                onNull: null
+              }
+            }
+          }
+        },
+        { $match: { completedAt: { $ne: null, $gte: last12Weeks } } },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$completedAt' },
+              month: { $month: '$completedAt' },
+              week: { $ceil: { $divide: [{ $dayOfMonth: '$completedAt' }, 7] } }
+            },
+            totalFieldWeight: {
+              $sum: {
+                $convert: {
+                  input: '$fieldWeightKg',
+                  to: 'double',
+                  onError: 0,
+                  onNull: 0
+                }
+              }
+            },
+            totalPlantWeight: {
+              $sum: {
+                $convert: {
+                  input: '$plantWeightKg',
+                  to: 'double',
+                  onError: 0,
+                  onNull: 0
+                }
+              }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1, '_id.week': 1 } }
       ])
     }
 
@@ -1051,6 +1246,40 @@ const getDashboardAnalytics = async (req, res) => {
             parseFloat((item.avgWeightPerDeployment || 0).toFixed(1))
           )
         },
+
+        // ── Field Weight vs Plant Weight comparison ───────────────────────
+        dailyFieldVsPlantWeight: (() => {
+          const rows = formatArrayData(data.dailyFieldVsPlantWeight)
+          return {
+            labels: rows.map(r =>
+              formatDayLabel(r._id.year, r._id.month, r._id.day)
+            ),
+            fieldWeight: rows.map(r =>
+              parseFloat((r.totalFieldWeight || 0).toFixed(2))
+            ),
+            plantWeight: rows.map(r =>
+              parseFloat((r.totalPlantWeight || 0).toFixed(2))
+            ),
+            counts: rows.map(r => r.count || 0)
+          }
+        })(),
+
+        weeklyFieldVsPlantWeight: (() => {
+          const rows = formatArrayData(data.weeklyFieldVsPlantWeight)
+          return {
+            labels: rows.map(r =>
+              formatWeekLabel(r._id.year, r._id.month, r._id.week)
+            ),
+            fieldWeight: rows.map(r =>
+              parseFloat((r.totalFieldWeight || 0).toFixed(2))
+            ),
+            plantWeight: rows.map(r =>
+              parseFloat((r.totalPlantWeight || 0).toFixed(2))
+            ),
+            counts: rows.map(r => r.count || 0)
+          }
+        })(),
+
         deploymentStatus: {
           labels: deploymentStatusData.map(
             item => deploymentStatusMap[item._id] || item._id || 'Unknown'
