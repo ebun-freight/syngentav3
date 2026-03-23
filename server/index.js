@@ -20,7 +20,10 @@ connectDB()
 const app = express()
 
 const corsOptions = {
-  origin: ['https://syngentav3-ten.vercel.app', 'http://localhost:5173'],
+  origin: [
+    'https://syngentav3-apg0u1g2b-ebun-freights-projects.vercel.app',
+    'http://localhost:5173'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
