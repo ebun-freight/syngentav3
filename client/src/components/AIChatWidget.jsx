@@ -103,7 +103,6 @@ const Bubble = ({ role, text }) => {
             : {
                 background: T.white,
                 color: T.text,
-                borderLeft: `2.5px solid ${T.amber}`,
                 border: `0.5px solid ${T.border}`,
                 borderLeft: `2.5px solid ${T.amber}`
               })
