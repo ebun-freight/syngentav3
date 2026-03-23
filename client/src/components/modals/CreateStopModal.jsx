@@ -10,7 +10,7 @@ import { TbMapPinFilled } from 'react-icons/tb'
 import clsx from 'clsx'
 import { NumericFormat } from 'react-number-format'
 import { toast } from 'react-toastify'
-import useCreatePickupField from '../../hooks/UseCreatePickupField'
+import useCreatePickupField from '../../hooks/useCreatePickupField'
 
 const defaultValue = {
   pickupSite: '',
