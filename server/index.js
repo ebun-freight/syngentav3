@@ -21,7 +21,7 @@ const app = express()
 
 const corsOptions = {
   origin: [
-    'https://syngentav3-apg0u1g2b-ebun-freights-projects.vercel.app',
+    'https://syngenta.ebun.ph',
     'http://localhost:5173'
   ],
   credentials: true,
