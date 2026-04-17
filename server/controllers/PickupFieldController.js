@@ -30,21 +30,6 @@ const createPickupField = async (req, res, next) => {
       false,
     );
 
-    // Check for existing pickup field – exclude optional contact fields from uniqueness
-    const existing = await PickupField.findOne({
-      pickupSite,
-      municipality,
-      estimatedWeightKg,
-    });
-    if (existing) {
-      return next(
-        createError(
-          400,
-          `Pickup field already exists for this site/municipality/estimated weight`,
-        ),
-      );
-    }
-
     const newField = await PickupField.create({
       pickupSite,
       municipality,
