@@ -1,196 +1,197 @@
-const express = require('express')
-const cors = require('cors')
-const http = require('http')
-const { Server } = require('socket.io')
-const connectDB = require('./config/db')
+// // i added this, bcs i cant run the server locally
+// const dns = require("node:dns/promises");
+// dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
+const express = require("express");
+const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
+const connectDB = require("./config/db");
 const {
   routeNotFoundHandler,
-  globalErrorHandler
-} = require('./middlewares/errorHandler')
+  globalErrorHandler,
+} = require("./middlewares/errorHandler");
 
-require('dotenv').config()
-require('colors')
+require("dotenv").config();
+require("colors");
 
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 5000;
 
 // connect to datebase
-connectDB()
+connectDB();
 
 // middleware
-const app = express()
+const app = express();
 
 const corsOptions = {
-  origin: [
-    'https://syngenta.ebun.ph',
-    'http://localhost:5173'
-  ],
+  origin: ["https://syngenta.ebun.ph", "http://localhost:5173"],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
-app.use(cors(corsOptions))
-app.use(express.json())
-app.use(express.urlencoded({ extended: false }))
+app.use(cors(corsOptions));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 // ─── Socket.IO setup ────────────────────────────────────────────────
-const server = http.createServer(app)
-const io = new Server(server, { cors: corsOptions })
+const server = http.createServer(app);
+const io = new Server(server, { cors: corsOptions });
 
-const ChatConversation = require('./models/chatModel')
+const ChatConversation = require("./models/chatModel");
 
 // socketId -> { userId, role, conversationId }
-const socketMeta = new Map()
+const socketMeta = new Map();
 // userId -> socketId
-const userSockets = new Map()
+const userSockets = new Map();
 // Set of admin userIds currently online
-const onlineAdmins = new Set()
+const onlineAdmins = new Set();
 
 const broadcastAdminStatus = () => {
-  io.emit('admin-status', {
+  io.emit("admin-status", {
     online: onlineAdmins.size > 0,
-    count: onlineAdmins.size
-  })
-}
+    count: onlineAdmins.size,
+  });
+};
 
-io.on('connection', socket => {
+io.on("connection", (socket) => {
   // Register user with their userId and role
-  socket.on('register', ({ userId, role }) => {
-    socketMeta.set(socket.id, { userId, role, conversationId: null })
-    userSockets.set(userId, socket.id)
+  socket.on("register", ({ userId, role }) => {
+    socketMeta.set(socket.id, { userId, role, conversationId: null });
+    userSockets.set(userId, socket.id);
 
-    if (role === 'head_admin' || role === 'admin') {
-      onlineAdmins.add(userId)
-      broadcastAdminStatus()
+    if (role === "head_admin" || role === "admin") {
+      onlineAdmins.add(userId);
+      broadcastAdminStatus();
     }
 
     // Tell the registering socket current admin status immediately
-    socket.emit('admin-status', {
+    socket.emit("admin-status", {
       online: onlineAdmins.size > 0,
-      count: onlineAdmins.size
-    })
-  })
+      count: onlineAdmins.size,
+    });
+  });
 
   // Join a conversation room
-  socket.on('join-conversation', conversationId => {
-    socket.join(`chat-${conversationId}`)
-    const meta = socketMeta.get(socket.id)
-    if (meta) meta.conversationId = conversationId
-  })
+  socket.on("join-conversation", (conversationId) => {
+    socket.join(`chat-${conversationId}`);
+    const meta = socketMeta.get(socket.id);
+    if (meta) meta.conversationId = conversationId;
+  });
 
   // Leave a conversation room
-  socket.on('leave-conversation', conversationId => {
-    socket.leave(`chat-${conversationId}`)
-    const meta = socketMeta.get(socket.id)
-    if (meta) meta.conversationId = null
-  })
+  socket.on("leave-conversation", (conversationId) => {
+    socket.leave(`chat-${conversationId}`);
+    const meta = socketMeta.get(socket.id);
+    if (meta) meta.conversationId = null;
+  });
 
   // New message sent
-  socket.on('send-message', data => {
-    const { conversationId, message, conversation } = data
+  socket.on("send-message", (data) => {
+    const { conversationId, message, conversation } = data;
     socket
       .to(`chat-${conversationId}`)
-      .emit('new-message', { conversationId, message })
-    io.emit('conversation-updated', { conversation })
-    io.emit('unread-count-updated')
-  })
+      .emit("new-message", { conversationId, message });
+    io.emit("conversation-updated", { conversation });
+    io.emit("unread-count-updated");
+  });
 
   // Admin marks a conversation as read — broadcast updated unread count
-  socket.on('mark-conversation-read', () => {
-    io.emit('unread-count-updated')
-  })
+  socket.on("mark-conversation-read", () => {
+    io.emit("unread-count-updated");
+  });
 
   // Admin resolves/closes a conversation
-  socket.on('resolve-conversation', async ({ conversationId }) => {
+  socket.on("resolve-conversation", async ({ conversationId }) => {
     try {
       await ChatConversation.findByIdAndUpdate(conversationId, {
-        status: 'closed'
-      })
+        status: "closed",
+      });
     } catch (e) {
       /* ignore */
     }
-    io.to(`chat-${conversationId}`).emit('chat-ended', {
+    io.to(`chat-${conversationId}`).emit("chat-ended", {
       conversationId,
-      reason: 'Admin resolved the conversation'
-    })
-    io.emit('conversation-removed', { conversationId })
-  })
+      reason: "Admin resolved the conversation",
+    });
+    io.emit("conversation-removed", { conversationId });
+  });
 
   // User explicitly ends chat on page unload
-  socket.on('end-on-unload', async ({ conversationId }) => {
-    if (!conversationId) return
+  socket.on("end-on-unload", async ({ conversationId }) => {
+    if (!conversationId) return;
     try {
       await ChatConversation.findByIdAndUpdate(conversationId, {
-        status: 'closed'
-      })
+        status: "closed",
+      });
     } catch (e) {
       /* ignore */
     }
-    socket.to(`chat-${conversationId}`).emit('chat-ended', {
+    socket.to(`chat-${conversationId}`).emit("chat-ended", {
       conversationId,
-      reason: 'User left the session'
-    })
-    io.emit('conversation-removed', { conversationId })
-  })
+      reason: "User left the session",
+    });
+    io.emit("conversation-removed", { conversationId });
+  });
 
   // Typing indicators
-  socket.on('typing', ({ conversationId, user }) => {
-    socket.to(`chat-${conversationId}`).emit('user-typing', { user })
-  })
-  socket.on('stop-typing', ({ conversationId }) => {
-    socket.to(`chat-${conversationId}`).emit('user-stop-typing')
-  })
+  socket.on("typing", ({ conversationId, user }) => {
+    socket.to(`chat-${conversationId}`).emit("user-typing", { user });
+  });
+  socket.on("stop-typing", ({ conversationId }) => {
+    socket.to(`chat-${conversationId}`).emit("user-stop-typing");
+  });
 
-  socket.on('disconnect', async () => {
-    const meta = socketMeta.get(socket.id)
+  socket.on("disconnect", async () => {
+    const meta = socketMeta.get(socket.id);
     if (meta) {
-      const { userId, role, conversationId } = meta
-      userSockets.delete(userId)
+      const { userId, role, conversationId } = meta;
+      userSockets.delete(userId);
 
-      if (role === 'head_admin' || role === 'admin') {
-        onlineAdmins.delete(userId)
-        broadcastAdminStatus()
+      if (role === "head_admin" || role === "admin") {
+        onlineAdmins.delete(userId);
+        broadcastAdminStatus();
       } else if (conversationId) {
         // Non-admin user disconnected — end their conversation
         try {
           await ChatConversation.findByIdAndUpdate(conversationId, {
-            status: 'closed'
-          })
+            status: "closed",
+          });
         } catch (e) {
           /* ignore */
         }
-        socket.to(`chat-${conversationId}`).emit('chat-ended', {
+        socket.to(`chat-${conversationId}`).emit("chat-ended", {
           conversationId,
-          reason: 'User left the session'
-        })
-        io.emit('conversation-removed', { conversationId })
+          reason: "User left the session",
+        });
+        io.emit("conversation-removed", { conversationId });
       }
 
-      socketMeta.delete(socket.id)
+      socketMeta.delete(socket.id);
     }
-  })
-})
+  });
+});
 
 // routes
-app.use('/api/user', require('./routes/userRoute'))
-app.use('/api/driver', require('./routes/driverRoute'))
-app.use('/api/truck', require('./routes/truckRoute'))
-app.use('/api/deployment', require('./routes/deploymentRoute'))
-app.use('/api/analytics', require('./routes/dashboardRoute'))
-app.use('/api/activity-logs', require('./routes/activityLogRoute'))
-app.use('/api/timeline-logs', require('./routes/timelineRoute'))
-app.use('/api/system-settings', require('./routes/systemSettingsRoute'))
-app.use('/api/ai', require('./routes/AiChatRoute'))
-app.use('/api/chat', require('./routes/chatRoute'))
-app.use('/api/pickup-fields', require('./routes/pickupFieldRoute'))
+app.use("/api/user", require("./routes/userRoute"));
+app.use("/api/driver", require("./routes/driverRoute"));
+app.use("/api/truck", require("./routes/truckRoute"));
+app.use("/api/deployment", require("./routes/deploymentRoute"));
+app.use("/api/analytics", require("./routes/dashboardRoute"));
+app.use("/api/activity-logs", require("./routes/activityLogRoute"));
+app.use("/api/timeline-logs", require("./routes/timelineRoute"));
+app.use("/api/system-settings", require("./routes/systemSettingsRoute"));
+app.use("/api/ai", require("./routes/AiChatRoute"));
+app.use("/api/chat", require("./routes/chatRoute"));
+app.use("/api/pickup-fields", require("./routes/pickupFieldRoute"));
 
 // error-handling middleware
-app.use(routeNotFoundHandler)
-app.use(globalErrorHandler)
+app.use(routeNotFoundHandler);
+app.use(globalErrorHandler);
 
-console.log(new Date())
+console.log(new Date());
 
 // start server
 server.listen(PORT, () =>
-  console.log(`Server running on port: ${PORT}`.yellow.underline)
-)
+  console.log(`Server running on port: ${PORT}`.yellow.underline),
+);
