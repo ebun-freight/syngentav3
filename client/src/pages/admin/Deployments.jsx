@@ -479,12 +479,12 @@ function Deployments() {
               <h1 className="font-bold text-lg sm:text-xl md:text-2xl text-gray-800">
                 Deployments
               </h1>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-400 mt-0.5 max-md:hidden">
                 Manage and track all truck deployments
               </p>
             </div>
 
-            <div className="flex gap-2 max-sm:hidden xl:hidden">
+            <div className="flex gap-2 xl:hidden">
               {/* {["head_admin", "admin"].includes(userData.data.role) && (
                 <div className="dropdown dropdown-end sm:dropdown-center">
                   <div

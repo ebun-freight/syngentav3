@@ -423,7 +423,7 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
                   <h2 className="text-gray-900 font-bold text-xl max-sm:text-base">
                     Create a Deployment
                   </h2>
-                  <p className="text-gray-500 text-sm mt-0.5">
+                  <p className="text-gray-500 text-sm mt-0.5 max-md:hidden">
                     Select pickup fields on the right, then fill in the
                     deployment details.
                   </p>
@@ -923,12 +923,12 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
               </div>
 
               {/* ── ACTION BAR ── */}
-              <div className="max-sm:hidden flex items-center gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+              <div className=" flex items-center gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
                 <button
                   type="submit"
                   form="create-deployment-form"
                   disabled={isLoading}
-                  className="px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide
+                  className="px-4 py-2 md:px-8 md:py-2.5 rounded-lg md:rounded-xl font-semibold text-white text-xs md:text-sm uppercase tracking-wide
                              shadow-md hover:shadow-lg active:scale-[0.99]
                              transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed
                              flex items-center justify-center gap-2.5 cursor-pointer"
@@ -944,7 +944,7 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
                     </>
                   ) : (
                     <>
-                      <PiMapPinAreaFill className="text-base" />
+                      <PiMapPinAreaFill className="text-sm md:text-base" />
                       <span>Deploy Truck</span>
                     </>
                   )}

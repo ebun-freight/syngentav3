@@ -183,86 +183,73 @@ function CreateStopModal({ isOpen, onClose, onCreate }) {
               {/* Form body */}
               <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
                 <form id="create-stop-form" onSubmit={handleSubmit}>
-                  {/* ── Section header — same sticky style as deployment modal ── */}
-                  <div className="sticky top-0 z-10 flex items-center bg-white px-6 py-3 max-sm:px-4 border-b border-gray-100">
-                    <h3 className="text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Pickup Details
-                    </h3>
-                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3">
+                    <InputField
+                      label="Pick-up Site"
+                      type="text"
+                      name="pickupSite"
+                      placeholder="Pick-up Site"
+                      value={formData.pickupSite}
+                      onChange={handleChange}
+                    />
+                    <InputField
+                      label="Municipality"
+                      type="text"
+                      name="municipality"
+                      placeholder="Municipality"
+                      value={formData.municipality}
+                      onChange={handleChange}
+                    />
+                    <InputField
+                      label="Scheduled Pickup Time"
+                      type="datetime-local"
+                      name="scheduledPickupTime"
+                      value={formData.scheduledPickupTime}
+                      onChange={handleChange}
+                      isRequired={false}
+                    />
 
-                  {/* ── Stop card — copied exactly from deployment modal stops ── */}
-                  <div className="flex flex-col gap-4 px-6 pt-4 pb-6 max-sm:px-4">
-                    <div className="border border-gray-200 rounded-xl p-4 max-sm:p-3 relative bg-gray-50/50">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                        <InputField
-                          label="Pick-up Site"
-                          type="text"
-                          name="pickupSite"
-                          placeholder="Pick-up Site"
-                          value={formData.pickupSite}
-                          onChange={handleChange}
-                        />
-                        <InputField
-                          label="Municipality"
-                          type="text"
-                          name="municipality"
-                          placeholder="Municipality"
-                          value={formData.municipality}
-                          onChange={handleChange}
-                        />
-                        <InputField
-                          label="Scheduled Pickup Time"
-                          type="datetime-local"
-                          name="scheduledPickupTime"
-                          value={formData.scheduledPickupTime}
-                          onChange={handleChange}
-                          isRequired={false}
-                        />
-
-                        {/* Est. Weight */}
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Est. Weight (kg){" "}
-                            <span className="text-red-400">*</span>
-                          </span>
-                          <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm">
-                            <NumericFormat
-                              thousandSeparator
-                              decimalScale={2}
-                              allowNegative={false}
-                              value={formData.estimatedWeightKg}
-                              onValueChange={(values) =>
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  estimatedWeightKg: values.floatValue || "",
-                                }))
-                              }
-                              placeholder="Estimated Weight"
-                              required
-                              className="flex-1 text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none"
-                            />
-                          </div>
-                        </div>
-
-                        <InputField
-                          label="Field Contact Person"
-                          type="text"
-                          name="fieldContactPerson"
-                          placeholder="Field Contact Person"
-                          value={formData.fieldContactPerson}
-                          onChange={handleChange}
-                        />
-                        <InputField
-                          label="Field Contact No."
-                          type="tel"
-                          name="fieldContactPersonNo"
-                          placeholder="Contact Number"
-                          value={formData.fieldContactPersonNo}
-                          onChange={handleChange}
-                          maxLength={11}
+                    {/* Est. Weight */}
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Est. Weight (kg) <span className="text-red-400">*</span>
+                      </span>
+                      <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm">
+                        <NumericFormat
+                          thousandSeparator
+                          decimalScale={2}
+                          allowNegative={false}
+                          value={formData.estimatedWeightKg}
+                          onValueChange={(values) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              estimatedWeightKg: values.floatValue || "",
+                            }))
+                          }
+                          placeholder="Estimated Weight"
+                          required
+                          className="flex-1 text-sm max-sm:text-xs text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none"
                         />
                       </div>
                     </div>
+
+                    <InputField
+                      label="Field Contact Person"
+                      type="text"
+                      name="fieldContactPerson"
+                      placeholder="Field Contact Person"
+                      value={formData.fieldContactPerson}
+                      onChange={handleChange}
+                    />
+                    <InputField
+                      label="Field Contact No."
+                      type="tel"
+                      name="fieldContactPersonNo"
+                      placeholder="Contact Number"
+                      value={formData.fieldContactPersonNo}
+                      onChange={handleChange}
+                      maxLength={11}
+                    />
                   </div>
                 </form>
               </div>
@@ -273,7 +260,7 @@ function CreateStopModal({ isOpen, onClose, onCreate }) {
                   type="submit"
                   form="create-stop-form"
                   disabled={isLoading}
-                  className="px-8 py-2.5 rounded-xl font-semibold text-white text-sm uppercase tracking-wide shadow-md hover:shadow-lg active:scale-[0.99] transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 cursor-pointer"
+                  className="px-4 py-2 md:px-8 md:py-2.5 rounded-lg md:rounded-xl font-semibold text-white text-sm uppercase tracking-wide shadow-md hover:shadow-lg active:scale-[0.99] transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 cursor-pointer"
                   style={{
                     background:
                       "linear-gradient(135deg, #10b981 0%, #059669 100%)",
@@ -286,7 +273,7 @@ function CreateStopModal({ isOpen, onClose, onCreate }) {
                     </>
                   ) : (
                     <>
-                      <TbMapPinFilled className="text-base" />
+                      <TbMapPinFilled className="text-sm md:text-base" />
                       <span>Create Stop</span>
                     </>
                   )}
