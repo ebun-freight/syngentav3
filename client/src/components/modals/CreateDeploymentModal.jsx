@@ -907,6 +907,7 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
                                 </p>
                                 <div className="flex items-center gap-1.5 mt-1">
                                   <span className="text-[10px] font-medium bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded">
+                                    Est. Wt{" - "}
                                     {Number(
                                       field.estimatedWeightKg,
                                     ).toLocaleString()}{" "}
