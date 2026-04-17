@@ -20,32 +20,36 @@ const createPickupField = async (req, res, next) => {
       estimatedWeightKg,
     } = req.body;
 
+    // Validate only required fields (contact person & number are optional now)
     validateFields(
       {
         pickupSite,
         municipality,
-        fieldContactPerson,
-        fieldContactPersonNo,
         estimatedWeightKg,
       },
       false,
     );
 
+    // Check for existing pickup field – exclude optional contact fields from uniqueness
     const existing = await PickupField.findOne({
       pickupSite,
       municipality,
-      fieldContactPerson,
       estimatedWeightKg,
     });
     if (existing) {
-      return next(createError(400, `Field stop already exists`));
+      return next(
+        createError(
+          400,
+          `Pickup field already exists for this site/municipality/estimated weight`,
+        ),
+      );
     }
 
     const newField = await PickupField.create({
       pickupSite,
       municipality,
-      fieldContactPerson,
-      fieldContactPersonNo,
+      fieldContactPerson: fieldContactPerson || undefined,
+      fieldContactPersonNo: fieldContactPersonNo || undefined,
       scheduledPickupTime: scheduledPickupTime || undefined,
       estimatedWeightKg,
       status: "not_done",
@@ -68,7 +72,6 @@ const createPickupField = async (req, res, next) => {
     next(error);
   }
 };
-
 // ─── Get All Pickup Fields ─────────────────────────────────────────────────────
 
 const getAllPickupFields = async (req, res, next) => {

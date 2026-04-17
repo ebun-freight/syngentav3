@@ -296,6 +296,7 @@ function PickupFieldDetailsModal({
                             onChange={handleChange}
                             placeholder="Field Contact Person"
                             disabled={!canEdit}
+                            isRequired={false}
                           />
                           <InputField
                             label="Field Contact No."

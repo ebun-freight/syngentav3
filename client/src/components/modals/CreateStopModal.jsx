@@ -240,6 +240,7 @@ function CreateStopModal({ isOpen, onClose, onCreate }) {
                       placeholder="Field Contact Person"
                       value={formData.fieldContactPerson}
                       onChange={handleChange}
+                      isRequired={false}
                     />
                     <InputField
                       label="Field Contact No."
@@ -249,6 +250,7 @@ function CreateStopModal({ isOpen, onClose, onCreate }) {
                       value={formData.fieldContactPersonNo}
                       onChange={handleChange}
                       maxLength={11}
+                      isRequired={false}
                     />
                   </div>
                 </form>

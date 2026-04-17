@@ -26,19 +26,12 @@ const pickupFieldSchema = new mongoose.Schema(
     },
     fieldContactPerson: {
       type: String,
-      required: [true, "Field Contact Person is required"],
       trim: true,
       maxlength: [100, "Field Contact Person cannot exceed 100 characters"],
-      match: [
-        /^[a-zA-Z\s'.,-]+$/,
-        "Field Contact Person must contain letters only",
-      ],
     },
     fieldContactPersonNo: {
       type: String,
       trim: true,
-      match: [/^(?:\+639|09)\d{9}$/, "Invalid contact number format"],
-      required: [true, "Field Contact Person No. is required"],
     },
     scheduledPickupTime: {
       type: String,
