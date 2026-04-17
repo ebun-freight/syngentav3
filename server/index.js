@@ -1,4 +1,4 @@
-// // i added this, bcs i cant run the server locally
+// i added this, bcs i cant run the server locally
 // const dns = require("node:dns/promises");
 // dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
