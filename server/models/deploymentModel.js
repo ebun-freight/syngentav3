@@ -54,22 +54,15 @@ const deploymentSchema = new mongoose.Schema(
       {
         contactPerson: {
           type: String,
-          required: [true, "Receiving Contact Person is required"],
           trim: true,
           maxlength: [
             100,
             "Receiving Contact Person cannot exceed 100 characters",
           ],
-          match: [
-            /^[a-zA-Z\s'.,-]+$/,
-            "Receiving Contact Person must contain letters only",
-          ],
         },
         contactPersonNo: {
           type: String,
-          required: [true, "Receiving Contact Person's No. is required"],
           trim: true,
-          match: [/^(?:\+639|09)\d{9}$/, "Invalid contact number format"],
         },
       },
     ],
