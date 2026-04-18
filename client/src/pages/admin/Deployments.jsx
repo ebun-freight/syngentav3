@@ -3,7 +3,13 @@ import DeploymentDetailsModal from "../../components/modals/DeploymentDetailsMod
 import CreateDeploymentModal from "../../components/modals/CreateDeploymentModal";
 import useGetAllTruck from "../../hooks/useGetAllTruck";
 import useGetAllDriver from "../../hooks/useGetAllDriver";
-import { FaFilter, FaPlus, FaSearch } from "react-icons/fa";
+import {
+  FaArrowDown,
+  FaArrowUp,
+  FaFilter,
+  FaPlus,
+  FaSearch,
+} from "react-icons/fa";
 import { DEPLOYMENT_STATUS } from "../../utils/generalOptions";
 import { IoClose } from "react-icons/io5";
 import {
@@ -177,6 +183,76 @@ const PickupStopsCell = ({ pickups = [], field, status }) => {
           )}
         </div>
       ))}
+    </div>
+  );
+};
+
+/* ── Weight Difference Cell ───────────────────────────────────────────────── */
+const WeightDiffCell = ({ deployment }) => {
+  const { pickups = [], status } = deployment;
+
+  if (status === "canceled") {
+    return (
+      <p className="italic text-gray-400 font-light text-xxs sm:text-xs">
+        Canceled
+      </p>
+    );
+  }
+
+  const totalFieldWt = pickups.reduce(
+    (sum, p) => sum + (parseFloat(p.fieldWeightKg) || 0),
+    0,
+  );
+  const totalPlantWt = pickups.reduce(
+    (sum, p) => sum + (parseFloat(p.plantWeightKg) || 0),
+    0,
+  );
+
+  if (totalFieldWt === 0 || totalPlantWt === 0) {
+    return (
+      <p className="italic text-gray-400 font-light text-xxs sm:text-xs">
+        Pending
+      </p>
+    );
+  }
+
+  const diff = totalPlantWt - totalFieldWt;
+  const absDiff = Math.abs(diff);
+  const pct = ((absDiff / totalFieldWt) * 100).toFixed(1);
+  const isGain = diff > 0;
+  const isNeutral = diff === 0;
+
+  if (isNeutral) {
+    return (
+      <p className="italic text-gray-400 font-light text-xxs sm:text-xs">
+        No change
+      </p>
+    );
+  }
+
+  return (
+    <div
+      className={clsx(
+        "flex items-center gap-1 w-fit px-2 py-1 rounded-full text-nowrap",
+        isGain
+          ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+          : "bg-red-50 text-red-500 border border-red-100",
+      )}
+    >
+      {isGain ? (
+        <FaArrowUp className="text-xxs shrink-0" />
+      ) : (
+        <FaArrowDown className="text-xxs shrink-0" />
+      )}
+      <span className="text-xxs">{absDiff.toLocaleString()} kg</span>
+      <span
+        className={clsx(
+          "text-xxs inline",
+          isGain ? "text-emerald-600" : "text-red-500",
+        )}
+      >
+        ({pct}%)
+      </span>
     </div>
   );
 };
@@ -832,6 +908,7 @@ function Deployments() {
                     <td>Dest. Arrival</td>
                     <td>Dest. Departure</td>
                     <td>Unloading</td>
+                    <td>Wt. Difference</td>
                   </tr>
                 </thead>
                 <tbody>
@@ -1030,6 +1107,10 @@ function Deployments() {
                               : "Pending"}
                           </p>
                         )}
+                      </td>
+
+                      <td>
+                        <WeightDiffCell deployment={deployment} />
                       </td>
                     </tr>
                   ))}

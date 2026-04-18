@@ -827,6 +827,8 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
                           const isSelected = selectedFieldIds.includes(
                             field._id,
                           );
+                          const selectionOrder =
+                            selectedFieldIds.indexOf(field._id) + 1;
                           const isMaxed =
                             formData.pickups.length >= MAX_PICKUPS &&
                             !isSelected;
@@ -844,29 +846,19 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
                                 isMaxed && "opacity-40 cursor-not-allowed",
                               )}
                             >
-                              {/* Checkbox */}
+                              {/* Order indicator */}
                               <div
                                 className={clsx(
-                                  "shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all",
+                                  "w-6 h-6 aspect-square rounded-full flex items-center justify-center transition-all",
                                   isSelected
-                                    ? "bg-emerald-500 border-emerald-500"
-                                    : "border-gray-300 bg-white",
+                                    ? "bg-emerald-500"
+                                    : "bg-transparent",
                                 )}
                               >
                                 {isSelected && (
-                                  <svg
-                                    className="w-2.5 h-2.5 text-white"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={3.5}
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M5 13l4 4L19 7"
-                                    />
-                                  </svg>
+                                  <span className="text-xs font-medium text-white font-mono">
+                                    {selectionOrder}
+                                  </span>
                                 )}
                               </div>
 

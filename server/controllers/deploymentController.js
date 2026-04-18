@@ -128,40 +128,6 @@ const applyStringFilter = (query, field, value) => {
   return query.where(field).equals(value);
 };
 
-// Helper: validate receivingContacts array
-const validateReceivingContacts = (receivingContacts, next) => {
-  if (
-    !receivingContacts ||
-    !Array.isArray(receivingContacts) ||
-    receivingContacts.length === 0
-  ) {
-    next(createError(400, "At least one receiving contact is required"));
-    return false;
-  }
-  for (let i = 0; i < receivingContacts.length; i++) {
-    const { contactPerson, contactPersonNo } = receivingContacts[i];
-    if (!contactPerson || contactPerson.trim() === "") {
-      next(
-        createError(
-          400,
-          `Receiving Contact Person is required (contact #${i + 1})`,
-        ),
-      );
-      return false;
-    }
-    if (!contactPersonNo || contactPersonNo.trim() === "") {
-      next(
-        createError(
-          400,
-          `Receiving Contact Person's No. is required (contact #${i + 1})`,
-        ),
-      );
-      return false;
-    }
-  }
-  return true;
-};
-
 // ─── Create deployment ─────────────────────────────────────────────────────────
 
 const createDeployment = async (req, res, next) => {
@@ -582,11 +548,6 @@ const updateDeployment = async (req, res, next) => {
           "Cancellation reason is required when canceling a deployment",
         ),
       );
-    }
-
-    // Validate receivingContacts if provided in the update
-    if (receivingContacts !== undefined) {
-      if (!validateReceivingContacts(receivingContacts, next)) return;
     }
 
     const existingDeployment = await Deployment.findOne({

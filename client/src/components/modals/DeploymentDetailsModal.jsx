@@ -172,20 +172,6 @@ function DeploymentDetailsModal({
   const handleUpdateDeployment = async (e) => {
     e.preventDefault();
 
-    // Client-side contact validation
-    const contacts = editForm.receivingContacts || [];
-    for (let i = 0; i < contacts.length; i++) {
-      const c = contacts[i];
-      if (!c.contactPerson?.trim()) {
-        toast.error(`Contact person name is required (Contact #${i + 1}).`);
-        return;
-      }
-      if (!c.contactPersonNo?.trim()) {
-        toast.error(`Contact number is required (Contact #${i + 1}).`);
-        return;
-      }
-    }
-
     // Separate populated pickups from the rest of the form
     const { pickups: editPickups, ...restForm } = editForm;
 
@@ -2072,7 +2058,7 @@ const DeploymentInfoTab = ({
           <div className="col-span-full">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Receiving Contacts <span className="text-red-400">*</span>
+                Receiving Contacts
               </span>
               {isEditMode && receivingContacts.length < MAX_CONTACTS && (
                 <button
@@ -2123,7 +2109,6 @@ const DeploymentInfoTab = ({
                           name="contactPerson"
                           value={contact.contactPerson || ""}
                           onChange={(e) => handleContactChange(index, e)}
-                          required
                           placeholder="Contact Person"
                           maxLength={100}
                           className="flex-1 min-w-0 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none capitalize"
@@ -2149,7 +2134,6 @@ const DeploymentInfoTab = ({
                           name="contactPersonNo"
                           value={contact.contactPersonNo || ""}
                           onChange={(e) => handleContactChange(index, e)}
-                          required
                           placeholder="Contact Number"
                           maxLength={13}
                           className="flex-1 min-w-0 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none"

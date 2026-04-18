@@ -1,43 +1,42 @@
-import { Routes, Route } from 'react-router'
-import ActivityLogsPage from './pages/admin/ActivityLogsPage'
-import CalendarPage from './pages/admin/CalendarPage'
-import DriverListPage from './pages/admin/DriverManagement'
-import TruckListPage from './pages/admin/TruckManagement'
-import { ToastContainer, Slide } from 'react-toastify'
-import { UserProvider } from './contexts/UserContext'
-import Deployments from './pages/admin/Deployments'
-import Dashboard from './pages/admin/Dashboard'
-import UserLayout from './layout/UserLayout'
-import ViewerListPage from './pages/admin/VisitorManagement'
-import AdminManagement from './pages/admin/AdminManagement'
-import LoginPage from './pages/public/LoginPage'
-import SignupPage from './pages/public/SignupPage'
-import TimelineLogs from './pages/admin/TimelineLogs'
-import MyProfile from './pages/admin/MyProfile'
-import SubconManagement from './pages/admin/SubconManagement'
-import { UIProvider } from './contexts/UIContext'
-import NotFoundPage from './pages/public/NotFoundPage'
-import SystemSettingsPage from './pages/admin/SystemSettingsPage'
-import LiveChatPage from './pages/admin/LiveChatPage'
-import { SettingsProvider } from './contexts/SettingsContext'
-import { useState, useEffect } from 'react'
-import PickupFields from './pages/admin/PickupFields'
+import { Routes, Route } from "react-router";
+import ActivityLogsPage from "./pages/admin/ActivityLogsPage";
+import CalendarPage from "./pages/admin/CalendarPage";
+import DriverListPage from "./pages/admin/DriverManagement";
+import TruckListPage from "./pages/admin/TruckManagement";
+import { ToastContainer, Slide } from "react-toastify";
+import { UserProvider } from "./contexts/UserContext";
+import Deployments from "./pages/admin/Deployments";
+import Dashboard from "./pages/admin/Dashboard";
+import UserLayout from "./layout/UserLayout";
+import ViewerListPage from "./pages/admin/VisitorManagement";
+import AdminManagement from "./pages/admin/AdminManagement";
+import LoginPage from "./pages/public/LoginPage";
+import SignupPage from "./pages/public/SignupPage";
+import TimelineLogs from "./pages/admin/TimelineLogs";
+import MyProfile from "./pages/admin/MyProfile";
+import SubconManagement from "./pages/admin/SubconManagement";
+import { UIProvider } from "./contexts/UIContext";
+import NotFoundPage from "./pages/public/NotFoundPage";
+import SystemSettingsPage from "./pages/admin/SystemSettingsPage";
+import { SettingsProvider } from "./contexts/SettingsContext";
+import { useState, useEffect } from "react";
+import PickupFields from "./pages/admin/PickupFields";
 
-function App () {
-  console.log(import.meta.env.MODE)
+function App() {
+  console.log(import.meta.env.MODE);
 
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handler)
-    return () => window.removeEventListener('resize', handler)
-  }, [])
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   return (
     <>
       <ToastContainer
-        position='bottom-right'
+        position="bottom-right"
         autoClose={4000}
         hideProgressBar={false}
         newestOnTop={false}
@@ -49,34 +48,34 @@ function App () {
         transition={Slide}
         toastStyle={{
           background:
-            'linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)',
+            "linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)",
           backgroundImage: `
             radial-gradient(circle, rgba(255,255,255,0.15) 1.5px, transparent 1.5px),
             linear-gradient(135deg, #020617 0%, #001e36 60%, #0f172a 100%)
           `,
-          backgroundSize: '24px 24px, cover',
-          color: '#f1f5f9',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: isMobile ? '0px' : '12px',
-          fontSize: isMobile ? '11px' : '13px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-          padding: isMobile ? '4px 12px' : '12px 16px'
+          backgroundSize: "24px 24px, cover",
+          color: "#f1f5f9",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: isMobile ? "0px" : "12px",
+          fontSize: isMobile ? "11px" : "13px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          padding: isMobile ? "4px 12px" : "12px 16px",
         }}
         progressStyle={{
-          background: 'rgba(255,255,255,0.25)'
+          background: "rgba(255,255,255,0.25)",
         }}
         iconTheme={{
-          primary: '#f1f5f9',
-          secondary: '#001e36'
+          primary: "#f1f5f9",
+          secondary: "#001e36",
         }}
         style={{
-          '--toastify-icon-size': isMobile ? '6px' : '20px'
+          "--toastify-icon-size": isMobile ? "6px" : "20px",
         }}
       />
 
       <Routes>
-        <Route path='/' element={<LoginPage />} />
-        <Route path='/signup' element={<SignupPage />} />
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
 
         {/* admin page */}
         <Route
@@ -90,47 +89,45 @@ function App () {
             </UIProvider>
           }
         >
-          <Route path='/secure/my-profile' element={<MyProfile />} />
+          <Route path="/secure/my-profile" element={<MyProfile />} />
 
-          <Route path='/secure/dashboard' element={<Dashboard />} />
-          <Route path='/secure/calendar' element={<CalendarPage />} />
-          <Route path='/secure/deployment-logs' element={<TimelineLogs />} />
-          <Route path='/secure/pickup-fields' element={<PickupFields />} />
-          <Route path='/secure/deployments' element={<Deployments />} />
+          <Route path="/secure/dashboard" element={<Dashboard />} />
+          <Route path="/secure/calendar" element={<CalendarPage />} />
+          <Route path="/secure/deployment-logs" element={<TimelineLogs />} />
+          <Route path="/secure/pickup-fields" element={<PickupFields />} />
+          <Route path="/secure/deployments" element={<Deployments />} />
 
           <Route
-            path='/secure/driver-management'
+            path="/secure/driver-management"
             element={<DriverListPage />}
           />
-          <Route path='/secure/truck-management' element={<TruckListPage />} />
+          <Route path="/secure/truck-management" element={<TruckListPage />} />
           <Route
-            path='/secure/visitor-management'
+            path="/secure/visitor-management"
             element={<ViewerListPage />}
           />
           <Route
-            path='/secure/admin-management'
+            path="/secure/admin-management"
             element={<AdminManagement />}
           />
 
           <Route
-            path='/secure/subcon-management'
+            path="/secure/subcon-management"
             element={<SubconManagement />}
           />
-          <Route path='/secure/activity-logs' element={<ActivityLogsPage />} />
-
-          <Route path='/secure/live-chat' element={<LiveChatPage />} />
+          <Route path="/secure/activity-logs" element={<ActivityLogsPage />} />
 
           <Route
-            path='/secure/system-settings'
+            path="/secure/system-settings"
             element={<SystemSettingsPage />}
           />
         </Route>
 
         {/* 404 page */}
-        <Route path='*' element={<NotFoundPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

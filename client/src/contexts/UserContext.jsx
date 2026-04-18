@@ -1,74 +1,78 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router'
-import { API_USER } from '../utils/APIRoutes'
-import { toast } from 'react-toastify'
-import axios from 'axios'
-import AuthLoader from '../components/AuthLoader'
+import { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+import { API_USER } from "../utils/APIRoutes";
+import { toast } from "react-toastify";
+import axios from "axios";
+import AuthLoader from "../components/AuthLoader";
 
-const UserContext = createContext()
+const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const [userData, setUserData] = useState({
     data: {},
     isLoading: true,
-    error: null
-  })
+    error: null,
+  });
 
   const getCurrentUser = async () => {
-    const token = sessionStorage.getItem('userToken')
+    const token = sessionStorage.getItem("userToken");
 
-    setUserData(prev => ({ ...prev, isLoading: true }))
+    setUserData((prev) => ({ ...prev, isLoading: true }));
 
     if (!token) {
-      toast.error('Authentication Failed')
-      navigate('/')
-      return
+      toast.error("Authentication Failed");
+      navigate("/");
+      return;
     }
 
     try {
       const response = await axios.get(`${API_USER}/current-user`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       // remove this shit
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // await new Promise(resolve => setTimeout(resolve, 1000))
 
-      console.log('CURRENT USER', response.data.user)
+      console.log("CURRENT USER", response.data.user);
       setUserData({
         data: response.data.user,
         isLoading: false,
-        error: null
-      })
+        error: null,
+      });
     } catch (error) {
-      console.log(error)
-      setUserData(prev => ({ ...prev, isLoading: false, error: error.message }))
-      toast.error(error.response.data.message || 'Authentication Failed')
-      navigate('/')
+      console.log(error);
+      setUserData((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error.message,
+      }));
+      toast.error(error.response.data.message || "Authentication Failed");
+      navigate("/");
     }
-  }
+  };
 
-  const updateUser = updatedUser => {
-    console.log('Updating user with:', updatedUser)
-    setUserData(prev => ({
+  const updateUser = (updatedUser) => {
+    console.log("Updating user with:", updatedUser);
+    setUserData((prev) => ({
       ...prev,
       data: { ...prev.data, ...updatedUser },
-      isLoading: false
-    }))
-  }
+      isLoading: false,
+    }));
+  };
 
   useEffect(() => {
-    getCurrentUser()
-  }, [])
+    getCurrentUser();
+  }, []);
 
-  if (userData.isLoading) return <AuthLoader />
+  if (userData.isLoading) return <AuthLoader />;
 
   return (
     <UserContext.Provider value={{ userData, updateUser }}>
       {children}
     </UserContext.Provider>
-  )
-}
+  );
+};
 
-export const useUserContext = () => useContext(UserContext)
+export const useUserContext = () => useContext(UserContext);
