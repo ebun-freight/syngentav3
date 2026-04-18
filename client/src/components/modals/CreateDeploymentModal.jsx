@@ -660,7 +660,6 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
                                     onChange={(e) =>
                                       handleContactChange(index, e)
                                     }
-                                    required
                                     placeholder="Contact Person"
                                     maxLength={100}
                                     className="flex-1 min-w-0 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none capitalize"
@@ -678,7 +677,6 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
                                     onChange={(e) =>
                                       handleContactChange(index, e)
                                     }
-                                    required
                                     placeholder="Contact Number"
                                     maxLength={13}
                                     className="flex-1 min-w-0 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none"
