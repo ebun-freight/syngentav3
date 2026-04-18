@@ -607,8 +607,7 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Receiving Contacts{" "}
-                            <span className="text-red-400">*</span>
+                            Receiving Contacts
                           </span>
                           {formData.receivingContacts.length < MAX_CONTACTS && (
                             <button
