@@ -210,8 +210,6 @@ const createDeployment = async (req, res, next) => {
       return next(createError(400, "Helper count is required"));
     }
 
-    if (!validateReceivingContacts(receivingContacts, next)) return;
-
     if (
       !pickupFieldIds ||
       !Array.isArray(pickupFieldIds) ||

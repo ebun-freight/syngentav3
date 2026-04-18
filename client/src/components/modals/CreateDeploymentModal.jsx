@@ -343,19 +343,6 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
       return;
     }
 
-    // Client-side contact validation
-    for (let i = 0; i < formData.receivingContacts.length; i++) {
-      const c = formData.receivingContacts[i];
-      if (!c.contactPerson?.trim()) {
-        toast.error(`Contact person name is required (Contact #${i + 1}).`);
-        return;
-      }
-      if (!c.contactPersonNo?.trim()) {
-        toast.error(`Contact number is required (Contact #${i + 1}).`);
-        return;
-      }
-    }
-
     const { pickups, ...rest } = formData;
     const payload = {
       ...rest,
