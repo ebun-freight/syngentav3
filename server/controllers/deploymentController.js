@@ -141,10 +141,6 @@ const createDeployment = async (req, res, next) => {
       helperCount,
       destination,
       receivingContacts,
-      hybrid,
-      territory,
-      flagging,
-      flaggingRemarks,
       totalSacksCount,
       totalWeightKg,
       departed,
@@ -162,9 +158,6 @@ const createDeployment = async (req, res, next) => {
       driverId,
       truckType,
       destination,
-      hybrid,
-      territory,
-      flagging,
     });
 
     // helperCount can legitimately be 0, so validate it separately
@@ -202,10 +195,6 @@ const createDeployment = async (req, res, next) => {
       helperCount,
       destination,
       receivingContacts,
-      hybrid,
-      territory,
-      flagging,
-      flaggingRemarks,
       totalSacksCount: totalSacksCount || 0,
       totalWeightKg: totalWeightKg || 0,
       departed: departed || "",
@@ -284,9 +273,6 @@ const getAllDeployments = async (req, res, next) => {
       page = 1,
       includeDeleted = false,
       subcon,
-      territory,
-      hybrid,
-      flagging,
     } = req.query;
 
     if (completedAtFrom || completedAtTo) status = "completed";
@@ -302,13 +288,8 @@ const getAllDeployments = async (req, res, next) => {
 
     if (includeDeleted !== "true")
       baseQuery = baseQuery.where("isSoftDeleted").ne(true);
-    if (territory && territory !== "")
-      baseQuery = baseQuery.where("territory").equals(territory);
     if (status && status !== "")
       baseQuery = baseQuery.where("status").equals(status);
-
-    baseQuery = applyStringFilter(baseQuery, "hybrid", hybrid);
-    baseQuery = applyStringFilter(baseQuery, "flagging", flagging);
 
     baseQuery = applyDateRange(
       baseQuery,
@@ -406,7 +387,6 @@ const getAllDeployments = async (req, res, next) => {
           (deployment.truckType || "").toLowerCase().includes(s) ||
           (deployment.deploymentCode || "").toLowerCase().includes(s) ||
           getActiveSubcon(deployment).toLowerCase().includes(s) ||
-          (deployment.territory || "").toLowerCase().includes(s) ||
           matchesPickup ||
           matchesContact
         );
@@ -416,11 +396,7 @@ const getAllDeployments = async (req, res, next) => {
     const buildCountQuery = () => {
       let q = Deployment.find();
       if (includeDeleted !== "true") q = q.where("isSoftDeleted").ne(true);
-      if (territory && territory !== "")
-        q = q.where("territory").equals(territory);
       if (status && status !== "") q = q.where("status").equals(status);
-      q = applyStringFilter(q, "hybrid", hybrid);
-      q = applyStringFilter(q, "flagging", flagging);
       q = applyDateRange(q, "createdAt", assignedAtFrom, assignedAtTo, false);
       q = applyDateRange(q, "departed", departedAtFrom, departedAtTo, true);
       q = applyDateRange(
@@ -482,7 +458,6 @@ const getAllDeployments = async (req, res, next) => {
             (deployment.truckType || "").toLowerCase().includes(s) ||
             (deployment.deploymentCode || "").toLowerCase().includes(s) ||
             getActiveSubcon(deployment).toLowerCase().includes(s) ||
-            (deployment.territory || "").toLowerCase().includes(s) ||
             matchesPickup ||
             matchesContact
           );
@@ -519,12 +494,6 @@ const updateDeployment = async (req, res, next) => {
       helperCount,
       destination,
       receivingContacts,
-      hybrid,
-      territory,
-      flagging,
-      flaggingRemarks,
-      totalSacksCount,
-      totalWeightKg,
       replacement,
       departed,
       destArrival,
@@ -585,10 +554,6 @@ const updateDeployment = async (req, res, next) => {
       helperCount: existingDeployment.helperCount,
       destination: existingDeployment.destination,
       receivingContacts: existingDeployment.receivingContacts,
-      hybrid: existingDeployment.hybrid,
-      territory: existingDeployment.territory,
-      flagging: existingDeployment.flagging,
-      flaggingRemarks: existingDeployment.flaggingRemarks,
       totalSacksCount: existingDeployment.totalSacksCount,
       totalWeightKg: existingDeployment.totalWeightKg,
       departed: existingDeployment.departed,
@@ -1080,14 +1045,6 @@ const updateDeployment = async (req, res, next) => {
         receivingContacts !== undefined
           ? receivingContacts
           : existingDeployment.receivingContacts,
-      hybrid: hybrid !== undefined ? hybrid : existingDeployment.hybrid,
-      territory:
-        territory !== undefined ? territory : existingDeployment.territory,
-      flagging: flagging !== undefined ? flagging : existingDeployment.flagging,
-      flaggingRemarks:
-        flaggingRemarks !== undefined
-          ? flaggingRemarks
-          : existingDeployment.flaggingRemarks,
       totalSacksCount: computedSacksCount,
       totalWeightKg: computedWeightKg,
       departed: departed !== undefined ? departed : existingDeployment.departed,
@@ -1437,29 +1394,12 @@ const updateDeployment = async (req, res, next) => {
         );
     }
 
-    if (
-      totalSacksCount !== undefined &&
-      computedSacksCount !== originalValues.totalSacksCount
-    )
+    if (computedSacksCount !== originalValues.totalSacksCount)
       await createActivityLog(`Sacks count changed to ${computedSacksCount}`);
-    if (
-      totalWeightKg !== undefined &&
-      computedWeightKg !== originalValues.totalWeightKg
-    )
+    if (computedWeightKg !== originalValues.totalWeightKg)
       await createActivityLog(`Load weight changed to ${computedWeightKg} kg`);
     if (finalStatus !== undefined && finalStatus !== originalStatus)
       await createActivityLog(`Status changed to ${finalStatus}`);
-    if (territory !== undefined && territory !== originalValues.territory)
-      await createActivityLog(`Territory changed to ${territory}`);
-    if (hybrid !== undefined && hybrid !== originalValues.hybrid)
-      await createActivityLog(`Hybrid changed to ${hybrid}`);
-    if (flagging !== undefined && flagging !== originalValues.flagging)
-      await createActivityLog(`Flagging changed to ${flagging}`);
-    if (
-      flaggingRemarks !== undefined &&
-      flaggingRemarks !== originalValues.flaggingRemarks
-    )
-      await createActivityLog(`Flagging remarks updated`);
 
     if (finalCancellationReason !== originalValues.cancellationReason) {
       if (finalStatus === "canceled" && finalCancellationReason)

@@ -394,6 +394,7 @@ function PickupFields() {
         onUpdate={handleUpdateStop}
         onOpenDelete={() => {
           setDeleteField(editField);
+          setEditField(null);
         }}
       />
 

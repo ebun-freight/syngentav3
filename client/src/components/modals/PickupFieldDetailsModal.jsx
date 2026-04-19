@@ -8,32 +8,13 @@ import {
 import { IoClose } from "react-icons/io5";
 import { TbMapPinFilled, TbPencilMinus, TbTrash } from "react-icons/tb";
 import { FaSave } from "react-icons/fa";
+import { MdKeyboardArrowDown } from "react-icons/md";
 import { NumericFormat } from "react-number-format";
 import { toast } from "react-toastify";
 import clsx from "clsx";
 import { DateTime } from "luxon";
 import useUpdatePickupField from "../../hooks/useUpdatePickupField";
-
-const DotPattern = () => (
-  <svg
-    className="absolute inset-0 w-full h-full opacity-10 pointer-events-none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <defs>
-      <pattern
-        id="dots-pickup-details"
-        x="0"
-        y="0"
-        width="20"
-        height="20"
-        patternUnits="userSpaceOnUse"
-      >
-        <circle cx="2" cy="2" r="1.2" fill="white" />
-      </pattern>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#dots-pickup-details)" />
-  </svg>
-);
+import { useSettingsContext } from "../../contexts/SettingsContext";
 
 const STATUS_CONFIG = {
   not_done: {
@@ -50,6 +31,48 @@ const STATUS_CONFIG = {
   },
 };
 
+/* ── SelectField ── */
+const SelectField = ({
+  label,
+  name,
+  value,
+  onChange,
+  options,
+  isRequired = false,
+  disabled = false,
+}) => (
+  <div className="flex flex-col gap-1.5">
+    <span className="text-xxs sm:text-xs font-semibold text-gray-600 uppercase tracking-wider">
+      {label} {isRequired && <span className="text-red-400">*</span>}
+    </span>
+    <div
+      className={clsx(
+        "relative group flex items-center bg-white border border-gray-200 rounded-xl px-4 py-3 max-sm:px-3 max-sm:py-2.5",
+        "focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all duration-200 shadow-sm",
+        disabled && "opacity-60 cursor-not-allowed",
+      )}
+    >
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        required={isRequired}
+        disabled={disabled}
+        className="w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize disabled:cursor-not-allowed"
+      >
+        <option value="">—</option>
+        {options.map((item, index) => (
+          <option key={index} value={item}>
+            {item}
+          </option>
+        ))}
+      </select>
+      <MdKeyboardArrowDown className="absolute right-4 max-sm:right-3 text-gray-400 group-focus-within:text-primaryColor text-lg pointer-events-none transition-colors" />
+    </div>
+  </div>
+);
+
+/* ── NumericField ── */
 const NumericField = ({
   label,
   value,
@@ -86,6 +109,7 @@ const NumericField = ({
   </div>
 );
 
+/* ── InputField ── */
 const InputField = ({
   label,
   type = "text",
@@ -134,6 +158,7 @@ function PickupFieldDetailsModal({
   onUpdate,
   onOpenDelete,
 }) {
+  const { settings } = useSettingsContext();
   const { updatePickupFieldFunction, isLoading } = useUpdatePickupField();
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -146,6 +171,10 @@ function PickupFieldDetailsModal({
     fieldContactPersonNo: f?.fieldContactPersonNo ?? "",
     scheduledPickupTime: f?.scheduledPickupTime ?? "",
     estimatedWeightKg: f?.estimatedWeightKg ?? "",
+    hybrid: f?.hybrid ?? "",
+    territory: f?.territory ?? "",
+    flagging: f?.flagging?.toLowerCase() ?? "",
+    flaggingRemarks: f?.flaggingRemarks ?? "",
     fieldWeightKg: f?.fieldWeightKg ?? "",
     plantWeightKg: f?.plantWeightKg ?? "",
     sacksCount: f?.sacksCount ?? "",
@@ -197,13 +226,6 @@ function PickupFieldDetailsModal({
   const tmoNo = field?.tmoNo ?? null;
   const canEdit = isEditMode && !isLoading;
 
-  const summaryStats = [
-    { label: "Site", value: editForm.pickupSite || "—" },
-    { label: "Municipality", value: editForm.municipality || "—" },
-    { label: "TMO No.", value: tmoNo || "—" },
-    { label: "DP Code", value: deploymentCode || "—" },
-  ];
-
   return (
     <Dialog
       open={isOpen}
@@ -232,6 +254,7 @@ function PickupFieldDetailsModal({
         >
           <DialogPanel className="font-poppins text-gray-900 w-full max-w-3xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col lg:flex-row max-h-[90vh] lg:max-h-[75vh]">
             <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+              {/* Header */}
               <div className="flex items-start justify-between px-6 pt-5 pb-4 max-sm:px-4 max-sm:pt-4 max-sm:pb-3 border-b border-gray-100 shrink-0">
                 <div>
                   <h2 className="text-gray-900 font-bold text-lg max-sm:text-base">
@@ -254,6 +277,7 @@ function PickupFieldDetailsModal({
                 </button>
               </div>
 
+              {/* Body */}
               <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
                 <form id="pickup-field-details-form" onSubmit={handleSave}>
                   <div className="flex flex-col gap-5 px-6 pt-4 pb-6 max-sm:px-4">
@@ -321,6 +345,44 @@ function PickupFieldDetailsModal({
                             }
                             disabled={!canEdit}
                           />
+
+                          {/* ── Classification fields ── */}
+                          <SelectField
+                            label="Hybrid"
+                            name="hybrid"
+                            value={editForm.hybrid ?? ""}
+                            onChange={handleChange}
+                            options={settings.deployments.hybrid}
+                            disabled={!canEdit}
+                          />
+                          <SelectField
+                            label="Territory"
+                            name="territory"
+                            value={editForm.territory ?? ""}
+                            onChange={handleChange}
+                            options={settings.deployments.territory}
+                            disabled={!canEdit}
+                          />
+                          <SelectField
+                            label="Flagging"
+                            name="flagging"
+                            value={editForm.flagging ?? ""}
+                            onChange={handleChange}
+                            options={settings.deployments.flagging}
+                            disabled={!canEdit}
+                          />
+                          <div className="col-span-1 sm:col-span-3">
+                            <InputField
+                              label="Flagging Remarks"
+                              name="flaggingRemarks"
+                              value={editForm.flaggingRemarks ?? ""}
+                              onChange={handleChange}
+                              placeholder="Flagging Remarks"
+                              isRequired={false}
+                              maxLength={300}
+                              disabled={!canEdit}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -350,7 +412,6 @@ function PickupFieldDetailsModal({
                             disabled
                             isRequired={false}
                           />
-
                           <InputField
                             label="Pick-up In"
                             type="datetime-local"
@@ -369,7 +430,6 @@ function PickupFieldDetailsModal({
                             isRequired={false}
                             disabled={!canEdit}
                           />
-
                           <div className="grid grid-cols-3 gap-4 col-span-full">
                             <NumericField
                               label="Field Weight (kg)"
@@ -417,6 +477,7 @@ function PickupFieldDetailsModal({
                 </form>
               </div>
 
+              {/* Action bar */}
               <div className="flex items-center gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
                 {isEditMode ? (
                   <>

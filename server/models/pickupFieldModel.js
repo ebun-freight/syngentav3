@@ -68,6 +68,31 @@ const pickupFieldSchema = new mongoose.Schema(
         message: "Sacks count must be a whole number",
       },
     },
+
+    // added new
+    hybrid: {
+      type: String,
+      trim: true,
+      maxlength: [100, "Hybrid cannot exceed 100 characters"],
+    },
+    territory: {
+      type: String,
+      trim: true,
+      maxlength: [100, "Territory cannot exceed 100 characters"],
+    },
+    flagging: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      maxlength: [50, "Flagging cannot exceed 50 characters"],
+    },
+    flaggingRemarks: {
+      type: String,
+      trim: true,
+      maxlength: [300, "Flagging remarks cannot exceed 300 characters"],
+      default: "",
+    },
+
     pickupIn: {
       type: String,
       trim: true,

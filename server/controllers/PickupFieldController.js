@@ -18,6 +18,10 @@ const createPickupField = async (req, res, next) => {
       fieldContactPersonNo,
       scheduledPickupTime,
       estimatedWeightKg,
+      hybrid,
+      territory,
+      flagging,
+      flaggingRemarks,
     } = req.body;
 
     // Validate only required fields (contact person & number are optional now)
@@ -37,6 +41,10 @@ const createPickupField = async (req, res, next) => {
       fieldContactPersonNo: fieldContactPersonNo || undefined,
       scheduledPickupTime: scheduledPickupTime || undefined,
       estimatedWeightKg,
+      hybrid: hybrid || undefined,
+      territory: territory || undefined,
+      flagging: flagging || undefined,
+      flaggingRemarks: flaggingRemarks || undefined,
       status: "not_done",
       deploymentId: null,
     });
@@ -57,6 +65,7 @@ const createPickupField = async (req, res, next) => {
     next(error);
   }
 };
+
 // ─── Get All Pickup Fields ─────────────────────────────────────────────────────
 
 const getAllPickupFields = async (req, res, next) => {
@@ -140,6 +149,10 @@ const updatePickupField = async (req, res, next) => {
       sacksCount,
       pickupIn,
       pickupOut,
+      hybrid,
+      territory,
+      flagging,
+      flaggingRemarks,
     } = req.body;
 
     const field = await PickupField.findById(id);
@@ -167,6 +180,12 @@ const updatePickupField = async (req, res, next) => {
           : field.sacksCount,
       pickupIn: pickupIn !== undefined ? pickupIn || "" : field.pickupIn,
       pickupOut: pickupOut !== undefined ? pickupOut || "" : field.pickupOut,
+      hybrid: hybrid !== undefined ? hybrid || undefined : field.hybrid,
+      territory:
+        territory !== undefined ? territory || undefined : field.territory,
+      flagging: flagging !== undefined ? flagging || undefined : field.flagging,
+      flaggingRemarks:
+        flaggingRemarks !== undefined ? flaggingRemarks : field.flaggingRemarks,
     });
 
     await field.save();

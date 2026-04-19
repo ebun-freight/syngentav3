@@ -172,10 +172,8 @@ function DeploymentDetailsModal({
   const handleUpdateDeployment = async (e) => {
     e.preventDefault();
 
-    // Separate populated pickups from the rest of the form
     const { pickups: editPickups, ...restForm } = editForm;
 
-    // Always send pickupUpdates for timing / weight fields (keyed by PickupField _id)
     const pickupUpdates = (editPickups || []).map((pickup) => ({
       id: pickup._id,
       pickupIn: pickup.pickupIn,
@@ -183,9 +181,12 @@ function DeploymentDetailsModal({
       fieldWeightKg: pickup.fieldWeightKg,
       plantWeightKg: pickup.plantWeightKg,
       sacksCount: pickup.sacksCount,
+      hybrid: pickup.hybrid,
+      territory: pickup.territory,
+      flagging: pickup.flagging,
+      flaggingRemarks: pickup.flaggingRemarks,
     }));
 
-    // Only include `pickups` (as IDs) when stops have been removed
     const originalIds = (deployment.pickups || []).map((p) =>
       p._id?.toString(),
     );
@@ -250,7 +251,6 @@ function DeploymentDetailsModal({
         ? deployment.replacement.replacementTruckType
         : deployment.truckType;
 
-      // Primary receiving contact (first in array, fallback to legacy fields)
       const primaryContact = deployment.receivingContacts?.[0] || {
         contactPerson: deployment.receivingContactPerson || "",
         contactPersonNo: deployment.receivingContactPersonNo || "",
@@ -473,22 +473,16 @@ function DeploymentDetailsModal({
 
         ry = field(
           "Territory",
-          capitalizeWords(deployment.territory),
+          capitalizeWords(pickup.territory),
           RIGHT,
           ry,
           FW,
         );
-        ry = field("Hybrid", capitalizeWords(deployment.hybrid), RIGHT, ry, FW);
-        ry = field(
-          "Flagging",
-          capitalizeWords(deployment.flagging),
-          RIGHT,
-          ry,
-          FW,
-        );
+        ry = field("Hybrid", capitalizeWords(pickup.hybrid), RIGHT, ry, FW);
+        ry = field("Flagging", capitalizeWords(pickup.flagging), RIGHT, ry, FW);
         ry = field(
           "Reason of Flagging",
-          capitalizeWords(deployment.flaggingRemarks),
+          capitalizeWords(pickup.flaggingRemarks),
           RIGHT,
           ry,
           FW,
@@ -1343,7 +1337,7 @@ function DeploymentDetailsModal({
   );
 }
 
-// ── DARK TIMELINE HELPERS (left panel / desktop) ───────────────────────────────
+// ── DARK TIMELINE HELPERS ──────────────────────────────────────────────────────
 
 const DarkTimelineLabel = ({ isActive, label }) => (
   <div className="flex gap-4">
@@ -1463,7 +1457,7 @@ const TabButton = ({ label, tab, activeTab, setActiveTab }) => (
   </button>
 );
 
-// ── TIMELINE TAB (small / medium screens) ─────────────────────────────────────
+// ── TIMELINE TAB ──────────────────────────────────────────────────────────────
 
 const TimelineTab = ({
   isEditMode,
@@ -1825,7 +1819,6 @@ const DeploymentInfoTab = ({
       ? editForm?.driverId?._id
       : editForm?.driverId;
 
-  // Normalise contacts: support both new array and legacy single-field schema
   const receivingContacts =
     editForm?.receivingContacts && editForm.receivingContacts.length > 0
       ? editForm.receivingContacts
@@ -2078,7 +2071,6 @@ const DeploymentInfoTab = ({
                   key={index}
                   className="grid grid-cols-2 gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/60 relative"
                 >
-                  {/* Contact label + remove */}
                   <div className="col-span-2 flex items-center justify-between mb-0.5">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                       Contact #{index + 1}
@@ -2100,7 +2092,6 @@ const DeploymentInfoTab = ({
                     )}
                   </div>
 
-                  {/* Contact Person */}
                   <div className="flex flex-col gap-1.5">
                     {isEditMode ? (
                       <div className="flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm">
@@ -2125,7 +2116,6 @@ const DeploymentInfoTab = ({
                     )}
                   </div>
 
-                  {/* Contact Number */}
                   <div className="flex flex-col gap-1.5">
                     {isEditMode ? (
                       <div className="flex items-center bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus-within:border-primaryColor focus-within:ring-2 focus-within:ring-primaryColor/20 transition-all shadow-sm">
@@ -2175,78 +2165,6 @@ const DeploymentInfoTab = ({
           </InfoField>
 
           <div className="grid grid-cols-2 gap-4">
-            <InfoField label="Territory">
-              {isEditMode ? (
-                <SelectWrapper
-                  name="territory"
-                  value={editForm?.territory}
-                  onChange={handleChange}
-                >
-                  {settings.deployments.territory.map((item, i) => (
-                    <option key={i} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </SelectWrapper>
-              ) : (
-                <InfoValue className="capitalize">
-                  {editForm?.territory}
-                </InfoValue>
-              )}
-            </InfoField>
-            <InfoField label="Hybrid">
-              {isEditMode ? (
-                <SelectWrapper
-                  name="hybrid"
-                  value={editForm?.hybrid}
-                  onChange={handleChange}
-                >
-                  {settings.deployments.hybrid.map((item, i) => (
-                    <option key={i} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </SelectWrapper>
-              ) : (
-                <InfoValue className="capitalize">{editForm?.hybrid}</InfoValue>
-              )}
-            </InfoField>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <InfoField label="Flagging">
-              {isEditMode ? (
-                <SelectWrapper
-                  name="flagging"
-                  value={editForm?.flagging}
-                  onChange={handleChange}
-                >
-                  {settings.deployments.flagging.map((item, i) => (
-                    <option key={i} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </SelectWrapper>
-              ) : (
-                <InfoValue className="capitalize">
-                  {editForm?.flagging || "N/A"}
-                </InfoValue>
-              )}
-            </InfoField>
-            <InputField
-              label="Flagging Remarks"
-              type="text"
-              name="flaggingRemarks"
-              placeholder=""
-              maxLength={50}
-              value={editForm?.flaggingRemarks}
-              disabled={!isEditMode}
-              onChange={handleChange}
-              isRequired={false}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <InfoField label="Status">
               {isEditMode ? (
                 <SelectWrapper
@@ -2292,6 +2210,7 @@ const PickupSitesTab = ({
   handlePickupNumericChange,
   removePickupStop,
 }) => {
+  const { settings } = useSettingsContext();
   const pickups = editForm?.pickups || [];
   const lastStopRef = useRef(null);
   const prevLengthRef = useRef(pickups.length);
@@ -2348,6 +2267,7 @@ const PickupSitesTab = ({
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
+              {/* ── Read-only pickup site info ── */}
               <InputField
                 label="Pick-up Site"
                 type="text"
@@ -2404,6 +2324,8 @@ const PickupSitesTab = ({
                 onChange={() => {}}
                 isRequired={false}
               />
+
+              {/* ── Sacks Count ── */}
               {(() => {
                 return (
                   <div className="flex flex-col gap-1.5">
@@ -2438,6 +2360,7 @@ const PickupSitesTab = ({
                 );
               })()}
 
+              {/* ── Weight fields ── */}
               <div className="col-span-full grid grid-cols-3 gap-x-4 gap-y-3">
                 {[
                   {
@@ -2482,6 +2405,44 @@ const PickupSitesTab = ({
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* ── Hybrid, Territory, Flagging ── */}
+              <div className="col-span-full">
+                <div className="border-t border-gray-200 pt-3 mt-1">
+                  <p className="text-xxs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    Classification
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
+                    {/* Hybrid */}
+                    <InfoField label="Hybrid">
+                      <InfoValue className="capitalize">
+                        {pickup.hybrid || "—"}
+                      </InfoValue>
+                    </InfoField>
+
+                    {/* Territory */}
+                    <InfoField label="Territory">
+                      <InfoValue className="capitalize">
+                        {pickup.territory || "—"}
+                      </InfoValue>
+                    </InfoField>
+
+                    {/* Flagging */}
+                    <InfoField label="Flagging">
+                      <InfoValue className="uppercase">
+                        {pickup.flagging || "—"}
+                      </InfoValue>
+                    </InfoField>
+
+                    {/* Flagging Remarks — spans full width */}
+                    <div className="col-span-full sm:col-span-2 lg:col-span-3">
+                      <InfoField label="Flagging Remarks">
+                        <InfoValue>{pickup.flaggingRemarks || "—"}</InfoValue>
+                      </InfoField>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

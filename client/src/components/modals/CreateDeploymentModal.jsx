@@ -34,10 +34,6 @@ const defaultValue = {
   helperCount: 0,
   destination: "",
   receivingContacts: [{ ...defaultContact }],
-  hybrid: "",
-  territory: "",
-  flagging: "",
-  flaggingRemarks: "",
   totalSacksCount: 0,
   totalWeightKg: 0,
   departed: "",
@@ -301,7 +297,7 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
   };
 
   const removeContact = (index) => {
-    if (formData.receivingContacts.length <= 1) return; // keep at least one
+    if (formData.receivingContacts.length <= 1) return;
     setFormData((prev) => ({
       ...prev,
       receivingContacts: prev.receivingContacts.filter((_, i) => i !== index),
@@ -346,7 +342,6 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
     const { pickups, ...rest } = formData;
     const payload = {
       ...rest,
-      // helperCount must be a string to pass the server regex /^\d+$/
       helperCount: String(rest.helperCount ?? 0),
       pickupFieldIds: selectedFieldIds,
     };
@@ -680,76 +675,6 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
                         name="destination"
                         value={formData.destination}
                       />
-
-                      {/* Desktop (sm+): 5-col layout */}
-                      <div className="hidden sm:grid sm:grid-cols-2 gap-4">
-                        <SelectField
-                          label="Hybrid"
-                          name="hybrid"
-                          value={formData.hybrid}
-                          onChange={handleChange}
-                          options={settings.deployments.hybrid}
-                        />
-                        <SelectField
-                          label="Flagging"
-                          name="flagging"
-                          value={formData.flagging}
-                          onChange={handleChange}
-                          options={settings.deployments.flagging}
-                        />
-                        <SelectField
-                          label="Territory"
-                          name="territory"
-                          value={formData.territory}
-                          onChange={handleChange}
-                          options={settings.deployments.territory}
-                        />
-                        <InputField
-                          label="Flagging Remarks"
-                          type="text"
-                          name="flaggingRemarks"
-                          placeholder="Flagging Remarks"
-                          value={formData.flaggingRemarks}
-                          onChange={handleChange}
-                          isRequired={false}
-                        />
-                      </div>
-
-                      {/* Mobile: 2-col layout */}
-                      <div className="sm:hidden grid grid-cols-2 gap-3">
-                        <SelectField
-                          label="Hybrid"
-                          name="hybrid"
-                          value={formData.hybrid}
-                          onChange={handleChange}
-                          options={settings.deployments.hybrid}
-                        />
-                        <SelectField
-                          label="Territory"
-                          name="territory"
-                          value={formData.territory}
-                          onChange={handleChange}
-                          options={settings.deployments.territory}
-                        />
-                        <SelectField
-                          label="Flagging"
-                          name="flagging"
-                          value={formData.flagging}
-                          onChange={handleChange}
-                          options={settings.deployments.flagging}
-                          mobileColSpan={2}
-                        />
-                        <InputField
-                          label="Flagging Remarks"
-                          type="text"
-                          name="flaggingRemarks"
-                          placeholder="Flagging Remarks"
-                          value={formData.flaggingRemarks}
-                          onChange={handleChange}
-                          isRequired={false}
-                          mobileColSpan={2}
-                        />
-                      </div>
                     </div>
                   </form>
                 </div>
@@ -900,7 +825,7 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
               </div>
 
               {/* ── ACTION BAR ── */}
-              <div className=" flex items-center gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+              <div className="flex items-center gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
                 <button
                   type="submit"
                   form="create-deployment-form"
