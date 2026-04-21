@@ -669,11 +669,13 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
                         </div>
                       </div>
 
-                      {/* Hidden destination field — set programmatically */}
-                      <input
-                        type="hidden"
+                      <SelectField
+                        label="Destination"
                         name="destination"
                         value={formData.destination}
+                        onChange={handleChange}
+                        options={settings.deployments.destination}
+                        isRequired={false}
                       />
                     </div>
                   </form>
