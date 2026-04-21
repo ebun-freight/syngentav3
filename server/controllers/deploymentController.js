@@ -527,20 +527,20 @@ const updateDeployment = async (req, res, next) => {
     if (!existingDeployment)
       return next(createError(404, "Deployment not found"));
 
-    if (departed !== undefined && departed !== null && departed.trim() !== "") {
-      const currentIsTMOPrinted =
-        isTMOPrinted !== undefined
-          ? isTMOPrinted
-          : existingDeployment.isTMOPrinted;
-      if (!currentIsTMOPrinted) {
-        return next(
-          createError(
-            400,
-            "TMO must be exported/printed before updating departure time",
-          ),
-        );
-      }
-    }
+    // if (departed !== undefined && departed !== null && departed.trim() !== "") {
+    //   const currentIsTMOPrinted =
+    //     isTMOPrinted !== undefined
+    //       ? isTMOPrinted
+    //       : existingDeployment.isTMOPrinted;
+    //   if (!currentIsTMOPrinted) {
+    //     return next(
+    //       createError(
+    //         400,
+    //         "TMO must be exported/printed before updating departure time",
+    //       ),
+    //     );
+    //   }
+    // }
 
     const deploymentCode = existingDeployment.deploymentCode;
     const extractedTruckId = truckId?._id || truckId;

@@ -66,7 +66,31 @@ const deploymentSchema = new mongoose.Schema(
         },
       },
     ],
-
+    hybrid: {
+      type: String,
+      required: [true, "Hybrid is required"],
+      trim: true,
+      maxlength: [100, "Hybrid cannot exceed 100 characters"],
+    },
+    territory: {
+      type: String,
+      required: [true, "Territory is required"],
+      trim: true,
+      maxlength: [100, "Territory cannot exceed 100 characters"],
+    },
+    flagging: {
+      type: String,
+      required: [true, "Flagging is required"],
+      trim: true,
+      uppercase: true,
+      maxlength: [50, "Flagging cannot exceed 50 characters"],
+    },
+    flaggingRemarks: {
+      type: String,
+      trim: true,
+      maxlength: [300, "Flagging remarks cannot exceed 300 characters"],
+      default: "",
+    },
     totalSacksCount: {
       type: Number,
       default: 0,
