@@ -24,6 +24,13 @@ const STATUS_CONFIG = {
   completed: { label: "Completed", className: "bg-blue-50 text-blue-500" },
 };
 
+const FLAGGING_CONFIG = {
+  red: { label: "red", className: "bg-red-50 text-red-500" },
+  green: { label: "green", className: "bg-emerald-50 text-emerald-500" },
+  yellow: { label: "yellow", className: "bg-yellow-50 text-yellow-500" },
+  orange: { label: "orange", className: "bg-orange-50 text-orange-500" },
+};
+
 const formatISO = (iso) =>
   iso
     ? DateTime.fromISO(iso)
@@ -289,10 +296,12 @@ function PickupFields() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wide">
                     <td>{total}</td>
+                    <td>Scheduled Pickup Time</td>
                     <td>Pick-up Site</td>
                     <td>Municipality</td>
-                    <td>Contact Person</td>
-                    <td>Scheduled Pickup Time</td>
+                    <td>Territory</td>
+                    <td>Hybrid</td>
+                    <td>Flagging</td>
                     <td>Est. Weight (kg)</td>
                     <td>Status</td>
                     <td>Deployment</td>
@@ -313,6 +322,12 @@ function PickupFields() {
                         </td>
 
                         <td>
+                          <span className="text-nowrap text-xxs sm:text-xs">
+                            {formatISO(stop.scheduledPickupTime)}
+                          </span>
+                        </td>
+
+                        <td>
                           <p className="text-nowrap">{stop.pickupSite}</p>
                         </td>
 
@@ -321,20 +336,38 @@ function PickupFields() {
                         </td>
 
                         <td>
-                          <div className="space-y-0.5">
-                            <p className="text-nowrap">
-                              {stop.fieldContactPerson}
-                            </p>
-                            <p className="text-gray-400 font-light text-xxs text-nowrap">
-                              {stop.fieldContactPersonNo}
-                            </p>
-                          </div>
+                          <p className="text-nowrap">{stop.territory || "—"}</p>
                         </td>
 
                         <td>
-                          <span className="text-nowrap text-xxs sm:text-xs">
-                            {formatISO(stop.scheduledPickupTime)}
-                          </span>
+                          <p className="text-nowrap">{stop.hybrid || "—"}</p>
+                        </td>
+
+                        <td>
+                          {stop.flagging ? (
+                            <div
+                              className={clsx(
+                                "px-2.5 py-1 rounded-full w-fit text-xxs sm:text-xs text-nowrap",
+                                (
+                                  FLAGGING_CONFIG[stop.flagging] || {
+                                    className: "bg-gray-100 text-gray-500",
+                                  }
+                                ).className,
+                              )}
+                            >
+                              {
+                                (
+                                  FLAGGING_CONFIG[stop.flagging] || {
+                                    label: stop.flagging,
+                                  }
+                                ).label
+                              }
+                            </div>
+                          ) : (
+                            <span className="italic text-gray-400 font-light text-xxs sm:text-xs">
+                              —
+                            </span>
+                          )}
                         </td>
 
                         <td>
