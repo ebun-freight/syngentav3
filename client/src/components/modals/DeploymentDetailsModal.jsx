@@ -2026,7 +2026,7 @@ const DeploymentInfoTab = ({
               onChange={handleChange}
             />
             <InputField
-              label="Load Weight (kg)"
+              label="Total Load Wt. (kg)"
               type="number"
               name="totalWeightKg"
               value={
