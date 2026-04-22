@@ -31,13 +31,31 @@ const STATUS_CONFIG = {
   },
 };
 
+const toForm = (f) => ({
+  pickupSite: f?.pickupSite ?? "",
+  municipality: f?.municipality ?? "",
+  fieldContactPerson: f?.fieldContactPerson ?? "",
+  fieldContactPersonNo: f?.fieldContactPersonNo ?? "",
+  scheduledPickupTime: f?.scheduledPickupTime ?? "",
+  estimatedWeightKg: f?.estimatedWeightKg ?? "",
+  hybrid: f?.hybrid ?? "",
+  territory: f?.territory ?? "",
+  flagging: f?.flagging ?? "",
+  flaggingRemarks: f?.flaggingRemarks ?? "",
+  fieldWeightKg: f?.fieldWeightKg ?? "",
+  plantWeightKg: f?.plantWeightKg ?? "",
+  sacksCount: f?.sacksCount ?? "",
+  pickupIn: f?.pickupIn ?? "",
+  pickupOut: f?.pickupOut ?? "",
+});
+
 /* ── SelectField ── */
 const SelectField = ({
   label,
   name,
   value,
   onChange,
-  options,
+  options = [],
   isRequired = false,
   disabled = false,
 }) => (
@@ -58,7 +76,7 @@ const SelectField = ({
         onChange={onChange}
         required={isRequired}
         disabled={disabled}
-        className="w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none disabled:cursor-not-allowed"
+        className="w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize disabled:cursor-not-allowed"
       >
         <option value="">—</option>
         {options.map((item, index) => (
@@ -162,25 +180,8 @@ function PickupFieldDetailsModal({
   const { updatePickupFieldFunction, isLoading } = useUpdatePickupField();
 
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editForm, setEditForm] = useState({});
-
-  const toForm = (f) => ({
-    pickupSite: f?.pickupSite ?? "",
-    municipality: f?.municipality ?? "",
-    fieldContactPerson: f?.fieldContactPerson ?? "",
-    fieldContactPersonNo: f?.fieldContactPersonNo ?? "",
-    scheduledPickupTime: f?.scheduledPickupTime ?? "",
-    estimatedWeightKg: f?.estimatedWeightKg ?? "",
-    hybrid: f?.hybrid ?? "",
-    territory: f?.territory ?? "",
-    flagging: f?.flagging ?? "",
-    flaggingRemarks: f?.flaggingRemarks ?? "",
-    fieldWeightKg: f?.fieldWeightKg ?? "",
-    plantWeightKg: f?.plantWeightKg ?? "",
-    sacksCount: f?.sacksCount ?? "",
-    pickupIn: f?.pickupIn ?? "",
-    pickupOut: f?.pickupOut ?? "",
-  });
+  // ✅ Fix: initialize with toForm(null) so all keys are "" instead of undefined
+  const [editForm, setEditForm] = useState(toForm(null));
 
   useEffect(() => {
     if (isOpen && field) {
@@ -219,7 +220,6 @@ function PickupFieldDetailsModal({
     onClose();
   };
 
-  // Derived — safe with optional chaining since field may be null while dialog is closing
   const statusCfg = STATUS_CONFIG[field?.status] ?? STATUS_CONFIG.not_done;
   const hasLinked = !!field?.deploymentId;
   const deploymentCode = field?.deploymentId?.deploymentCode ?? null;
@@ -291,7 +291,7 @@ function PickupFieldDetailsModal({
                           <InputField
                             label="Pick-up Site"
                             name="pickupSite"
-                            value={editForm.pickupSite ?? ""}
+                            value={editForm.pickupSite}
                             onChange={handleChange}
                             placeholder="Pick-up Site"
                             disabled={!canEdit}
@@ -299,7 +299,7 @@ function PickupFieldDetailsModal({
                           <InputField
                             label="Municipality"
                             name="municipality"
-                            value={editForm.municipality ?? ""}
+                            value={editForm.municipality}
                             onChange={handleChange}
                             placeholder="Municipality"
                             disabled={!canEdit}
@@ -308,7 +308,7 @@ function PickupFieldDetailsModal({
                             label="Scheduled Pickup Time"
                             type="datetime-local"
                             name="scheduledPickupTime"
-                            value={editForm.scheduledPickupTime ?? ""}
+                            value={editForm.scheduledPickupTime}
                             onChange={handleChange}
                             isRequired={false}
                             disabled={!canEdit}
@@ -316,7 +316,7 @@ function PickupFieldDetailsModal({
                           <InputField
                             label="Field Contact Person"
                             name="fieldContactPerson"
-                            value={editForm.fieldContactPerson ?? ""}
+                            value={editForm.fieldContactPerson}
                             onChange={handleChange}
                             placeholder="Field Contact Person"
                             disabled={!canEdit}
@@ -326,7 +326,7 @@ function PickupFieldDetailsModal({
                             label="Field Contact No."
                             name="fieldContactPersonNo"
                             type="tel"
-                            value={editForm.fieldContactPersonNo ?? ""}
+                            value={editForm.fieldContactPersonNo}
                             onChange={handleChange}
                             placeholder="Contact Number"
                             maxLength={11}
@@ -336,7 +336,7 @@ function PickupFieldDetailsModal({
                           <NumericField
                             label="Est. Weight (kg)"
                             isRequired
-                            value={editForm.estimatedWeightKg ?? ""}
+                            value={editForm.estimatedWeightKg}
                             onValueChange={(vals) =>
                               setEditForm((prev) => ({
                                 ...prev,
@@ -350,32 +350,32 @@ function PickupFieldDetailsModal({
                           <SelectField
                             label="Hybrid"
                             name="hybrid"
-                            value={editForm.hybrid ?? ""}
+                            value={editForm.hybrid}
                             onChange={handleChange}
-                            options={settings.deployments.hybrid}
+                            options={settings?.deployments?.hybrid ?? []}
                             disabled={!canEdit}
                           />
                           <SelectField
                             label="Territory"
                             name="territory"
-                            value={editForm.territory ?? ""}
+                            value={editForm.territory}
                             onChange={handleChange}
-                            options={settings.deployments.territory}
+                            options={settings?.deployments?.territory ?? []}
                             disabled={!canEdit}
                           />
                           <SelectField
                             label="Flagging"
                             name="flagging"
-                            value={editForm.flagging ?? ""}
+                            value={editForm.flagging}
                             onChange={handleChange}
-                            options={settings.deployments.flagging}
+                            options={settings?.deployments?.flagging ?? []}
                             disabled={!canEdit}
                           />
                           <div className="col-span-1 sm:col-span-3">
                             <InputField
                               label="Flagging Remarks"
                               name="flaggingRemarks"
-                              value={editForm.flaggingRemarks ?? ""}
+                              value={editForm.flaggingRemarks}
                               onChange={handleChange}
                               placeholder="Flagging Remarks"
                               isRequired={false}
@@ -416,7 +416,7 @@ function PickupFieldDetailsModal({
                             label="Pick-up In"
                             type="datetime-local"
                             name="pickupIn"
-                            value={editForm.pickupIn ?? ""}
+                            value={editForm.pickupIn}
                             onChange={handleChange}
                             isRequired={false}
                             disabled={!canEdit}
@@ -425,7 +425,7 @@ function PickupFieldDetailsModal({
                             label="Pick-up Out"
                             type="datetime-local"
                             name="pickupOut"
-                            value={editForm.pickupOut ?? ""}
+                            value={editForm.pickupOut}
                             onChange={handleChange}
                             isRequired={false}
                             disabled={!canEdit}
@@ -433,7 +433,7 @@ function PickupFieldDetailsModal({
                           <div className="grid grid-cols-3 gap-4 col-span-full">
                             <NumericField
                               label="Field Weight (kg)"
-                              value={editForm.fieldWeightKg ?? ""}
+                              value={editForm.fieldWeightKg}
                               onValueChange={(vals) =>
                                 setEditForm((prev) => ({
                                   ...prev,
@@ -445,7 +445,7 @@ function PickupFieldDetailsModal({
                             />
                             <NumericField
                               label="Plant Weight (kg)"
-                              value={editForm.plantWeightKg ?? ""}
+                              value={editForm.plantWeightKg}
                               onValueChange={(vals) =>
                                 setEditForm((prev) => ({
                                   ...prev,
@@ -457,7 +457,7 @@ function PickupFieldDetailsModal({
                             />
                             <NumericField
                               label="Sacks Count"
-                              value={editForm.sacksCount ?? ""}
+                              value={editForm.sacksCount}
                               thousandSeparator={false}
                               decimalScale={0}
                               onValueChange={(vals) =>
