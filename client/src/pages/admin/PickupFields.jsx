@@ -25,11 +25,14 @@ const STATUS_CONFIG = {
 };
 
 const FLAGGING_CONFIG = {
-  red: { label: "red", className: "bg-red-50 text-red-500" },
-  green: { label: "green", className: "bg-emerald-50 text-emerald-500" },
-  yellow: { label: "yellow", className: "bg-yellow-50 text-yellow-500" },
-  orange: { label: "orange", className: "bg-orange-50 text-orange-500" },
+  green: "bg-emerald-50 text-emerald-500",
+  red: "bg-red-50 text-red-500",
+  yellow: "bg-yellow-50 text-yellow-600",
+  orange: "bg-orange-50 text-orange-500",
 };
+
+const getFlaggingClass = (value) =>
+  FLAGGING_CONFIG[value?.toLowerCase()] ?? "bg-gray-100 text-gray-500";
 
 const formatISO = (iso) =>
   iso
@@ -347,21 +350,11 @@ function PickupFields() {
                           {stop.flagging ? (
                             <div
                               className={clsx(
-                                "px-2.5 py-1 rounded-full w-fit text-xxs sm:text-xs text-nowrap",
-                                (
-                                  FLAGGING_CONFIG[stop.flagging] || {
-                                    className: "bg-gray-100 text-gray-500",
-                                  }
-                                ).className,
+                                "px-2.5 py-1 rounded-full w-fit text-xxs sm:text-xs text-nowrap capitalize",
+                                getFlaggingClass(stop.flagging),
                               )}
                             >
-                              {
-                                (
-                                  FLAGGING_CONFIG[stop.flagging] || {
-                                    label: stop.flagging,
-                                  }
-                                ).label
-                              }
+                              {stop.flagging}
                             </div>
                           ) : (
                             <span className="italic text-gray-400 font-light text-xxs sm:text-xs">

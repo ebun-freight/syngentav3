@@ -40,7 +40,7 @@ const toForm = (f) => ({
   estimatedWeightKg: f?.estimatedWeightKg ?? "",
   hybrid: f?.hybrid ?? "",
   territory: f?.territory ?? "",
-  flagging: f?.flagging ?? "",
+  flagging: f?.flagging?.toLowerCase() ?? "",
   flaggingRemarks: f?.flaggingRemarks ?? "",
   fieldWeightKg: f?.fieldWeightKg ?? "",
   plantWeightKg: f?.plantWeightKg ?? "",
@@ -80,7 +80,7 @@ const SelectField = ({
       >
         <option value="">—</option>
         {options.map((item, index) => (
-          <option key={index} value={item}>
+          <option key={index} value={item.toLowerCase()}>
             {item}
           </option>
         ))}
@@ -180,7 +180,6 @@ function PickupFieldDetailsModal({
   const { updatePickupFieldFunction, isLoading } = useUpdatePickupField();
 
   const [isEditMode, setIsEditMode] = useState(false);
-  // ✅ Fix: initialize with toForm(null) so all keys are "" instead of undefined
   const [editForm, setEditForm] = useState(toForm(null));
 
   useEffect(() => {
@@ -190,9 +189,13 @@ function PickupFieldDetailsModal({
     }
   }, [isOpen, field]);
 
+  // ✅ Lowercase flagging at the source so it always saves correctly
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setEditForm((prev) => ({ ...prev, [name]: value }));
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: name === "flagging" ? value.toLowerCase() : value,
+    }));
   };
 
   const handleCancelEdit = () => {
