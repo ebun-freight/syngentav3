@@ -158,10 +158,7 @@ function CreateStopModal({ isOpen, onClose, onCreate }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "flagging" ? value.toLowerCase() : value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {

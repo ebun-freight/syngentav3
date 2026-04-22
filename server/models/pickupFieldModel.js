@@ -83,7 +83,7 @@ const pickupFieldSchema = new mongoose.Schema(
     flagging: {
       type: String,
       trim: true,
-      uppercase: true,
+      lowercase: true,
       maxlength: [50, "Flagging cannot exceed 50 characters"],
     },
     flaggingRemarks: {

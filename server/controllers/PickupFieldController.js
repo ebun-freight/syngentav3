@@ -43,7 +43,7 @@ const createPickupField = async (req, res, next) => {
       estimatedWeightKg,
       hybrid: hybrid || undefined,
       territory: territory || undefined,
-      flagging: flagging?.toLowerCase() || undefined,
+      flagging: flagging || undefined,
       flaggingRemarks: flaggingRemarks || undefined,
       status: "not_done",
       deploymentId: null,
@@ -183,10 +183,7 @@ const updatePickupField = async (req, res, next) => {
       hybrid: hybrid !== undefined ? hybrid || undefined : field.hybrid,
       territory:
         territory !== undefined ? territory || undefined : field.territory,
-      flagging:
-        flagging !== undefined
-          ? flagging?.toLowerCase() || undefined
-          : field.flagging,
+      flagging: flagging !== undefined ? flagging || undefined : field.flagging,
       flaggingRemarks:
         flaggingRemarks !== undefined ? flaggingRemarks : field.flaggingRemarks,
     });

@@ -40,7 +40,7 @@ const toForm = (f) => ({
   estimatedWeightKg: f?.estimatedWeightKg ?? "",
   hybrid: f?.hybrid ?? "",
   territory: f?.territory ?? "",
-  flagging: f?.flagging?.toLowerCase() ?? "",
+  flagging: f?.flagging ?? "",
   flaggingRemarks: f?.flaggingRemarks ?? "",
   fieldWeightKg: f?.fieldWeightKg ?? "",
   plantWeightKg: f?.plantWeightKg ?? "",
@@ -189,13 +189,9 @@ function PickupFieldDetailsModal({
     }
   }, [isOpen, field]);
 
-  // ✅ Lowercase flagging at the source so it always saves correctly
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setEditForm((prev) => ({
-      ...prev,
-      [name]: name === "flagging" ? value.toLowerCase() : value,
-    }));
+    setEditForm((prev) => ({ ...prev, [name]: value })); // remove the flagging condition
   };
 
   const handleCancelEdit = () => {
