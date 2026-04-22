@@ -64,7 +64,7 @@ function PickupFields() {
   const [tempStatusFilter, setTempStatusFilter] = useState("");
   const [page, setPage] = useState(1);
 
-  const PER_PAGE = 10;
+  const PER_PAGE = 200;
 
   const fetchFields = useCallback(async () => {
     const result = await getAllPickupFieldsFunction({
