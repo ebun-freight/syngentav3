@@ -179,13 +179,13 @@ const createDeployment = async (req, res, next) => {
 
     const truck = await Truck.findById(truckId);
     if (!truck) return next(createError(404, "Truck not found"));
-    if (truck.status === "deployed")
-      return next(createError(400, "Truck is already deployed"));
+    // if (truck.status === "deployed")
+    //   return next(createError(400, "Truck is already deployed"));
 
     const driver = await Driver.findById(driverId);
     if (!driver) return next(createError(404, "Driver not found"));
-    if (driver.status === "deployed")
-      return next(createError(400, "Driver is already deployed"));
+    // if (driver.status === "deployed")
+    //   return next(createError(400, "Driver is already deployed"));
 
     const newDeployment = await Deployment.create({
       pickups: pickupFieldIds,
