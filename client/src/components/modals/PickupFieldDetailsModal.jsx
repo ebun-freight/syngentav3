@@ -58,7 +58,7 @@ const SelectField = ({
         onChange={onChange}
         required={isRequired}
         disabled={disabled}
-        className="w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none capitalize disabled:cursor-not-allowed"
+        className="w-full appearance-none bg-transparent text-sm max-sm:text-xs text-gray-800 focus:outline-none disabled:cursor-not-allowed"
       >
         <option value="">—</option>
         {options.map((item, index) => (
