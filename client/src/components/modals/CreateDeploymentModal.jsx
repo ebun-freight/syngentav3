@@ -188,7 +188,7 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
 
   const truckOptions =
     trucks
-      ?.filter((truck) => truck.status === "available")
+      // ?.filter((truck) => truck.status === "available")
       .sort((a, b) => (a.tripCount || 0) - (b.tripCount || 0))
       .map((truck) => ({
         value: truck._id,
@@ -199,7 +199,7 @@ function CreateDeploymentModal({ isOpen, onClose, onCreate, trucks, drivers }) {
 
   const driverOptions =
     drivers
-      ?.filter((driver) => driver.status === "available")
+      // ?.filter((driver) => driver.status === "available")
       .sort((a, b) => (a.tripCount || 0) - (b.tripCount || 0))
       .map((driver) => ({
         value: driver._id,
