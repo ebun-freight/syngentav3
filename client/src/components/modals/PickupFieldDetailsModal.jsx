@@ -173,7 +173,7 @@ function PickupFieldDetailsModal({
     estimatedWeightKg: f?.estimatedWeightKg ?? "",
     hybrid: f?.hybrid ?? "",
     territory: f?.territory ?? "",
-    flagging: f?.flagging?.toLowerCase() ?? "",
+    flagging: f?.flagging ?? "",
     flaggingRemarks: f?.flaggingRemarks ?? "",
     fieldWeightKg: f?.fieldWeightKg ?? "",
     plantWeightKg: f?.plantWeightKg ?? "",
