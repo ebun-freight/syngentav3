@@ -2029,7 +2029,12 @@ const DeploymentInfoTab = ({
               label="Load Weight (kg)"
               type="number"
               name="totalWeightKg"
-              value={editForm?.totalWeightKg}
+              value={
+                (editForm?.pickups || []).reduce(
+                  (sum, p) => sum + (parseFloat(p.fieldWeightKg) || 0),
+                  0,
+                ) || 0
+              }
               disabled
               formatNumber
               thousandSeparator
